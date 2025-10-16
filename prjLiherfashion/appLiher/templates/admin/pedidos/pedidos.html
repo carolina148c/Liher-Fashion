@@ -1,0 +1,388 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pedidos</title>
+    <link rel="stylesheet" href="{% static 'css/pedidos.css' %}">
+</head>
+<body>
+    <div class="header">
+        <span class="menu-icon">☰</span>
+        <h1 class="title">PEDIDOS</h1>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card confirmed" onclick="filterByStatus('confirmado')">
+            <div class="stat-icon">
+                <input type="checkbox" checked disabled>
+            </div>
+            <div class="stat-info">
+                <div class="stat-number">15</div>
+                <div class="stat-label">pedidos confirmados</div>
+            </div>
+        </div>
+
+        <div class="stat-card active" onclick="filterByStatus('activo')">
+            <div class="stat-icon">
+                <input type="checkbox" checked disabled>
+            </div>
+            <div class="stat-info">
+                <div class="stat-number">47</div>
+                <div class="stat-label">pedidos activos</div>
+            </div>
+        </div>
+
+        <div class="stat-card pending" onclick="filterByStatus('pendiente')">
+            <div class="stat-icon">⚠</div>
+            <div class="stat-info">
+                <div class="stat-number">8</div>
+                <div class="stat-label">pedidos pendientes</div>
+            </div>
+        </div>
+
+        <div class="stat-card cancelled" onclick="filterByStatus('cancelado')">
+            <div class="stat-icon">✕</div>
+            <div class="stat-info">
+                <div class="stat-number">3</div>
+                <div class="stat-label">pedidos cancelados</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filters-section">
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label class="filter-label">Número del Pedido</label>
+                <input type="text" class="filter-input" placeholder="Ej: ORD-2024-001">
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Cliente</label>
+                <input type="text" class="filter-input" placeholder="Nombre o correo electrónico">
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Estado del Pedido</label>
+                <select class="filter-select">
+                    <option>Todos los estados</option>
+                    <option>Pendiente</option>
+                    <option>Confirmado</option>
+                    <option>En preparación</option>
+                    <option>Enviado</option>
+                    <option>Entregado</option>
+                    <option>Cancelado</option>
+                    <option>Devuelto</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Estado de Pago</label>
+                <select class="filter-select">
+                    <option>Todos los estados</option>
+                    <option>Pendiente</option>
+                    <option>Pagado</option>
+                    <option>Fallido</option>
+                    <option>Reembolsado</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Método de Pago</label>
+                <select class="filter-select">
+                    <option>Todos los métodos</option>
+                    <option>Transferencia</option>
+                    <option>Tarjeta</option>
+                    <option>Efectivo</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Fecha Desde</label>
+                <input type="date" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Fecha Hasta</label>
+                <input type="date" class="filter-input">
+            </div>
+        </div>
+
+        <div class="filter-buttons">
+            <button class="btn btn-primary" onclick="applyFilters()">🔍 Aplicar Filtros</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">🗑 Limpiar Filtros</button>
+        </div>
+    </div>
+
+    <div class="update-info">
+        Última actualización: hace 2 minutos
+    </div>
+
+    <div class="orders-section">
+        <div class="orders-header">
+            <h2 class="orders-title">Lista de Pedidos</h2>
+            <span class="orders-total">Total: <strong>73 pedidos</strong></span>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº Pedido</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Estado Pedido</th>
+                        <th>Método Pago</th>
+                        <th>Total</th>
+                        <th>Estado Pago</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="order-id">#ORD-001</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Manuela Vasquez Herrera</span>
+                                <span class="client-email">manuela.s29@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-pendiente">Pendiente</span></td>
+                        <td>Transferencia</td>
+                        <td>60.000</td>
+                        <td><span class="status-badge status-pendiente">Pendiente</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-002</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Santiago Meza Sanchez</span>
+                                <span class="client-email">santi.s25@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-confirmado">Confirmado</span></td>
+                        <td>Tarjeta</td>
+                        <td>130.000</td>
+                        <td><span class="status-badge status-pagado">Pagado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-003</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Ana Carolina Correa</span>
+                                <span class="client-email">anis2007@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-cancelado">Cancelado</span></td>
+                        <td>Transferencia</td>
+                        <td>30.000</td>
+                        <td><span class="status-badge status-reembolsado">Reembolsado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-004</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Simon Montoya Guzman</span>
+                                <span class="client-email">simon123@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-preparacion">En preparación</span></td>
+                        <td>Tarjeta</td>
+                        <td>58.000</td>
+                        <td><span class="status-badge status-pagado">Pagado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-005</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Ana Carolina Correa</span>
+                                <span class="client-email">anis2007@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-devuelto">Devuelto</span></td>
+                        <td>Transferencia</td>
+                        <td>30.000</td>
+                        <td><span class="status-badge status-reembolsado">Reembolsado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-006</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Lina Marcela Herrera</span>
+                                <span class="client-email">herreralina@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-enviado">Enviado</span></td>
+                        <td>Transferencia</td>
+                        <td>30.000</td>
+                        <td><span class="status-badge status-reembolsado">Reembolsado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-007</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Carlos Mario Vasquez</span>
+                                <span class="client-email">vatousrro@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-entregado">Entregado</span></td>
+                        <td>Transferencia</td>
+                        <td>30.000</td>
+                        <td><span class="status-badge status-reembolsado">Reembolsado</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="order-id">#ORD-008</td>
+                        <td>
+                            <div class="client-info">
+                                <span class="client-name">Dilan Yesid Rastrepo</span>
+                                <span class="client-email">rastrapa18@gmail.com</span>
+                            </div>
+                        </td>
+                        <td>07/06/2025</td>
+                        <td><span class="status-badge status-pendiente">Pendiente</span></td>
+                        <td>Transferencia</td>
+                        <td>30.000</td>
+                        <td><span class="status-badge status-fallido">Fallido</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn action-view">👁 Ver</button>
+                                <button class="action-btn action-edit">✏ Editar</button>
+                                <button class="action-btn action-cancel">✕ Cancelar</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <button class="pagination-btn">&lt; Anterior</button>
+            <button class="pagination-btn active">1</button>
+            <button class="pagination-btn">2</button>
+            <button class="pagination-btn">3</button>
+            <button class="pagination-btn">...</button>
+            <button class="pagination-btn">25</button>
+            <button class="pagination-btn">Siguiente &gt;</button>
+        </div>
+    </div>
+
+    <script>
+        // script.js
+
+function filterByStatus(status) {
+    console.log('Filtrando por estado:', status);
+    alert('Filtrando por estado: ' + status);
+    // Aquí iría la lógica para filtrar la tabla por estado
+    // Por ejemplo: filtrar las filas de la tabla según el estado seleccionado
+}
+
+function applyFilters() {
+    console.log('Aplicando filtros...');
+    
+    // Obtener valores de los filtros
+    const orderNumber = document.querySelector('.filter-input[placeholder*="ORD"]').value;
+    const client = document.querySelector('.filter-input[placeholder*="Nombre"]').value;
+    const orderStatus = document.querySelectorAll('.filter-select')[0].value;
+    const paymentStatus = document.querySelectorAll('.filter-select')[1].value;
+    const paymentMethod = document.querySelectorAll('.filter-select')[2].value;
+    
+    console.log('Filtros aplicados:', {
+        orderNumber,
+        client,
+        orderStatus,
+        paymentStatus,
+        paymentMethod
+    });
+    
+    alert('Aplicando filtros...');
+    
+    // Aquí iría la lógica para filtrar la tabla según todos los criterios
+}
+
+function clearFilters() {
+    // Limpiar todos los inputs de texto
+    document.querySelectorAll('.filter-input').forEach(function(input) {
+        input.value = '';
+    });
+    
+    // Resetear todos los selects a la primera opción
+    document.querySelectorAll('.filter-select').forEach(function(select) {
+        select.selectedIndex = 0;
+    });
+    
+    console.log('Filtros limpiados');
+    alert('Filtros limpiados');
+    
+    // Aquí iría la lógica para mostrar todos los pedidos sin filtros
+}
+
+// Event listeners adicionales para mejorar la experiencia
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Sistema de gestión de pedidos cargado');
+    
+    // Aquí puedes agregar más funcionalidad, como:
+    // - Cargar datos desde una API
+    // - Agregar validaciones a los formularios
+    // - Implementar la paginación real
+    // - Etc.
+});
+    </script>
+</body>
+</html>

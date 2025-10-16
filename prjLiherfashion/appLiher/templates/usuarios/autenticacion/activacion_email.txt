@@ -1,0 +1,33 @@
+{% if user.is_staff %}
+Asunto: Activa tu cuenta - Liher Fashion
+
+Hola {{ user.first_name|default:user.email }},
+
+¡Bienvenid@ al equipo Liher Fashion!
+
+Nos alegra mucho tenerte como parte del equipo de administración.  
+Para acceder al panel de control y empezar a gestionar la tienda, activa tu cuenta en el siguiente enlace:
+
+{{ activar_url }}
+
+Si no solicitaste esta cuenta, simplemente ignora este mensaje.
+
+— El equipo de Liher Fashion —
+Gracias por formar parte de Liher Fashion. Juntos haremos que cada día brille un poco más.
+{% else %}
+Asunto: Activa tu cuenta - Liher Fashion
+
+Hola {{ user.first_name|default:user.email }},
+
+¡Bienvenid@ a la familia Liher Fashion!
+
+Estamos emocionadas de tenerte con nosotras.  
+Para completar tu registro y empezar a disfrutar de las mejores prendas, activa tu cuenta en el siguiente enlace:
+
+{{ activar_url }}
+
+Si no solicitaste esta cuenta, simplemente ignora este mensaje.
+
+— El equipo de Liher Fashion —
+Gracias por elegir Liher Fashion. Estamos aquí para hacer que cada día sea una oportunidad de brillar.
+{% endif %}
