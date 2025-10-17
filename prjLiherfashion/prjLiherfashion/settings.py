@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'prjLiherfashion.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'liherfashion1',
+        'NAME': 'liherfashion',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
