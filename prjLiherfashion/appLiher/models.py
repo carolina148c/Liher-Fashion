@@ -311,3 +311,28 @@ class Identificacion(models.Model):
     class Meta:
         managed = False
         db_table = 'identificacion'
+
+
+
+
+
+    # ==========================
+    # PETICIONES A ADMIN
+    # ==========================
+
+
+class PeticionProducto(models.Model):
+    usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Inventario, on_delete=models.CASCADE)
+    cantidad_solicitada = models.PositiveIntegerField(default=1)
+    fecha_peticion = models.DateTimeField(auto_now_add=True)
+    atendida = models.BooleanField(default=False)
+
+    class Meta:
+        managed = True
+        db_table = 'peticiones_producto'
+        verbose_name = 'Petición de Producto'
+        verbose_name_plural = 'Peticiones de Productos'
+
+    def __str__(self):
+        return f"{self.usuario.email} - {self.producto.catalogo.nombre} - Cant: {self.cantidad_solicitada}"
