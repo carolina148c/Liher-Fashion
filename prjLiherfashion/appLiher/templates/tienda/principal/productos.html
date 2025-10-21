@@ -59,7 +59,6 @@
         <div class="filter-section rounded-3xl p-8 shadow-2xl mb-6">
             <h2 class="text-3xl font-bold mb-6">Filtrar Productos</h2>
             <form method="get" id="formFiltros" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                <!-- Categoría -->
                 <div class="space-y-2">
                     <label for="categoria" class="block text-sm font-semibold">Categoría</label>
                     <select id="categoria" name="categoria" class="w-full p-4 border rounded-xl">
@@ -71,7 +70,6 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- Color -->
                 <div class="space-y-2">
                     <label for="color" class="block text-sm font-semibold">Color</label>
                     <select id="color" name="color" class="w-full p-4 border rounded-xl">
@@ -83,7 +81,6 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- Talla -->
                 <div class="space-y-2">
                     <label for="talla" class="block text-sm font-semibold">Talla</label>
                     <select id="talla" name="talla" class="w-full p-4 border rounded-xl">
@@ -142,6 +139,12 @@
                             {% if producto.stock > 0 %}
                                 <button onclick="manejarCarrito({{ producto.idinventario }}, false)">Carrito</button>
                                 <button onclick="manejarCarrito({{ producto.idinventario }}, true)">Comprar</button>
+                            {% if producto.stock <= 10 %}
+                            <button class="btn-peticion bg-pink-500 text-white px-3 py-1 rounded mt-2" 
+                                    data-producto="{{ producto.idinventario }}">
+                                Solicitar más
+                            </button>
+                            {% endif %}
                             {% else %}
                                 <button disabled>No Disponible</button>
                             {% endif %}
@@ -155,9 +158,13 @@
                 </div>
             {% endfor %}
         </div>
+
+        <!-- MODAL PETICIÓN -->
+        {% include 'tienda/principal/modal_peticion.html' %}
+
     </main>
 
-<script>
+<>
     // CSRF helper
     function getCookie(name) {
         let cookieValue = null;
@@ -243,6 +250,131 @@
             })
             .catch(err => console.error("Error al filtrar productos:", err));
     });
+
+    // MODAL PETICIÓN
+    const modal = document.getElementById("modalPeticion");
+    const cerrarModal = document.getElementById("cerrarModal");
+    const enviarPeticion = document.getElementById("enviarPeticion");
+    const nombreProducto = document.getElementById("nombreProducto");
+    const cantidadPeticion = document.getElementById("cantidadPeticion");
+    let productoSeleccionadoId = null;
+
+    document.querySelectorAll(".btn-peticion").forEach(btn => {
+        btn.addEventListener("click", () => {
+            productoSeleccionadoId = btn.dataset.producto;
+            const card = btn.closest(".product-card");
+            const nombre = card.querySelector(".product-header h3").textContent;
+            nombreProducto.textContent = nombre;
+            cantidadPeticion.value = 1;
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        });
+    });
+
+    cerrarModal.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    });
+
+    enviarPeticion.addEventListener("click", () => {
+        const cantidad = parseInt(cantidadPeticion.value);
+        if(isNaN(cantidad) || cantidad <= 0){
+            alert("Ingresa una cantidad válida");
+            return;
+        }
+
+        fetch(`/peticiones/crear/${productoSeleccionadoId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ cantidad: cantidad })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        })
+        .catch(err => console.error(err));
+    });
+
+
+<script>
+// === Obtener token CSRF ===
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// === Variables del modal ===
+const modal = document.getElementById("modalPeticion");
+const cerrarModal = document.getElementById("cerrarModal");
+const enviarPeticion = document.getElementById("enviarPeticion");
+const nombreProducto = document.getElementById("nombreProducto");
+const cantidadPeticion = document.getElementById("cantidadPeticion");
+
+let productoSeleccionadoId = null;
+
+// === Abrir modal ===
+document.querySelectorAll(".btn-peticion").forEach(btn => {
+    btn.addEventListener("click", () => {
+        productoSeleccionadoId = btn.dataset.producto;
+        const nombre = btn.closest(".product-card")?.querySelector(".product-header h3")?.textContent || "Producto";
+        nombreProducto.textContent = nombre;
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    });
+});
+
+// === Cerrar modal ===
+cerrarModal.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+});
+
+// === Enviar petición ===
+enviarPeticion.addEventListener("click", () => {
+    const cantidad = parseInt(cantidadPeticion.value);
+    if (isNaN(cantidad) || cantidad <= 0) {
+        alert("Ingresa una cantidad válida.");
+        return;
+    }
+
+    fetch(`/peticiones/crear/${productoSeleccionadoId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ cantidad: cantidad }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert(data.message || "Ocurrió un error al enviar la petición.");
+        }
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    })
+    .catch(error => {
+        console.error("Error al enviar petición:", error);
+        alert("Error al enviar la petición.");
+    });
+});
 </script>
 
 </body>

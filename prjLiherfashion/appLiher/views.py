@@ -36,7 +36,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Sum, Q
 from django.views.decorators.csrf import csrf_exempt
-
+import json
 
 
 # ==========================================================
@@ -45,13 +45,12 @@ from django.views.decorators.csrf import csrf_exempt
 from .decorators import admin_required
 from .forms import (
     CustomPasswordResetForm, InventarioForm, UsuarioRegistroForm,
-    UsuarioUpdateForm, LoginForm
+    UsuarioUpdateForm
 )
 from .models import (
     Carrito, Catalogo, EntradaInventario, Inventario,
-    Categoria, Color, ItemCarrito, Talla, Usuarios
+    Categoria, Color, ItemCarrito, PeticionProducto, Talla, Usuarios
 )
-
 
 
 # ==========================================================
@@ -336,6 +335,110 @@ def registro_ajax(request):
 
 
 
+
+
+
+
+
+# ==========================================================
+#                   CONTRASEÑA
+# ==========================================================
+
+class CustomPasswordResetView(auth_views.PasswordResetView):
+    template_name = "usuarios/contrasena/restablecer_contrasena.html"
+    email_template_name = "usuarios/contrasena/correo_reset.html"
+    subject_template_name = "usuarios/contrasena/asunto_reset.txt"
+    success_url = reverse_lazy("correo_enviado")
+    form_class = CustomPasswordResetForm 
+    def form_valid(self, form):
+        email = form.cleaned_data.get("email")
+        user = Usuarios.objects.get(email=email)
+        enviar_correo_reset(user, self.request)
+        self.request.session["reset_email"] = email
+        return redirect(self.success_url)
+
+def enviar_correo_reset(user, request):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = request.build_absolute_uri(
+        reverse('nueva_contrasena', kwargs={'uidb64': uid, 'token': token})
+    )
+
+    subject = "Restablece tu contraseña en Liher Fashion"
+    text_content = f"Hola {user.email}, usa este enlace para restablecer tu contraseña: {reset_url}"
+    html_content = render_to_string(
+        "usuarios/contrasena/correo_reset.html",
+        {"user": user, "reset_url": reset_url}
+    )
+    email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
+class CorreoEnviadoView(auth_views.PasswordResetDoneView):
+    template_name = "usuarios/contrasena/correo_enviado.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["email"] = self.request.session.get("reset_email")
+        context["resend_seconds"] = 360
+        return context
+
+
+def reenviar_reset(request):
+    email = request.session.get("reset_email")
+    if not email:
+        messages.warning(
+            request,
+            "Tu sesión ha expirado. Ingresa nuevamente tu correo para reenviar el enlace."
+        )
+        return redirect("restablecer_contrasena")
+    form = PasswordResetForm(request.POST)
+    if form.is_valid():
+        form.save(
+            request=request,
+            email_template_name="usuarios/contrasena/correo_reset.html",
+            subject_template_name="usuarios/contrasena/asunto_reset.txt",
+            use_https=request.is_secure(),
+    )
+        messages.success(request, "El correo de restablecimiento se ha reenviado exitosamente.")
+    else:
+        messages.error(request, "No se pudo reenviar el correo. Verifica la dirección.")
+    return redirect("correo_enviado")
+
+
+class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = "usuarios/contrasena/nueva_contrasena.html"
+    success_url = reverse_lazy("contrasena_actualizada")
+    def form_valid(self, form):
+        user = form.user  # el usuario al que se le está cambiando la contraseña
+        new_password = form.cleaned_data.get("new_password1")
+        # Validar contraseña
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            form.add_error('new_password1', e)
+            return self.form_invalid(form)
+        if user.check_password(new_password):
+            form.add_error('new_password1', "La nueva contraseña no puede ser igual a la anterior.")
+            return self.form_invalid(form)
+        # Activar usuario si estaba inactivo
+        if not user.is_active:
+            user.is_active = True
+            user.save()
+        return super().form_valid(form)
+
+
+class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = "usuarios/contrasena/contrasena_actualizada.html"
+
+
+
+
+
+
+
+
+
 # ==========================================================
 #                   REGISTRO Y ACTIVACIÓN
 # ==========================================================
@@ -422,7 +525,6 @@ def validar_email_ajax(request):
     email = request.GET.get('email', '').strip()
     exists = Usuarios.objects.filter(email__iexact=email).exists()
     return JsonResponse({'exists': exists})
-
 
 
 
@@ -701,99 +803,6 @@ def listar_movimientos_producto(request, id_catalogo):
 
 
 
-# ==========================================================
-#                   CONTRASEÑA
-# ==========================================================
-
-class CustomPasswordResetView(auth_views.PasswordResetView):
-    template_name = "usuarios/contrasena/restablecer_contrasena.html"
-    email_template_name = "usuarios/contrasena/correo_reset.html"
-    subject_template_name = "usuarios/contrasena/asunto_reset.txt"
-    success_url = reverse_lazy("correo_enviado")
-    form_class = CustomPasswordResetForm 
-    def form_valid(self, form):
-        email = form.cleaned_data.get("email")
-        user = Usuarios.objects.get(email=email)
-        enviar_correo_reset(user, self.request)
-        self.request.session["reset_email"] = email
-        return redirect(self.success_url)
-
-def enviar_correo_reset(user, request):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-    reset_url = request.build_absolute_uri(
-        reverse('nueva_contrasena', kwargs={'uidb64': uid, 'token': token})
-    )
-
-    subject = "Restablece tu contraseña en Liher Fashion"
-    text_content = f"Hola {user.email}, usa este enlace para restablecer tu contraseña: {reset_url}"
-    html_content = render_to_string(
-        "usuarios/contrasena/correo_reset.html",
-        {"user": user, "reset_url": reset_url}
-    )
-    email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
-    email.attach_alternative(html_content, "text/html")
-    email.send()
-
-
-class CorreoEnviadoView(auth_views.PasswordResetDoneView):
-    template_name = "usuarios/contrasena/correo_enviado.html"
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["email"] = self.request.session.get("reset_email")
-        context["resend_seconds"] = 360
-        return context
-
-
-def reenviar_reset(request):
-    email = request.session.get("reset_email")
-    if not email:
-        messages.warning(
-            request,
-            "Tu sesión ha expirado. Ingresa nuevamente tu correo para reenviar el enlace."
-        )
-        return redirect("restablecer_contrasena")
-    form = PasswordResetForm(request.POST)
-    if form.is_valid():
-        form.save(
-            request=request,
-            email_template_name="usuarios/contrasena/correo_reset.html",
-            subject_template_name="usuarios/contrasena/asunto_reset.txt",
-            use_https=request.is_secure(),
-    )
-        messages.success(request, "El correo de restablecimiento se ha reenviado exitosamente.")
-    else:
-        messages.error(request, "No se pudo reenviar el correo. Verifica la dirección.")
-    return redirect("correo_enviado")
-
-
-class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
-    template_name = "usuarios/contrasena/nueva_contrasena.html"
-    success_url = reverse_lazy("contrasena_actualizada")
-    def form_valid(self, form):
-        user = form.user  # el usuario al que se le está cambiando la contraseña
-        new_password = form.cleaned_data.get("new_password1")
-        # Validar contraseña
-        try:
-            validate_password(new_password, user)
-        except ValidationError as e:
-            form.add_error('new_password1', e)
-            return self.form_invalid(form)
-        if user.check_password(new_password):
-            form.add_error('new_password1', "La nueva contraseña no puede ser igual a la anterior.")
-            return self.form_invalid(form)
-        # Activar usuario si estaba inactivo
-        if not user.is_active:
-            user.is_active = True
-            user.save()
-        return super().form_valid(form)
-
-
-class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
-    template_name = "usuarios/contrasena/contrasena_actualizada.html"
-
-
-
 
 
 # ==========================================================
@@ -894,3 +903,86 @@ def eliminar_del_carrito(request, item_id):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
+
+
+
+
+# ==========================================================
+#                   PETICIONES A ADMIN
+# ==========================================================
+
+
+@login_required
+@admin_required
+def listar_peticiones(request):
+    peticiones = PeticionProducto.objects.select_related('usuario', 'producto').order_by('-fecha_peticion')
+    return render(request, 'admin/peticiones/peticiones.html', {'peticiones': peticiones})
+
+
+
+@login_required
+@require_POST
+def crear_peticion(request, producto_id):
+    try:
+        producto = Inventario.objects.get(pk=producto_id)
+    except Inventario.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        cantidad = int(data.get('cantidad', 1))
+    except (ValueError, json.JSONDecodeError):
+        cantidad = 1
+
+    if cantidad <= 0:
+        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
+
+    # 🔹 Aseguramos que se guarde correctamente el usuario autenticado
+    from django.contrib.auth import get_user_model
+    Usuario = get_user_model()
+
+    try:
+        usuario = Usuario.objects.get(pk=request.user.pk)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Usuario no válido.'}, status=400)
+
+    peticion = PeticionProducto.objects.create(
+        usuario=usuario,
+        producto=producto,
+        cantidad_solicitada=cantidad
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
+    })
+
+
+
+@login_required
+@require_POST
+def crear_peticion(request, producto_id):
+    try:
+        producto = Inventario.objects.get(pk=producto_id)
+    except Inventario.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        cantidad = int(data.get('cantidad', 1))
+    except (ValueError, json.JSONDecodeError):
+        cantidad = 1
+
+    if cantidad <= 0:
+        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
+
+    peticion = PeticionProducto.objects.create(
+        usuario=request.user,
+        producto=producto,
+        cantidad_solicitada=cantidad
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
+    })

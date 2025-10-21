@@ -24,6 +24,23 @@ urlpatterns = [
     path('login-ajax/', views.login_ajax, name='login_ajax'),
     path('registro-ajax/', views.registro_ajax, name='registro_ajax'),
 
+
+    # REGISTRO Y ACTIVACIÓN
+    path('registro/', views.registro_usuario, name='registro_usuario'),
+    path('registro/revisar/<str:email>/', views.registro_revisar_email, name='registro_revisar_email'),
+    path('reenviar-activacion/<str:email>/', views.reenviar_activacion, name='reenviar_activacion'),
+    path('activar/<uidb64>/<token>/', views.activar_cuenta, name='activar_cuenta'),
+    path('ajax/validar-email/', views.validar_email_ajax, name='validar_email_ajax'),
+
+
+    # CONTRASEÑA 
+    path('restablecer-contrasena/', views.CustomPasswordResetView.as_view(), name='restablecer_contrasena'),
+    path('correo-enviado/', views.CorreoEnviadoView.as_view(), name='correo_enviado'),
+    path('reenviar-reset/', views.reenviar_reset, name='reenviar_reset'),
+    path('nueva-contrasena/<uidb64>/<token>/', views.CustomPasswordResetConfirmView.as_view(), name='nueva_contrasena'),
+    path('contrasena-actualizada/', views.CustomPasswordResetCompleteView.as_view(), name='contrasena_actualizada'),
+
+
     # ADMIN PERSONALIZADO 
     path('panel-admin/', views.panel_admin, name='panel_admin'),
 
@@ -48,24 +65,15 @@ urlpatterns = [
     path('catalogo/agregar/', views.agregar_producto, name='agregar_producto'),
     path('inventario/movimientos/<int:id_catalogo>/', views.listar_movimientos_producto, name='listar_movimientos_producto'),
 
-    # REGISTRO Y ACTIVACIÓN
-    path('registro/', views.registro_usuario, name='registro_usuario'),
-    path('registro/revisar/<str:email>/', views.registro_revisar_email, name='registro_revisar_email'),
-    path('reenviar-activacion/<str:email>/', views.reenviar_activacion, name='reenviar_activacion'),
-    path('activar/<uidb64>/<token>/', views.activar_cuenta, name='activar_cuenta'),
-    path('ajax/validar-email/', views.validar_email_ajax, name='validar_email_ajax'),
-
-    # CONTRASEÑA 
-    path('restablecer-contrasena/', views.CustomPasswordResetView.as_view(), name='restablecer_contrasena'),
-    path('correo-enviado/', views.CorreoEnviadoView.as_view(), name='correo_enviado'),
-    path('reenviar-reset/', views.reenviar_reset, name='reenviar_reset'),
-    path('nueva-contrasena/<uidb64>/<token>/', views.CustomPasswordResetConfirmView.as_view(), name='nueva_contrasena'),
-    path('contrasena-actualizada/', views.CustomPasswordResetCompleteView.as_view(), name='contrasena_actualizada'),
-
 
     # CARRITO
     path('anadir-al-carrito/<int:producto_id>/', views.anadir_al_carrito, name='anadir_al_carrito'),
     path('carrito/', views.carrito, name='carrito'),
     path('carrito/actualizar/<int:item_id>/', views.actualizar_carrito, name='actualizar_carrito'),
     path('carrito/eliminar/<int:item_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),
+
+
+    # PETICIONES A ADMIN
+    path('peticiones/crear/<int:producto_id>/', views.crear_peticion, name='crear_peticion'),
+    path('admin/peticiones/', views.listar_peticiones, name='listar_peticiones'),
 ]
