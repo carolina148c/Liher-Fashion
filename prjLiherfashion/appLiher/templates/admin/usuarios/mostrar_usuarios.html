@@ -151,9 +151,10 @@
     {% include 'admin/usuarios/crear_usuario.html' %}
 
     <script>
-    const REGISTRO_URL = "{% url 'registro_ajax' %}";
+        window.REGISTRO_URL = "{% url 'registro_ajax' %}";
     </script>
     <script src="{% static 'js/usuarios.js' %}"></script>
 
+  
 </body>
 </html>
