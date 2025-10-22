@@ -1,0 +1,151 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liher Fashion - Envío</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/vistaDatosEnvio.css' %}">
+<link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+</head>
+<body>
+    <header class="encabezado">
+        <div class="logo">
+            <img src="{% static 'Img/1.png' %}" alt="Logo de Liher Fashion">
+            <span>Liher Fashion</span>
+        </div>
+
+        <div class="progreso-compra">
+            <!-- Paso 1: Carrito -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-shopping-cart"></i></div>
+                <span>Carrito</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 2: Identificación -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-user"></i></div>
+                <span>Identificación</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 3: Entrega (activo) -->
+            <div class="paso-compra activo">
+                <div class="icono-paso"><i class="fas fa-truck"></i></div>
+                <span>Entrega</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 4: Pago -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-credit-card"></i></div>
+                <span>Pago</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <!-- Información de usuario -->
+        <section class="identificacion">
+            <div class="tarjeta-identificacion">
+                <h3><i class="fas fa-id-card"></i> Identificación</h3>
+                <p><strong>Correo:</strong> {{ user.email }}</p>
+                <p><strong>Nombre:</strong> {{ user.get_full_name }}</p>
+                <p><strong>Contacto:</strong> {{ user.telefono }}</p>
+                <a href="{% url 'editar_perfil' %}" class="boton-editar">Editar Perfil</a>
+            </div>
+        </section>
+
+        <!-- Formulario de envío -->
+        <section class="formulario-envio">
+            <h3>Envío</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="fila">
+                    <div class="campo">
+                        <label>*Departamento</label>
+                        <select name="departamento">
+                            <option>Seleccione una opción</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label>*Municipio o ciudad capital</label>
+                        <select name="ciudad">
+                            <option>Seleccione una opción</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="fila">
+                    <div class="campo">
+                        <label>*Tipo de dirección</label>
+                        <select name="tipo_direccion">
+                            <option>Seleccione una opción</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label>*Calle</label>
+                        <input type="text" name="calle" placeholder="Ej: 65">
+                    </div>
+                    <div class="campo">
+                        <label>*Letra</label>
+                        <input type="text" name="letra" placeholder="Ej: C">
+                    </div>
+                    <div class="campo">
+                        <label>*Número</label>
+                        <input type="text" name="numero" placeholder="113">
+                    </div>
+                    <div class="campo">
+                        <label>-</label>
+                        <input type="text" name="adicional" placeholder="50">
+                    </div>
+                </div>
+                <div class="fila">
+                    <div class="campo">
+                        <label>*Barrio</label>
+                        <input type="text" name="barrio" placeholder="Ej: Laureles">
+                    </div>
+                    <div class="campo">
+                        <label>Piso/Apartamento/Torre/Edificio</label>
+                        <input type="text" name="apartamento" placeholder="Ej: Edificio 3 Apto 103">
+                    </div>
+                    <div class="campo">
+                        <label>*Nombre de la persona que recibe</label>
+                        <input type="text" name="nombre_recibe" placeholder="Ej: Juliana">
+                    </div>
+                </div>
+
+                <div class="empresa-envio">
+                    <label>Seleccione empresa de envío</label>
+                    <div class="opciones-envio">
+                        <label><input type="radio" name="empresa" value="coordinadora" checked> Coordinadora: $12,000</label>
+                        <label><input type="radio" name="empresa" value="interrapidisimo"> Interrapidísimo: $15,000</label>
+                        <label><input type="radio" name="empresa" value="envia"> Transportadora Envia: $15,000</label>
+                    </div>
+                </div>
+
+                <p class="nota">Una vez realizado el pago no será posible modificar la dirección o punto de envío.</p>
+            </form>
+        </section>
+
+        <!-- Resumen de pago -->
+        <aside class="resumen-pago">
+            <div class="cupon">
+                <label>Ingresar cupón de descuento</label>
+                <input type="text" placeholder="Cupón de descuento">
+                <button>Aplicar</button>
+            </div>
+            <div class="detalles">
+                <p>Subtotal: <span>$175.000</span></p>
+                <p>Descuento en productos: <span>0</span></p>
+                <p>Costo de envío: <span>$12.000</span></p>
+                <p class="total">Total: <span>$187.000</span></p>
+            </div>
+            <a href="{% url 'pago' %}" class="boton-continuar">IR A PAGAR</a>
+            <a href="{% url 'carrito' %}" class="boton-continuar">VOLVER AL CARRITO</a>
+        </aside>
+    </main>
+</body>
+</html>
