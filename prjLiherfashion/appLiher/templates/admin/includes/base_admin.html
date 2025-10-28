@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    ...
+    <title>{% block title %}Panel Admin{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base_admin.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="contenedor">
+    {% include 'admin/includes/sidebar.html' %}
+    <div class="overlay" id="overlay"></div>
+
+    <main class="contenido-principal">
+        {% include 'admin/includes/header.html' %}
+        {% block main_content %}{% endblock %}
+    </main>
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

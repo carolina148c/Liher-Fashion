@@ -1,0 +1,15 @@
+<aside class="barra-lateral">
+  <div class="encabezado-barra">
+    Panel Administrador
+  </div>
+  <ul class="menu-barra">
+    <li><a href="{% url 'panel_admin' %}" class="{% if active == 'inicio' %}activo{% endif %}"><span class="icono icono-inicio"></span> Inicio</a></li>
+    <li><a href="{% url 'listar_productos_tabla' %}" class="{% if active == 'inventario' %}activo{% endif %}"><span class="icono icono-inventario"></span> Inventario</a></li>
+    <li><a href="{% url 'listar_productos_catalogo' %}" class="{% if active == 'catalogo' %}activo{% endif %}"><span class="icono icono-catalogo"></span> Catálogo</a></li>
+    <li><a href="{% url 'pedidos' %}" class="{% if active == 'pedidos' %}activo{% endif %}"><span class="icono icono-pedidos"></span> Pedidos</a></li>
+    <li><a href="{% url 'mostrar_usuarios' %}" class="{% if active == 'usuarios' %}activo{% endif %}"><span class="icono icono-usuarios"></span> Usuarios</a></li>
+    <li><a href="{% url 'devoluciones' %}" class="{% if active == 'devoluciones' %}activo{% endif %}"><span class="icono icono-devoluciones"></span> Devoluciones</a></li>
+    <li><a href="{% url 'pagina_principal' %}" class="{% if active == 'usuario' %}activo{% endif %}"><span class="icono icono-peticiones"></span> Vista del usuario</a></li>
+    <li><a href="{% url 'peticiones' %}" class="{% if active == 'peticiones' %}activo{% endif %}"><span class="icono icono-peticiones"></span> Peticiones</a></li>
+  </ul>
+</aside>
