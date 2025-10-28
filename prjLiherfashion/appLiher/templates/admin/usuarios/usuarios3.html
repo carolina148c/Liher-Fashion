@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Perfil de Usuario</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 20px;
+        }
+
+        .btn-demo {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background-color: #ff4081;
+            color: white;
+            padding: 20px 24px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 0;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
+            padding: 30px 24px;
+            color: white;
+            text-align: center;
+            position: relative;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 36px;
+            margin: 0 auto 16px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .profile-role {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        .profile-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4caf50;
+        }
+
+        .profile-content {
+            padding: 24px;
+        }
+
+        .info-section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            background-color: #f9f9f9;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #ff4081;
+        }
+
+        .info-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background-color: #f0f8ff;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .permission-check {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #ff4081;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-action {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ff4081, #e91e63);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .modal {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="btn-demo" onclick="openViewModal()">👁️ Ver Perfil de Ana García (Demo)</button>
+
+    <!-- Modal para ver perfil -->
+    <div id="viewUserModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>👤 Perfil de Usuario</h2>
+                <button class="modal-close" onclick="closeViewModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Header del perfil -->
+                <div class="profile-header">
+                    <div class="profile-avatar">AG</div>
+                    <div class="profile-name">Ana García López</div>
+                    <div class="profile-role">Administrador</div>
+                    <div class="profile-status">
+                        <div class="status-dot"></div>
+                        <span>Cuenta Activa</span>
+                    </div>
+                </div>
+
+                <!-- Contenido del perfil -->
+                <div class="profile-content">
+                    <!-- Información Personal -->
+                    <div class="info-section">
+                        <h3 class="section-title">📋 Información Personal</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Nombre Completo</div>
+                                <div class="info-value">Ana María García López</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Correo Electrónico</div>
+                                <div class="info-value">ana.garcia@empresa.com</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Teléfono</div>
+                                <div class="info-value">+57 301 234 5678</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Departamento</div>
+                                <div class="info-value">Tecnología</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Cargo</div>
+                                <div class="info-value">Gerente de Sistemas</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Fecha de Ingreso</div>
+                                <div class="info-value">15 de Marzo, 2024</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas -->
+                    <div class="info-section">
+                        <h3 class="section-title">📊 Estadísticas de Actividad</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">45</div>
+                                <div class="stat-label">Productos creados</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">12</div>
+                                <div class="stat-label">Usuarios gestionados</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">89</div>
+                                <div class="stat-label">Días activo</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">156</div>
+                                <div class="stat-label">Acciones totales</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permisos y Accesos -->
+                    <div class="info-section">
+                        <h3 class="section-title">🔐 Permisos y Accesos</h3>
+                        <div class="permissions-grid">
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Gestión de productos</span>
+                            </div>
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Administración de usuarios</span>
+                            </div>
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Acceso a reportes</span>
+                            </div>
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Configuración del sistema</span>
+                            </div>
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Gestión de inventario</span>
+                            </div>
+                            <div class="permission-item">
+                                <span class="permission-check">✓</span>
+                                <span>Bitácora de actividades</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actividad Reciente -->
+                    <div class="info-section">
+                        <h3 class="section-title">🕐 Actividad Reciente</h3>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">👤</div>
+                                <div class="activity-details">
+                                    <div class="activity-action">Creó el usuario "Carlos Rodríguez"</div>
+                                    <div class="activity-time">Hace 2 horas</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">📦</div>
+                                <div class="activity-details">
+                                    <div class="activity-action">Modificó el producto "Blusa estampada floral"</div>
+                                    <div class="activity-time">Hace 4 horas</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">🔐</div>
+                                <div class="activity-details">
+                                    <div class="activity-action">Inició sesión en el sistema</div>
+                                    <div class="activity-time">Hace 6 horas</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">📊</div>
+                                <div class="activity-details">
+                                    <div class="activity-action">Generó reporte de inventario</div>
+                                    <div class="activity-time">Ayer a las 3:45 PM</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">⚙️</div>
+                                <div class="activity-details">
+                                    <div class="activity-action">Actualizó configuración del sistema</div>
+                                    <div class="activity-time">Ayer a las 11:20 AM</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Seguridad -->
+                    <div class="info-section">
+                        <h3 class="section-title">🛡️ Información de Seguridad</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Último acceso</div>
+                                <div class="info-value">Hoy a las 8:30 AM</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">IP de acceso</div>
+                                <div class="info-value">192.168.1.105</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Dispositivo</div>
+                                <div class="info-value">Chrome en Windows 11</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Cambio de contraseña</div>
+                                <div class="info-value">Hace 15 días</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Intentos fallidos</div>
+                                <div class="info-value">0 en los últimos 30 días</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Estado de la cuenta</div>
+                                <div class="info-value">✅ Verificada y activa</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeViewModal()">Cerrar</button>
+                <button class="btn-edit">✏️ Editar Usuario</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openViewModal() {
+            document.getElementById('viewUserModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewUserModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('viewUserModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeViewModal();
+            }
+        });
+
+        // Cerrar modal con tecla Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeViewModal();
+            }
+        });
+    </script>
+</body>
+</html>

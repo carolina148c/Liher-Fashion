@@ -1,0 +1,36 @@
+# Entorno virtual
+envLiherFashion/
+venv/
+
+# Archivos sensibles
+.env
+
+# Archivos de base de datos local
+db.sqlite3
+
+# Archivos de caché y bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos temporales
+*.log
+*.pot
+*.pyc
+*.sqlite3
+*.mo
+*.log
+*.pot
+*.pyc
+*.pycache__
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de dependencias
+node_modules/
+
+# Migraciones si no quieres subirlas (opcional)
+# */migrations/

@@ -1,0 +1,43 @@
+        :root {
+            --primary-pink: #ff69b4;
+            --success-green: #28a745;
+        }
+
+        body {
+            background-color: #f4f7f6;
+        }
+        
+        .card-stock {
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .header-pink {
+            background: linear-gradient(135deg, var(--primary-pink), #e55aa0);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .btn-success-custom {
+            background-color: var(--success-green);
+            border-color: var(--success-green);
+            color: white;
+            font-weight: 600;
+            border-radius: 50px;
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+
+        .btn-success-custom:hover {
+            background-color: #218838;
+            border-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .form-control {
+            border-radius: 8px;
+        }

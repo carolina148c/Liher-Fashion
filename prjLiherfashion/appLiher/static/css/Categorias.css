@@ -1,0 +1,261 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #fefefe;
+}
+
+.encabezado {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 40px;
+    background-color: #fdf8f6;
+}
+
+.logo {
+    height: 80px;
+}
+
+.nombre-pagina {
+    font-family: cursive;
+    font-size: 2rem;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.acciones {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.acciones img {
+    height: 40px;
+}
+
+.acciones span {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.sesion, .carrito {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+/* BARRA DE NAVEGACIÓN */
+.barra {
+    background-color: #ffb6c1;
+}
+
+.menu-navegacion {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 15px 0;
+    list-style: none;
+}
+
+.menu-navegacion li {
+    position: relative;
+}
+
+.menu-navegacion a {
+    text-decoration: none;
+    font-weight: bold;
+    color: #000;
+    font-size: 16px;
+}
+
+.buscador {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 20px;
+    padding: 0 10px;
+}
+
+.buscador input {
+    border: none;
+    outline: none;
+    padding: 5px;
+}
+
+.buscador img {
+    height: 20px;
+    margin-left: 5px;
+}
+
+/* SUBMENÚ PRODUCTOS */
+.con-submenu:hover .submenu {
+    display: block;
+}
+
+.submenu {
+    display: none;
+    padding: 20px;
+    background: #fff;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1000px;
+    box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    z-index: 10;
+    border-radius: 10px;
+}
+
+.categorias-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+}
+
+.categoria {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.categoria span {
+    font-size: 35px;
+}
+
+.categoria p {
+    margin-top: 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 12px;
+}
+
+.filtro-section {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.filtro-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.filtro-item span {
+    font-size: 22px;
+}
+
+.filtro-item p {
+    margin-top: 6px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 12px;
+}
+
+/* CATEGORÍAS EN LA PÁGINA PRINCIPAL */
+.categorias-principales {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin: 40px auto;
+    max-width: 1200px;
+}
+
+.categoria-principal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    width: 150px;
+}
+
+.categoria-principal span {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.categoria-principal p {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* BARRA INFERIOR DE FILTROS */
+.filtro-productos {
+    margin: 40px auto;
+    width: 90%;
+    max-width: 1100px;
+    border: 2px solid #dcdcdc;
+    border-radius: 10px;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.filtro-productos div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.filtro-productos span {
+    font-size: 22px;
+}
+
+.filtro-productos p {
+    margin-top: 6px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 14px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+    .submenu {
+        width: 90%;
+    }
+}
+
+@media (max-width: 800px) {
+    .encabezado {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .nombre-pagina {
+        position: static;
+        transform: none;
+        margin: 10px 0;
+    }
+    
+    .menu-navegacion {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .submenu {
+        position: static;
+        transform: none;
+        width: 100%;
+    }
+    
+    .categorias-container {
+        gap: 20px;
+    }
+}

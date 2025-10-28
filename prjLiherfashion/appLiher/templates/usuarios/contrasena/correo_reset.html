@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Restablece tu contraseña - Liher Fashion</title>
+</head>
+<body style="margin:0; padding:0; background-color:#ffffff; font-family: Arial, Helvetica, sans-serif;">
+
+  <!-- Contenedor principal -->
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:20px 0; background-color:#ffffff;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 8px 25px rgba(0,0,0,0.15); border:1px solid #e0e0e0;">
+
+          <!-- Encabezado -->
+          <tr>
+            <td align="center" bgcolor="#f8a5c2" style="padding:40px 30px; color:#ffffff; font-size:28px; font-weight:bold;">
+              Liher Fashion
+            </td>
+          </tr>
+
+          <!-- Contenido -->
+          <tr>
+            <td style="padding:40px 35px; color:#333333; text-align:center;">
+              <h1 style="font-size:24px; margin-bottom:20px; color:#f8a5c2;">Restablece tu contraseña</h1>
+              <p style="font-size:16px; color:#555555; margin-bottom:20px;">
+                Hola <strong>{{ user.email }}</strong>,
+              </p>
+              <p style="font-size:16px; color:#555555; margin-bottom:30px;">
+                Hemos recibido una solicitud para restablecer tu contraseña en <strong>Liher Fashion</strong>. Haz clic en el siguiente botón para continuar:
+              </p>
+
+              <!-- Botón CTA -->
+              <table border="0" cellspacing="0" cellpadding="0" align="center" style="margin:30px auto;">
+                <tr>
+                  <td align="center" bgcolor="#f8a5c2" style="border-radius:8px;">
+                    <a href="{{ reset_url }}" target="_blank" 
+                    style="display:inline-block; padding:14px 28px; font-size:16px; color:#ffffff; text-decoration:none; font-weight:bold; text-transform:uppercase;">
+                    Restablecer contraseña
+                  </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size:14px; color:#888888; font-style:italic; margin-top:20px;">
+                Si no solicitaste este cambio, simplemente ignora este mensaje.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td bgcolor="#f9f9f9" style="padding:30px 20px; text-align:center; font-size:12px; color:#999999;">
+              <p style="margin-bottom:10px; font-weight:bold; color:#f8a5c2;">— El equipo de Liher Fashion —</p>
+              <p style="margin:0;">
+                Gracias por elegir Liher Fashion. Estamos aquí para hacer que cada día sea una oportunidad de brillar.
+              </p>
+
+              <!-- Íconos sociales -->
+              <p style="margin-top:15px;">
+                <a href="https://www.instagram.com" target="_blank" style="margin:0 8px; text-decoration:none;">
+                  <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" width="24" height="24" style="display:inline-block; border:none;">
+                </a>
+                <a href="https://www.facebook.com" target="_blank" style="margin:0 8px; text-decoration:none;">
+                  <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" width="24" height="24" style="display:inline-block; border:none;">
+                </a>
+                <a href="https://www.tiktok.com" target="_blank" style="margin:0 8px; text-decoration:none;">
+                  <img src="https://cdn-icons-png.flaticon.com/512/3046/3046120.png" alt="TikTok" width="24" height="24" style="display:inline-block; border:none;">
+                </a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

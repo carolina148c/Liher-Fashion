@@ -1,0 +1,155 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liher Fashion - Identificación</title>
+    <link rel="stylesheet" href="{% static 'css/identificacion.css' %}">
+    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+    <link rel="stylesheet" href="{% static 'css/vistaPago.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo">
+            <img src="{% static 'Img/1.png' %}" alt="Liher Fashion Logo">
+            <span>Liher Fashion</span>
+        </div>
+
+        <div class="progreso-compra">
+            <!-- Paso 1: Carrito -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-shopping-cart"></i></div>
+                <span>Carrito</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 2: Identificación -->
+            <div class="paso-compra activo">
+                <div class="icono-paso"><i class="fas fa-user"></i></div>
+                <span>Identificación</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 3: Entrega -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-truck"></i></div>
+                <span>Entrega</span>
+            </div>
+            <div class="linea-progreso"></div>
+
+            <!-- Paso 4: Pago -->
+            <div class="paso-compra">
+                <div class="icono-paso"><i class="fas fa-credit-card"></i></div>
+                <span>Pago</span>
+            </div>
+        </div>
+    </header>
+    
+    <div class="pink-banner"></div>
+
+    <div class="main-container">
+        <!-- Formulario de identificación -->
+        <div class="identification-container">
+            <h2 class="form-title">Identificación</h2>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Correo electrónico</label>
+                        <input type="email" name="email" class="form-control" placeholder="Correo electrónico" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Nombre</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Apellido</label>
+                        <input type="text" name="apellido" class="form-control" placeholder="Apellido" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Tipo de documento</label>
+                        <select name="tipo_documento" class="form-control form-select" required>
+                            <option selected disabled>Seleccionar</option>
+                            <option>DNI</option>
+                            <option>Pasaporte</option>
+                            <option>Tarjeta de identidad</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Número de documento</label>
+                        <input type="text" name="numero_documento" class="form-control" placeholder="Número documento" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Celular</label>
+                        <input type="tel" name="celular" class="form-control" placeholder="Celular" required>
+                    </div>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="terms" class="checkbox-input" required>
+                    <label for="terms" class="checkbox-label">
+                        Acepto <a href="#" class="terms-link">términos y condiciones</a> y <a href="#" class="terms-link">términos y condiciones marketplace</a>.
+                    </label>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="data-processing" class="checkbox-input" required>
+                    <label for="data-processing" class="checkbox-label">
+                        Autorizo tratamiento de mis datos personales
+                    </label>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="marketing" class="checkbox-input">
+                    <label for="marketing" class="checkbox-label">
+                        Autorizo tratamiento de mis datos para el envío de publicidad
+                    </label>
+                </div>
+            </form>
+        </div>
+
+        <!-- Resumen de compra -->
+        <div class="summary-container">
+            <div class="cart-summary-box">
+                <h3 class="summary-title">Ingresar cupón de descuento</h3>
+                <div class="coupon-input">
+                    <input type="text" placeholder="Cupón de descuento">
+                    <button>Aplicar</button>
+                </div>
+
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>$175.000</span>
+                </div>
+                <div class="summary-row">
+                    <span>Descuento en productos:</span>
+                    <span>0</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <span>$170.000</span>
+                </div>
+            </div>
+            <a href="{% url 'envio' %}" class="boton-continuar">CONTINUAR CON LOS DETALLES DE ENVÍO</a>
+            <a href="{% url 'carrito' %}" class="back-button">VOLVER AL CARRITO</a>
+        </div>
+    </div>
+
+    <div class="footer-banner">
+        <a href="#" class="footer-link">Ver términos y condiciones</a>
+    </div>
+</body>
+</html>

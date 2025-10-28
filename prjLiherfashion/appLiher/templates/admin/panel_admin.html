@@ -1,0 +1,104 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+
+{% block title %}Inicio - Panel Admin{% endblock %}
+{% block active_inicio %}activo{% endblock %}
+
+{% block content %}
+<div class="encabezado">
+    <h1>INICIO</h1>
+</div>
+
+<!-- Tarjetas de estadísticas -->
+<div class="cuadricula-estadisticas">
+    <div class="tarjeta-estadistica azul">
+        <div class="icono">📦</div>
+        <h3>128</h3>
+        <p>Total de productos<br>Productos en inventario</p>
+    </div>
+    <div class="tarjeta-estadistica verde">
+        <div class="icono">💰</div>
+        <h3>1.280.000</h3>
+        <p>Valor inventario<br>Costo total del inventario</p>
+    </div>
+    <div class="tarjeta-estadistica amarillo">
+        <div class="icono">⚠️</div>
+        <h3>5</h3>
+        <p>Bajo inventario<br>Productos con bajo inventario</p>
+    </div>
+    <div class="tarjeta-estadistica rojo">
+        <div class="icono">❌</div>
+        <h3>3</h3>
+        <p>Sin Stock<br>Productos sin stock</p>
+    </div>
+</div>
+
+<!-- Cuadrícula del dashboard -->
+<div class="cuadricula-dashboard">
+    <!-- Gráfico -->
+    <div class="contenedor-grafico">
+        <div class="encabezado-grafico">
+            <span class="icono icono-grafico">📊</span>
+            <h3>Ventas de los últimos 7 días</h3>
+        </div>
+        <div class="placeholder-grafico">
+            Gráfico de ventas diarias
+        </div>
+    </div>
+
+    <!-- Productos más vendidos -->
+    <div class="productos-destacados">
+        <h3><span class="icono icono-productos">👑</span> Productos más vendidos</h3>
+        <div class="elemento-producto">
+            <div class="info-producto">
+                <h4>Blusa estampada floral</h4>
+                <div class="referencia">REF: BL001</div>
+                <div class="unidades">32 unidades vendidas</div>
+            </div>
+            <div class="precio-producto">$150.000</div>
+        </div>
+        <div class="elemento-producto">
+            <div class="info-producto">
+                <h4>Vestido casual</h4>
+                <div class="referencia">REF: VE001</div>
+                <div class="unidades">20 unidades vendidas</div>
+            </div>
+            <div class="precio-producto">$150.000</div>
+        </div>
+        <div class="elemento-producto">
+            <div class="info-producto">
+                <h4>Falda de tablas</h4>
+                <div class="referencia">REF: FA001</div>
+                <div class="unidades">19 unidades vendidas</div>
+            </div>
+            <div class="precio-producto">$150.000</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de pedidos -->
+<div class="seccion-pedidos">
+    <div class="encabezado-pedidos">
+        <h3><span class="icono icono-recientes">👤</span> Dos Recientes</h3>
+        <a href="#">Ver todos</a>
+    </div>
+    
+    <table class="tabla-pedidos">
+        <thead>
+            <tr>
+                <th>N° Pedido</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Estado Pedido</th>
+                <th>Método Pago</th>
+                <th>Total</th>
+                <th>Estado Pago</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Aquí puedes dejar tus filas de ejemplo -->
+        </tbody>
+    </table>
+</div>
+{% endblock %}

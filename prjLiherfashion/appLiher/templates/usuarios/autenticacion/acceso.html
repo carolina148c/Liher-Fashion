@@ -1,0 +1,164 @@
+{% load static %}
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Fuentes y librerías externas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <!-- CSS propio -->
+    <link rel="stylesheet" href="{% static 'css/acceso.css' %}">
+
+    <title>Iniciar sesión / Registro</title>
+</head>
+<body>
+
+    <!-- FORMULARIO DE INICIO DE SESIÓN -->
+    <div class="container-form login {% if form_registro.errors %}hide{% endif %}">
+        <div class="information">
+            <div class="info-childs">
+                <h1>Bienvenido nuevamente</h1>
+                <p>Elige tu método preferido para acceder a tu cuenta de Liher Fashion</p>
+                <p class="subtitulo-bienvenida">¿No tienes una cuenta?</p>
+                <input type="button" value="Registrate" id="sign-up">
+            </div>
+        </div>
+        <div class="form-information">
+            <div class="form-information-childs">
+                <h1>Iniciar Sesión</h1>
+
+                {% if messages %}
+                <div class="alert-global">
+                    {% for message in messages %}
+                    <p class="alert-text {{ message.tags }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form id="form-login" method="POST" action="{% url 'acceso' %}">
+                    {% csrf_token %}
+                    <div>
+                        <label>
+                            <i class='bx bx-envelope'></i>
+                            <input type="email" name="email" id="login-email" placeholder="Correo Electrónico">
+                        </label>
+                        <div class="input-alert" id="error-login-email"></div>
+                    </div>
+
+                    <!-- Contraseña con ojito -->
+                    <div class="password-input-container">
+                        <label>
+                            <i class='bx bx-lock-alt'></i>
+                            <input type="password" name="password" id="login-password" placeholder="Contraseña">
+                            <i class='bx bx-hide toggle-password' id="toggle-login-password"></i>
+                        </label>
+                        <div class="input-alert" id="error-login-password"></div>
+                        <a href="{% url 'restablecer_contrasena' %}" class="enlace-olvido">¿Olvidaste tu contraseña?</a>
+                    </div>
+
+                    <input type="submit" value="Iniciar Sesión">
+                </form>
+
+                <!-- Botón de Google Login -->
+                <div class="icons">
+                    <a href="{% provider_login_url 'google' %}" class="btn-google">
+                        <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" class="google-icon">
+                        Inicia sesión con Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE REGISTRO -->
+    <div class="container-form register {% if form_registro.errors %}{% else %}hide{% endif %}">
+        <div class="information">
+            <div class="info-childs">
+                <h1>Bienvenido</h1>
+                <p>Para unirte a nuestra comunidad, regístrate con tu correo y contraseña</p>
+                <p class="subtitulo-bienvenida">¿Ya tienes una cuenta?</p>
+                <input type="button" value="Inicia Sesión" id="sign-in">
+            </div>
+        </div>
+        <div class="form-information">
+            <div class="form-information-childs">
+                <h1>Crear una Cuenta</h1>
+
+                <form class="form form-register" id="form-register" method="POST" action="{% url 'registro_usuario' %}">
+                    {% csrf_token %}
+
+                    {% if form_registro.non_field_errors %}
+                        <div class="server-errors">
+                            {% for error in form_registro.non_field_errors %}
+                                <div class="input-alert">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Email -->
+                    <div>
+                        <label>
+                            <i class='bx bx-envelope'></i>
+                            <input type="email" name="email" placeholder="Correo electrónico" id="email" value="{{ form_registro.email.value|default_if_none:'' }}">
+                        </label>
+                        <div class="input-alert" id="error-email"></div>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="password-input-container">
+                        <label>
+                            <i class='bx bx-lock-alt'></i>
+                            <input type="password" name="password1" placeholder="Contraseña" id="password1">
+                            <i class='bx bx-hide toggle-password' id="toggle-password1"></i>
+                        </label>
+                        <div class="input-alert" id="error-password1"></div>
+                        <ul class="password-requisitos" id="password-requisitos">
+                            <li id="req-length">Mínimo 8 caracteres</li>
+                            <li id="req-uppercase">Al menos una letra mayúscula</li>
+                            <li id="req-lowercase">Al menos una letra minúscula</li>
+                            <li id="req-number">Al menos un número</li>
+                            <li id="req-symbol">Al menos un símbolo (!@#$%^&*)</li>
+                            <li id="req-space">No contener espacios</li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirmar contraseña -->
+                    <div class="password-input-container">
+                        <label>
+                            <i class='bx bx-lock-alt'></i>
+                            <input type="password" name="password2" placeholder="Confirmar contraseña" id="password2">
+                            <i class='bx bx-hide toggle-password' id="toggle-password2"></i>
+                        </label>
+                        <div class="input-alert" id="error-password2"></div>
+                    </div>
+
+                    <div class="alerta-error">Revisa los campos marcados en rojo</div>
+
+                    <input type="submit" value="Registrarse">
+                </form>
+
+                <!-- Botón de Google Registro -->
+                <div class="icons">
+                    <a href="{% provider_login_url 'google' %}" class="btn-google">
+                        <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" class="google-icon">
+                        Regístrate con Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/validator@latest/validator.min.js"></script>
+    <script src="{% static 'js/script.js' %}"></script>
+    <script src="{% static 'js/validar_registro.js' %}"></script>
+    <script src="{% static 'js/validar_iniciar_sesion.js' %}"></script>
+</body>
+</html>

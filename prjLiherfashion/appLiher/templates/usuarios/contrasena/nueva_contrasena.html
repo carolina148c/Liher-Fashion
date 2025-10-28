@@ -1,0 +1,201 @@
+{% load static %}
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/acceso.css' %}">
+
+    <title>Cambiar Contraseña</title>
+</head>
+<body>
+<div class="container-form register show">
+    <div class="information">
+        <div class="info-childs">
+            <h1>Cambiar contraseña</h1>
+            <p>Introduce tu nueva contraseña dos veces para confirmar.</p>
+        </div>
+    </div>
+    <div class="form-information">
+        <div class="form-information-childs">
+
+            <!-- ERRORES DEL BACKEND -->
+            {% if form.errors %}
+                <div class="server-errors">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <div class="input-alert" data-field="{{ field.name }}">{{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <div class="input-alert" data-field="non_field">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form class="form form-register" id="form-reset-password" method="POST">
+                {% csrf_token %}
+
+                <!-- Nueva contraseña -->
+                <div class="password-input-container">
+                    <label>
+                        <i class='bx bx-lock-alt'></i>
+                        <input type="password" name="new_password1" placeholder="Contraseña nueva" id="password1">
+                        <i class='bx bx-show toggle-password' id="toggle-password1"></i>
+                    </label>
+                    <div class="input-alert" id="error-password1"></div>
+                    <ul class="password-requisitos" id="password-requisitos">
+                        <li id="req-length">Mínimo 8 caracteres</li>
+                        <li id="req-uppercase">Al menos una letra mayúscula</li>
+                        <li id="req-lowercase">Al menos una letra minúscula</li>
+                        <li id="req-number">Al menos un número</li>
+                        <li id="req-symbol">Al menos un símbolo (!@#$%^&*)</li>
+                        <li id="req-space">No contener espacios</li>
+                    </ul>
+                </div>
+
+                <!-- Confirmar contraseña -->
+                <div class="password-input-container">
+                    <label>
+                        <i class='bx bx-lock-alt'></i>
+                        <input type="password" name="new_password2" placeholder="Confirmar contraseña" id="password2">
+                        <i class='bx bx-show toggle-password' id="toggle-password2"></i>
+                    </label>
+                    <div class="input-alert" id="error-password2"></div>
+                </div>
+
+                <div class="alerta-error">Revisa los campos marcados en rojo</div>
+                <div class="alerta-exito">Contraseña válida, enviando datos...</div>
+
+                <input type="submit" value="Guardar nueva contraseña" class="btn btn-primary">
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/validator@latest/validator.min.js"></script>
+<script src="{% static 'js/script.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById('form-reset-password');
+    const pass1 = document.getElementById('password1');
+    const pass2 = document.getElementById('password2');
+
+    const requisitos = {
+        length: document.getElementById('req-length'),
+        uppercase: document.getElementById('req-uppercase'),
+        lowercase: document.getElementById('req-lowercase'),
+        number: document.getElementById('req-number'),
+        symbol: document.getElementById('req-symbol'),
+        space: document.getElementById('req-space')
+    };
+    const listaRequisitos = document.getElementById('password-requisitos');
+
+    // ===== FUNCIONES UTILES =====
+    function showMessage(input, msg) {
+        removeMessage(input);
+        const div = document.createElement('div');
+        div.className = 'input-alert';
+        div.textContent = msg;
+        input.insertAdjacentElement('afterend', div);
+        input.classList.add('error');
+    }
+
+    function removeMessage(input) {
+        const next = input.nextElementSibling;
+        if (next && next.classList.contains('input-alert')) next.remove();
+        input.classList.remove('error');
+    }
+
+    function validarRequisitos(pwd) {
+        return {
+            length: pwd.length >= 8,
+            uppercase: /[A-Z]/.test(pwd),
+            lowercase: /[a-z]/.test(pwd),
+            number: /[0-9]/.test(pwd),
+            symbol: /[!@#$%^&*]/.test(pwd),
+            space: !/\s/.test(pwd)
+        };
+    }
+
+    function updateRequisitosUI(status) {
+        for (const key in requisitos) {
+            requisitos[key].className = status[key] ? 'valid' : 'invalid';
+        }
+        const allValid = Object.values(status).every(v => v);
+        listaRequisitos.classList.toggle('show', !allValid);
+        return allValid;
+    }
+
+    function validatePasswords() {
+        removeMessage(pass1);
+        removeMessage(pass2);
+
+        const p1 = pass1.value;
+        const p2 = pass2.value;
+
+        const status = validarRequisitos(p1);
+        const allValid = updateRequisitosUI(status);
+
+        let ok = true;
+
+        if (!p1) { showMessage(pass1, "La contraseña es obligatoria."); ok = false; }
+        else if (!allValid) { showMessage(pass1, "La contraseña no cumple todos los requisitos."); ok = false; }
+
+        if (!p2) { showMessage(pass2, "Debes repetir la contraseña."); ok = false; }
+        else if (p1 !== p2) { showMessage(pass2, "Las contraseñas no coinciden."); ok = false; }
+
+        return ok;
+    }
+
+    function togglePasswordVisibility(inputId, toggleId) {
+        const input = document.getElementById(inputId);
+        const toggle = document.getElementById(toggleId);
+        if (!input || !toggle) return;
+        toggle.addEventListener('click', () => {
+            if (input.type === "password") {
+                input.type = "text";
+                toggle.classList.replace('bx-show', 'bx-hide');
+            } else {
+                input.type = "password";
+                toggle.classList.replace('bx-hide', 'bx-show');
+            }
+        });
+    }
+
+    togglePasswordVisibility("password1", "toggle-password1");
+    togglePasswordVisibility("password2", "toggle-password2");
+
+    // ===== MOSTRAR ERRORES DEL BACKEND SIN DUPLICAR =====
+    const backendErrors = document.querySelectorAll('.server-errors .input-alert');
+    backendErrors.forEach(error => {
+        const field = error.dataset.field || 'non_field';
+        if (field === 'new_password1') showMessage(pass1, error.textContent);
+        else if (field === 'new_password2') showMessage(pass2, error.textContent);
+        else if (field === 'non_field') {
+            // Solo mostrar si no hay error visible en password1
+            if (!pass1.nextElementSibling || !pass1.nextElementSibling.classList.contains('input-alert')) {
+                showMessage(pass1, error.textContent);
+            }
+        }
+    });
+
+    // ===== VALIDACIÓN EN TIEMPO REAL =====
+    pass1.addEventListener('input', validatePasswords);
+    pass2.addEventListener('input', validatePasswords);
+
+    // ===== SUBMIT =====
+    form.addEventListener('submit', function(e) {
+        if (!validatePasswords()) e.preventDefault();
+    });
+});
+</script>
+</body>
+</html>

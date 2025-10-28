@@ -1,0 +1,351 @@
+{% block content %}
+
+{% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+      <div class="toast {{ message.tags }}">
+        <div class="toast-icon">
+          {% if message.tags == 'success' %} ✅
+          {% endif %}
+        </div>
+        <span class="toast-message">{{ message }}</span>
+        <button class="toast-close">✖</button>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const toast = document.querySelector(".toast");
+      if (toast) {
+
+        // Auto-desaparecer con animación centrada
+        const autoRemoveTimeout = setTimeout(() => {
+          toast.style.animation = "fadeOutZoom 0.6s forwards";
+          setTimeout(() => toast.remove(), 600);
+        }, 5000);
+
+        // Cerrar con botón ✖
+        const closeBtn = toast.querySelector(".toast-close");
+        if (closeBtn) {
+          closeBtn.addEventListener("click", () => {
+            clearTimeout(autoRemoveTimeout);
+            toast.style.animation = "fadeOutZoom 0.6s forwards";
+            setTimeout(() => toast.remove(), 600);
+          });
+        }
+      }
+
+      // ⏳ Temporizador dinámico para reenvío
+      const btn = document.getElementById("resend-btn");
+      if (btn) {
+        let seconds = parseInt("{{ resend_seconds|default:'30' }}", 10);
+        btn.classList.add("disabled-btn");
+        btn.innerText = `Reenviar correo (${seconds})`;
+
+        const interval = setInterval(() => {
+          seconds--;
+          btn.innerText = `Reenviar correo (${seconds})`;
+          if (seconds <= 0) {
+            clearInterval(interval);
+            btn.classList.remove("disabled-btn");
+            btn.innerText = "Reenviar correo";
+          }
+        }, 1000);
+
+        btn.addEventListener("click", (e) => {
+          if (btn.classList.contains("disabled-btn")) e.preventDefault();
+        });
+      }
+    });
+  </script>
+{% endif %}
+
+<div class="page-wrapper">
+  <div class="card">
+
+    <!-- Logo / Encabezado -->
+    <h1 class="card-title">✉️ Revisa tu correo</h1>
+
+    {% if es_admin %}
+      <p class="text-normal">
+        Hemos enviado un enlace de activación para tu <strong>cuenta de administrador</strong> a:
+      </p>
+    {% else %}
+      <p class="text-normal">
+        Hemos enviado un enlace de activación a:
+      </p>
+    {% endif %}
+
+    <p class="email">{{ email }}</p>
+
+    {% if es_admin %}
+      <p class="text-muted">
+        Una vez actives tu cuenta, podrás acceder al panel de administración de <strong>Liher Fashion</strong> para gestionar productos, usuarios y pedidos.  
+        Si no ves el correo, revisa también las carpetas de <strong>Spam</strong> o <strong>Promociones</strong>.
+      </p>
+    {% else %}
+      <p class="text-muted">
+        Revisa tu bandeja de entrada y sigue el enlace para activar tu cuenta y empezar a disfrutar de las mejores prendas  
+        Si no lo ves, revisa también las carpetas de <strong>Spam</strong>, <strong>No deseados</strong> o <strong>Promociones</strong>.
+      </p>
+    {% endif %}
+
+    <p class="text-gray">¿No recibiste el correo?</p>
+
+    <div class="btn-group">
+      <a href="{% url 'reenviar_activacion' email=email %}" 
+         id="resend-btn" class="btn btn-secondary">Reenviar correo</a>
+      <a href="{% url 'acceso' %}" class="btn btn-primary">Volver al inicio</a>
+    </div>
+
+  </div>
+</div>
+
+
+<style>
+  /* ===== Layout general ===== */
+  .page-wrapper {
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#fefefe;
+    font-family:Arial, Helvetica, sans-serif;
+  }
+
+  .card {
+    max-width:600px;
+    width:100%;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.1);
+    border:1px solid #e0e0e0;
+    padding:40px;
+    text-align:center;
+  }
+
+  .card-title {
+    font-size:28px;
+    margin-bottom:20px;
+    color:#f8a5c2;
+    font-weight:bold;
+  }
+
+  .text-normal {
+    font-size:16px;
+    color:#555;
+    margin-bottom:20px;
+  }
+
+  .email {
+    font-size:18px;
+    font-weight:bold;
+    color:#333;
+    margin-bottom:30px;
+  }
+
+  .text-muted {
+    font-size:15px;
+    color:#777;
+    margin-bottom:30px;
+  }
+
+  .text-gray {
+    margin-top:15px;
+    color:gray;
+  }
+
+  .footer {
+    margin-top:40px;
+    padding-top:20px;
+    border-top:1px solid #eee;
+    font-size:12px;
+    color:#aaa;
+  }
+
+  .footer .brand {
+    color:#f8a5c2;
+    font-weight:600;
+  }
+
+  /* ===== Botones ===== */
+  .btn {
+    display:inline-block;
+    padding:12px 24px;
+    font-weight:bold;
+    text-decoration:none;
+    border-radius:8px;
+    margin:5px;
+    transition:all 0.2s ease-in-out;
+  }
+
+  .btn-primary {
+    background:#f8a5c2;
+    color:#fff;
+  }
+
+  .btn-primary:hover {
+    background:#f48fb1;
+    transform:translateY(-2px);
+    box-shadow:0 4px 10px rgba(248, 165, 194, 0.3);
+  }
+
+  .btn-secondary {
+    background:#6c757d;
+    color:#fff;
+  }
+
+  .btn-secondary:hover:not(.disabled-btn) { 
+    background:#5a6268; 
+    transform:translateY(-2px); 
+    box-shadow:0 4px 8px rgba(0,0,0,0.2); 
+  }
+  
+  .btn-secondary.disabled-btn { 
+    opacity:0.6; 
+    pointer-events:none; 
+    cursor:not-allowed; 
+  }
+
+  /* ===== Alertas flotantes (toasts) mejoradas ===== */
+  .toast-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .toast {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 20px 50px 20px 20px;
+    border-radius: 15px;
+    font-weight: 500;
+    font-size: 15px;
+    text-align: left;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid transparent;
+    animation: fadeInZoom 0.3s ease forwards;
+    max-width: 400px;
+    width: 90%;
+    pointer-events: auto;
+  }
+
+  .toast-icon {
+    font-size: 24px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  }
+
+  .toast-message {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .toast-close {
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    font-weight: bold;
+    color: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .toast-close:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.1);
+  }
+
+  /* Animaciones mejoradas */
+@keyframes fadeInZoom { 
+  from { 
+    opacity: 0; 
+    transform: scale(0.85); 
+  } 
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  } 
+}
+
+@keyframes fadeOutZoom { 
+  from { 
+    opacity: 1; 
+    transform: scale(1); 
+  } 
+  to { 
+    opacity: 0; 
+    transform: scale(0.9); 
+  } 
+}
+
+
+  /* Estilos específicos por tipo de mensaje */
+  .toast.success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #0f5132;
+    border-color: #a3d9a4;
+  }
+
+  .toast.success .toast-icon {
+    color: #198754;
+  }
+
+  .toast.error {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c2c7 100%);
+    color: #58151c;
+    border-color: #f1aeb5;
+  }
+
+  .toast.error .toast-icon {
+    color: #dc3545;
+  }
+
+  .toast.warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffecb5 100%);
+    color: #664d03;
+    border-color: #ffda6a;
+  }
+
+  .toast.warning .toast-icon {
+    color: #fd7e14;
+  }
+
+  .toast.info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #b6effb 100%);
+    color: #055160;
+    border-color: #9eeaf9;
+  }
+
+  .toast.info .toast-icon {
+    color: #0dcaf0;
+  }
+
+  /* Efecto hover para toda la alerta */
+  .toast:hover {
+    transform: translate(-50%, -50%) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  }
+</style>
+
+{% endblock %}

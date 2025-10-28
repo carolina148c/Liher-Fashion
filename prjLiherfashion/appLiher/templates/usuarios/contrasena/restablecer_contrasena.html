@@ -1,0 +1,69 @@
+{% load static %}
+{% block content %}
+
+{% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+      <div class="toast {{ message.tags }}">
+        <span>{{ message }}</span>
+        <button class="toast-close" onclick="this.parentElement.style.display='none';">✖</button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="page-wrapper">
+  <div class="card">
+    <link rel="stylesheet" href="{% static 'css/restablecer_contrasena.css' %}">
+
+    <h1 class="card-title">Restablecer Contraseña</h1>
+    <p class="text-normal">
+      Ingresa tu correo electrónico para recibir un enlace y restablecer tu contraseña.
+    </p>
+
+
+    <form id="form-reset" method="post" class="reset-form" action="{% url 'restablecer_contrasena' %}">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="form-errors">
+          {% for error in form.non_field_errors %}
+            <p class="error-text">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+<div class="input-container">
+  <label class="input-wrapper">
+    <i class='bx bx-envelope'></i>
+    <input type="email" name="email" id="reset-email"
+           placeholder="Correo electrónico"
+           value="{{ form.email.value|default_if_none:'' }}">
+    <span class="input-alert" id="error-reset-email"></span>
+  </label>
+</div>
+
+
+      {% if form.email.errors %}
+        {% for error in form.email.errors %}
+          <span class="input-alert">{{ error }}</span>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Botones -->
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">
+          Enviar correo
+        </button>
+        <a href="{% url 'acceso' %}" class="btn btn-secondary">
+          Volver al inicio de sesión
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://unpkg.com/validator@latest/validator.min.js"></script>
+<script src="{% static 'js/validar_reset.js' %}"></script>
+
+{% endblock %}

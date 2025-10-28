@@ -1,0 +1,139 @@
+<div id="createUserModal" class="modal-overlay" style="display: none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Agregar Nuevo Usuario</h2>
+      <button class="modal-close" onclick="closeModal('createUserModal')">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="createUserForm">
+        {% csrf_token %}
+
+        <!-- ===================== -->
+        <!-- 🔹 SELECCIÓN DE ROL -->
+        <!-- ===================== -->
+        <div class="form-group full-width">
+          <label for="userRole">Rol <span class="required">*</span></label>
+          <select id="userRole" required>
+            <option value="">Seleccionar rol</option>
+            <option value="usuario">Usuario</option>
+            <option value="administrador">Administrador</option>
+          </select>
+          <div class="input-alert" id="error-userRole"></div>
+        </div>
+
+        <!-- ===================== -->
+        <!-- 🔹 CAMPOS PARA USUARIO -->
+        <!-- ===================== -->
+        <div id="usuarioFields" class="additional-fields">
+          <div class="form-group full-width">
+            <label for="userEmail">Correo Electrónico <span class="required">*</span></label>
+            <input type="email" id="userEmail" placeholder="Ej: manuelav329@gmail.com">
+            <div class="input-alert" id="error-userEmail"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="userPassword">Contraseña <span class="required">*</span></label>
+            <div class="password-input-container">
+              <input type="password" id="userPassword" placeholder="Mínimo 8 caracteres">
+              <ul class="password-requisitos" id="password-requisitos-usuario">
+                <li data-req="length">Mínimo 8 caracteres</li>
+                <li data-req="uppercase">Al menos una letra mayúscula</li>
+                <li data-req="lowercase">Al menos una letra minúscula</li>
+                <li data-req="number">Al menos un número</li>
+                <li data-req="symbol">Al menos un símbolo (!@#$%^&*)</li>
+                <li data-req="space">No contener espacios</li>
+              </ul>
+            </div>
+            <div class="input-alert" id="error-userPassword"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="userPasswordConfirm">Confirmar Contraseña <span class="required">*</span></label>
+            <input type="password" id="userPasswordConfirm" placeholder="Repite la Contraseña">
+            <div class="input-alert" id="error-userPasswordConfirm"></div>
+          </div>
+        </div>
+
+        <!-- ========================== -->
+        <!-- 🔹 CAMPOS PARA ADMINISTRADOR -->
+        <!-- ========================== -->
+        <div id="adminFields" class="additional-fields">
+          <div class="form-group">
+            <label for="adminName">Nombre <span class="required">*</span></label>
+            <input type="text" id="adminName" placeholder="Ej: Manuela">
+            <div class="input-alert" id="error-adminName"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="adminLastName">Apellido <span class="required">*</span></label>
+            <input type="text" id="adminLastName" placeholder="Ej: Vásquez Herrera">
+            <div class="input-alert" id="error-adminLastName"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="adminEmail">Correo Electrónico <span class="required">*</span></label>
+            <input type="email" id="adminEmail" placeholder="Ej: correo@gmail.com">
+            <div class="input-alert" id="error-adminEmail"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="adminPhone">Teléfono <span class="required">*</span></label>
+            <input type="tel" id="adminPhone" placeholder="Ingrese el número">
+            <div class="input-alert" id="error-adminPhone"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="adminPassword">Contraseña <span class="required">*</span></label>
+            <div class="password-input-container">
+              <input type="password" id="adminPassword" placeholder="Ingrese una contraseña">
+              <ul class="password-requisitos" id="password-requisitos-admin">
+                <li data-req="length">Mínimo 8 caracteres</li>
+                <li data-req="uppercase">Al menos una letra mayúscula</li>
+                <li data-req="lowercase">Al menos una letra minúscula</li>
+                <li data-req="number">Al menos un número</li>
+                <li data-req="symbol">Al menos un símbolo (!@#$%^&*)</li>
+                <li data-req="space">No contener espacios</li>
+              </ul>
+            </div>
+            <div class="input-alert" id="error-adminPassword"></div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="adminPasswordConfirm">Confirmar Contraseña <span class="required">*</span></label>
+            <input type="password" id="adminPasswordConfirm" placeholder="Repite la Contraseña">
+            <div class="input-alert" id="error-adminPasswordConfirm"></div>
+          </div>
+
+          <!-- ========================== -->
+          <!-- 🔹 PERMISOS PERSONALIZADOS -->
+          <!-- ========================== -->
+          <div class="form-group full-width permisos-container" id="adminPermissions">
+            <label><span class="icono-bloqueo">🔒</span> Permisos y Accesos</label>
+            <p class="permisos-descripcion">
+              Selecciona los módulos a los que este administrador tendrá acceso.
+            </p>
+
+            <div class="permisos-grid">
+              <label><input type="checkbox" name="permiso" value="inicio"> Inicio</label>
+              <label><input type="checkbox" name="permiso" value="inventario"> Gestión de Inventario</label>
+              <label><input type="checkbox" name="permiso" value="catalogo"> Gestión de Catálogo</label>
+              <label><input type="checkbox" name="permiso" value="pedidos"> Gestión de Pedidos</label>
+              <label><input type="checkbox" name="permiso" value="usuarios"> Gestión de Usuarios</label>
+              <label><input type="checkbox" name="permiso" value="devoluciones"> Gestión de Devoluciones</label>
+              <label><input type="checkbox" name="permiso" value="peticiones"> Gestión de Peticiones</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== -->
+        <!-- 🔹 BOTONES DE ACCIÓN -->
+        <!-- ===================== -->
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('createUserModal')">Cancelar</button>
+          <button type="button" class="btn-primary" onclick="createUser()">➕ Crear Usuario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

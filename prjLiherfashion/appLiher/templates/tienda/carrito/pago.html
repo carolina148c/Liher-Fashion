@@ -1,0 +1,172 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liher Fashion - Pago</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/pago.css' %}">
+    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header bg-white py-2 shadow-sm">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="logo d-flex align-items-center">
+                        <img src="{% static 'Img/1.png' %}" alt="Liher Fashion Logo" class="me-2">
+                        <span class="fs-4 fw-bold text-dark">Liher Fashion</span>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="checkout-progress d-flex justify-content-end align-items-center">
+                        <div class="checkout-step completed me-3">
+                            <div class="step-icon rounded-circle d-flex align-items-center justify-content-center mb-1">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <small>Carrito</small>
+                        </div>
+                        <div class="progress-line me-3"></div>
+                        <div class="checkout-step completed me-3">
+                            <div class="step-icon rounded-circle d-flex align-items-center justify-content-center mb-1">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <small>Identificación</small>
+                        </div>
+                        <div class="progress-line me-3"></div>
+                        <div class="checkout-step completed me-3">
+                            <div class="step-icon rounded-circle d-flex align-items-center justify-content-center mb-1">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <small>Entrega</small>
+                        </div>
+                        <div class="progress-line me-3"></div>
+                        <div class="checkout-step active">
+                            <div class="step-icon rounded-circle d-flex align-items-center justify-content-center mb-1">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <small>Pago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="pink-banner"></div>
+
+    <div class="container my-4">
+        <div class="row">
+            <!-- Columna izquierda -->
+            <div class="col-lg-8 col-md-7">
+                <!-- Identificación -->
+                <div class="info-section bg-white rounded p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Identificación</h5>
+                        <a href="{% url 'identificacion' %}" class="btn btn-outline-secondary btn-sm">Editar Perfil</a>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>Correo:</strong> {{ request.user.email }}</p>
+                            <p class="mb-1"><strong>Nombre:</strong> {{ request.user.first_name }} {{ request.user.last_name }}</p>
+                            <p class="mb-0"><strong>Contacto:</strong> {{ request.user.profile.phone }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de envío -->
+                <div class="info-section bg-white rounded p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Resumen de envíos</h5>
+                        <button class="btn btn-outline-secondary btn-sm">Editar envío</button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Dirección:</strong> {{ request.user.profile.address }}</p>
+                            <p class="mb-0"><strong>Costo de envío:</strong> {{ shipping_cost|default:"$12.000" }}</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-link text-decoration-none">Ver Productos <i class="fas fa-chevron-down"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección pago -->
+                <div class="payment-section bg-white rounded p-4">
+                    <h5 class="mb-4">Pago</h5>
+                    <div class="payment-method-title mb-3">
+                        <h6>Elige un método de pago</h6>
+                    </div>
+
+                    <div class="payment-methods">
+                        {% for method in payment_methods %}
+                        <div class="payment-option mb-3">
+                            <div class="form-check d-flex align-items-center p-3 border rounded">
+                                <input class="form-check-input me-3" type="radio" name="payment_method" id="{{ method.id }}" value="{{ method.id }}">
+                                <label class="form-check-label d-flex align-items-center w-100" for="{{ method.id }}">
+                                    <i class="{{ method.icon }} me-2 {{ method.color }}"></i> {{ method.name }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div id="cardPaymentBrick_container" class="mt-4"></div>
+                </div>
+            </div>
+
+            <!-- Columna derecha - Resumen de compra -->
+            <div class="col-lg-4 col-md-5">
+                <div class="summary-container">
+                    <div class="cart-summary-box bg-white rounded p-4 mb-3">
+                        <h6 class="mb-3">Ingresar cupón de descuento</h6>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="Cupón de descuento">
+                            <button class="btn btn-outline-secondary" type="button">Aplicar</button>
+                        </div>
+
+                        <div class="summary-details">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span>{{ subtotal|default:"$175.000" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Descuento en productos:</span>
+                                <span>{{ discount|default:"0" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Costo de envío:</span>
+                                <span>{{ shipping_cost|default:"$12.000" }}</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold fs-5">
+                                <span>Total</span>
+                                <span>{{ total|default:"$187.000" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-pink w-100 mb-2 py-3 fw-bold">FINALIZAR COMPRA</button>
+                    <a href="{% url 'carrito' %}" class="btn btn-outline-secondary w-100 py-3 fw-bold text-decoration-none">VOLVER AL CARRITO</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-banner">
+        <div class="container text-end">
+            <a href="#" class="footer-link text-decoration-none">Ver términos y condiciones</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/pago.js' %}"></script>
+    <script src="{% static 'js/mercado_pago.js' %}"></script>
+</body>
+</html>

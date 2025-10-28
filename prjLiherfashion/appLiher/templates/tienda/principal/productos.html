@@ -1,0 +1,381 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos del Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/Categorias.css' %}">
+    <link rel="stylesheet" href="{% static 'css/paginaprincipal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/productos.css' %}">
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="titulo">
+            <div class="logo-section">
+                <img src="{% static 'Img/1.png' %}">
+                <span>Liher Fashion</span>
+            </div>
+            <div class="opciones">
+                <div class="user-menu">
+                    <i class="bi bi-person-circle"></i>
+                    {% if user.is_authenticated %}
+                        <ul>
+                            <li>Bienvenido, {{ user.username }}!</li>
+                            <li><a href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                        </ul>
+                    {% else %}
+                        <ul>
+                            <li><a href="{% url 'acceso' %}">Iniciar sesión</a></li>
+                            <li><a href="{% url 'registro_usuario' %}">Registrarse</a></li>
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="cart-menu">
+                    <i class="bi bi-basket-fill"></i> 
+                    <ul><li><a href="{% url 'carrito' %}">carrito(0)</a></li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAV -->
+        <nav class="banner" id="sticky-nav">
+            <ul>
+                <li><a href="{% url 'pagina_principal' %}">INICIO</a></li>
+                <li><a href="#">PRODUCTOS</a></li>
+                <li><a href="#">DESTACADO</a></li>
+                <li><a href="#">OFERTAS</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main-container">
+        <!-- FILTROS -->
+        <div class="filter-section rounded-3xl p-8 shadow-2xl mb-6">
+            <h2 class="text-3xl font-bold mb-6">Filtrar Productos</h2>
+            <form method="get" id="formFiltros" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div class="space-y-2">
+                    <label for="categoria" class="block text-sm font-semibold">Categoría</label>
+                    <select id="categoria" name="categoria" class="w-full p-4 border rounded-xl">
+                        <option value="">Todas las categorías</option>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.categoria }}" {% if categoria.categoria == selected_categoria %}selected{% endif %}>
+                                {{ categoria.categoria }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="color" class="block text-sm font-semibold">Color</label>
+                    <select id="color" name="color" class="w-full p-4 border rounded-xl">
+                        <option value="">Todos los colores</option>
+                        {% for color in colores %}
+                            <option value="{{ color.color }}" {% if color.color == selected_color %}selected{% endif %}>
+                                {{ color.color }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="talla" class="block text-sm font-semibold">Talla</label>
+                    <select id="talla" name="talla" class="w-full p-4 border rounded-xl">
+                        <option value="">Todas las tallas</option>
+                        {% for talla in tallas %}
+                            <option value="{{ talla.talla }}" {% if talla.talla == selected_talla %}selected{% endif %}>
+                                {{ talla.talla }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="w-full md:w-auto px-10 py-4 bg-pink-500 text-white font-bold rounded-xl">
+                    Filtrar Productos
+                </button>
+            </form>
+        </div>
+
+        <!-- CONTADOR DE PRODUCTOS -->
+        <div id="contadorProductos" class="mb-4 text-lg font-semibold">
+            Mostrando {{ productos|length }} de {{ productos.count }} productos totales
+        </div>
+
+        <!-- PRODUCTOS -->
+        <div id="productosContainer" class="products-grid">
+            {% for producto in productos %}
+                <div class="product-card fade-in-up">
+                    <div class="product-header">
+                        <h3>{{ producto.catalogo.nombre }}</h3>
+                        <span class="category-badge">{{ producto.categoria.categoria }}</span>
+                    </div>
+                    {% if producto.imagen %}
+                        <img src="{{ producto.imagen.url }}" alt="{{ producto.catalogo.nombre }}" class="product-image">
+                    {% else %}
+                        <img src="{% static 'Img/sin_imagen.jpg' %}" alt="Sin imagen disponible" class="product-image">
+                    {% endif %}
+                    <div class="product-body">
+                        <div class="product-details">
+                            <div class="detail-chip">
+                                <span>Color:</span> <span>{{ producto.color.color }}</span>
+                            </div>
+                            <div class="detail-chip">
+                                <span>Talla:</span> <span>{{ producto.talla.talla }}</span>
+                            </div>
+                        </div>
+                        <div class="price-stock-section">
+                            <div class="price-display">${{ producto.precio }}</div>
+                            <div class="stock-info">
+                                {% if producto.stock > 0 %}
+                                    <span class="stock-available">{{ producto.stock }} disponibles</span>
+                                {% else %}
+                                    <span class="stock-unavailable">Sin stock</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            {% if producto.stock > 0 %}
+                                <button onclick="manejarCarrito({{ producto.idinventario }}, false)">Carrito</button>
+                                <button onclick="manejarCarrito({{ producto.idinventario }}, true)">Comprar</button>
+                            {% if producto.stock <= 10 %}
+                            <button class="btn-peticion bg-pink-500 text-white px-3 py-1 rounded mt-2" 
+                                    data-producto="{{ producto.idinventario }}">
+                                Solicitar más
+                            </button>
+                            {% endif %}
+                            {% else %}
+                                <button disabled>No Disponible</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <h3>No hay productos disponibles</h3>
+                    <p>Intenta ajustar los filtros para ver más resultados.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- MODAL PETICIÓN -->
+        {% include 'tienda/principal/modal_peticion.html' %}
+
+    </main>
+
+<>
+    // CSRF helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Función única para añadir al carrito o comprar
+    function manejarCarrito(productoId, redirigir=false) {
+        let cantidad = prompt("¿Cuántas unidades deseas añadir al carrito?", "1");
+        cantidad = parseInt(cantidad);
+
+        if (isNaN(cantidad) || cantidad <= 0) {
+            alert("Ingresa un número válido mayor que cero.");
+            return;
+        }
+
+        fetch(`/anadir-al-carrito/${productoId}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ cantidad: cantidad })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (redirigir) {
+                    window.location.href = "{% url 'carrito' %}";
+                } else {
+                    alert(data.message);
+                    const carritoLink = document.querySelector(".cart-menu a");
+                    if (carritoLink) {
+                        carritoLink.textContent = `carrito(${data.total_items})`;
+                    }
+                }
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error al añadir al carrito:", error);
+            alert("Hubo un problema al añadir el producto.");
+        });
+    }
+
+    // FILTROS DINÁMICOS
+    const formFiltros = document.getElementById("formFiltros");
+    const productosContainer = document.getElementById("productosContainer");
+    const categoriaSelect = document.getElementById("categoria");
+    const colorSelect = document.getElementById("color");
+    const tallaSelect = document.getElementById("talla");
+
+    formFiltros.addEventListener("change", function(e){
+        e.preventDefault();
+        const params = new URLSearchParams();
+        if(categoriaSelect.value) params.append("categoria", categoriaSelect.value);
+        if(colorSelect.value) params.append("color", colorSelect.value);
+        if(tallaSelect.value) params.append("talla", tallaSelect.value);
+
+        fetch(window.location.pathname + "?" + params.toString())
+            .then(response => response.text())
+            .then(html => {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = html;
+                const nuevoContenedor = tempDiv.querySelector("#productosContainer");
+                if(nuevoContenedor) productosContainer.innerHTML = nuevoContenedor.innerHTML;
+                const nuevoContador = tempDiv.querySelector("#contadorProductos");
+                const contadorProductos = document.getElementById("contadorProductos");
+                if(nuevoContador && contadorProductos){
+                    contadorProductos.textContent = nuevoContador.textContent;
+                }
+            })
+            .catch(err => console.error("Error al filtrar productos:", err));
+    });
+
+    // MODAL PETICIÓN
+    const modal = document.getElementById("modalPeticion");
+    const cerrarModal = document.getElementById("cerrarModal");
+    const enviarPeticion = document.getElementById("enviarPeticion");
+    const nombreProducto = document.getElementById("nombreProducto");
+    const cantidadPeticion = document.getElementById("cantidadPeticion");
+    let productoSeleccionadoId = null;
+
+    document.querySelectorAll(".btn-peticion").forEach(btn => {
+        btn.addEventListener("click", () => {
+            productoSeleccionadoId = btn.dataset.producto;
+            const card = btn.closest(".product-card");
+            const nombre = card.querySelector(".product-header h3").textContent;
+            nombreProducto.textContent = nombre;
+            cantidadPeticion.value = 1;
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        });
+    });
+
+    cerrarModal.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    });
+
+    enviarPeticion.addEventListener("click", () => {
+        const cantidad = parseInt(cantidadPeticion.value);
+        if(isNaN(cantidad) || cantidad <= 0){
+            alert("Ingresa una cantidad válida");
+            return;
+        }
+
+        fetch(`/peticiones/crear/${productoSeleccionadoId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ cantidad: cantidad })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        })
+        .catch(err => console.error(err));
+    });
+
+
+<script>
+// === Obtener token CSRF ===
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// === Variables del modal ===
+const modal = document.getElementById("modalPeticion");
+const cerrarModal = document.getElementById("cerrarModal");
+const enviarPeticion = document.getElementById("enviarPeticion");
+const nombreProducto = document.getElementById("nombreProducto");
+const cantidadPeticion = document.getElementById("cantidadPeticion");
+
+let productoSeleccionadoId = null;
+
+// === Abrir modal ===
+document.querySelectorAll(".btn-peticion").forEach(btn => {
+    btn.addEventListener("click", () => {
+        productoSeleccionadoId = btn.dataset.producto;
+        const nombre = btn.closest(".product-card")?.querySelector(".product-header h3")?.textContent || "Producto";
+        nombreProducto.textContent = nombre;
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    });
+});
+
+// === Cerrar modal ===
+cerrarModal.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+});
+
+// === Enviar petición ===
+enviarPeticion.addEventListener("click", () => {
+    const cantidad = parseInt(cantidadPeticion.value);
+    if (isNaN(cantidad) || cantidad <= 0) {
+        alert("Ingresa una cantidad válida.");
+        return;
+    }
+
+    fetch(`/peticiones/crear/${productoSeleccionadoId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: JSON.stringify({ cantidad: cantidad }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert(data.message || "Ocurrió un error al enviar la petición.");
+        }
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    })
+    .catch(error => {
+        console.error("Error al enviar petición:", error);
+        alert("Error al enviar la petición.");
+    });
+});
+</script>
+
+</body>
+</html>
