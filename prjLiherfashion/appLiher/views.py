@@ -42,7 +42,7 @@ import json
 # ==========================================================
 #                   IMPORTS LOCALES
 # ==========================================================
-from .decorators import admin_required
+from .decorators import admin_required, permiso_requerido
 from .forms import (
     CustomPasswordResetForm, InventarioForm, UsuarioRegistroForm,
     UsuarioUpdateForm
@@ -53,12 +53,26 @@ from .models import (
 )
 
 
+
+
+
+
+
+
+
+
 # ==========================================================
 #                   PÁGINA PRINCIPAL
 # ==========================================================
 
 def pagina_principal(request):
     return render(request, 'tienda/principal/pagina_principal.html')
+
+
+
+
+
+
 
 
 
@@ -81,6 +95,8 @@ def carrito(request):
     }
     return render(request, 'tienda/carrito/carrito.html', contexto)
 
+
+
 def obtener_o_crear_carrito(request):
     if request.user.is_authenticated:
         carrito, creado = Carrito.objects.get_or_create(usuario=request.user, completado=False)
@@ -98,16 +114,20 @@ def obtener_o_crear_carrito(request):
         return carrito
 
 
+
 def envio(request):
     return render(request, 'tienda/carrito/datos_envio.html')
+
 
 
 def pago(request):
     return render(request, 'tienda/carrito/pago.html')
 
 
+
 def identificacion(request):
     return render(request, 'tienda/carrito/identificacion.html')
+
 
 
 def vista_productos(request):
@@ -139,16 +159,7 @@ def vista_productos(request):
 
 
 
-def devoluciones(request):
-    return render(request, 'admin/devoluciones/devoluciones.html')
 
-
-def peticiones(request):
-    return render(request, 'admin/peticiones/peticiones.html')
-
-
-def pedidos(request):
-    return render(request, 'admin/pedidos/pedidos.html')
 
 
 
@@ -214,11 +225,13 @@ def acceso(request):
     return render(request, "usuarios/autenticacion/acceso.html")
 
 
+
 @login_required
 def logout_view(request):
     logout(request)
     messages.success(request, 'Has cerrado sesión correctamente.')
     return redirect('pagina_principal')
+
 
 
 def login_ajax(request):
@@ -347,104 +360,6 @@ def registro_ajax(request):
 
 
 
-# ==========================================================
-#                   CONTRASEÑA
-# ==========================================================
-
-class CustomPasswordResetView(auth_views.PasswordResetView):
-    template_name = "usuarios/contrasena/restablecer_contrasena.html"
-    email_template_name = "usuarios/contrasena/correo_reset.html"
-    subject_template_name = "usuarios/contrasena/asunto_reset.txt"
-    success_url = reverse_lazy("correo_enviado")
-    form_class = CustomPasswordResetForm 
-    def form_valid(self, form):
-        email = form.cleaned_data.get("email")
-        user = Usuarios.objects.get(email=email)
-        enviar_correo_reset(user, self.request)
-        self.request.session["reset_email"] = email
-        return redirect(self.success_url)
-
-def enviar_correo_reset(user, request):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-    reset_url = request.build_absolute_uri(
-        reverse('nueva_contrasena', kwargs={'uidb64': uid, 'token': token})
-    )
-
-    subject = "Restablece tu contraseña en Liher Fashion"
-    text_content = f"Hola {user.email}, usa este enlace para restablecer tu contraseña: {reset_url}"
-    html_content = render_to_string(
-        "usuarios/contrasena/correo_reset.html",
-        {"user": user, "reset_url": reset_url}
-    )
-    email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
-    email.attach_alternative(html_content, "text/html")
-    email.send()
-
-
-class CorreoEnviadoView(auth_views.PasswordResetDoneView):
-    template_name = "usuarios/contrasena/correo_enviado.html"
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["email"] = self.request.session.get("reset_email")
-        context["resend_seconds"] = 360
-        return context
-
-
-def reenviar_reset(request):
-    email = request.session.get("reset_email")
-    if not email:
-        messages.warning(
-            request,
-            "Tu sesión ha expirado. Ingresa nuevamente tu correo para reenviar el enlace."
-        )
-        return redirect("restablecer_contrasena")
-    form = PasswordResetForm(request.POST)
-    if form.is_valid():
-        form.save(
-            request=request,
-            email_template_name="usuarios/contrasena/correo_reset.html",
-            subject_template_name="usuarios/contrasena/asunto_reset.txt",
-            use_https=request.is_secure(),
-    )
-        messages.success(request, "El correo de restablecimiento se ha reenviado exitosamente.")
-    else:
-        messages.error(request, "No se pudo reenviar el correo. Verifica la dirección.")
-    return redirect("correo_enviado")
-
-
-class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
-    template_name = "usuarios/contrasena/nueva_contrasena.html"
-    success_url = reverse_lazy("contrasena_actualizada")
-    def form_valid(self, form):
-        user = form.user  # el usuario al que se le está cambiando la contraseña
-        new_password = form.cleaned_data.get("new_password1")
-        # Validar contraseña
-        try:
-            validate_password(new_password, user)
-        except ValidationError as e:
-            form.add_error('new_password1', e)
-            return self.form_invalid(form)
-        if user.check_password(new_password):
-            form.add_error('new_password1', "La nueva contraseña no puede ser igual a la anterior.")
-            return self.form_invalid(form)
-        # Activar usuario si estaba inactivo
-        if not user.is_active:
-            user.is_active = True
-            user.save()
-        return super().form_valid(form)
-
-
-class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
-    template_name = "usuarios/contrasena/contrasena_actualizada.html"
-
-
-
-
-
-
-
-
 
 # ==========================================================
 #                   REGISTRO Y ACTIVACIÓN
@@ -473,6 +388,7 @@ def registro_usuario(request):
     else:
         form = UsuarioRegistroForm()
     return render(request, 'usuarios/autenticacion/acceso.html', {'form_registro': form})
+
 
 
 def registro_revisar_email(request, email):
@@ -528,6 +444,7 @@ def activar_cuenta(request, uidb64, token):
         return render(request, 'usuarios/autenticacion/activacion_invalida.html')
 
 
+
 def validar_email_ajax(request):
     email = request.GET.get('email', '').strip()
     exists = Usuarios.objects.filter(email__iexact=email).exists()
@@ -537,93 +454,266 @@ def validar_email_ajax(request):
 
 
 
+
+
+
+
 # ==========================================================
-#                   ADMIN PERSONALIZADO
+#                   CONTRASEÑA
+# ==========================================================
+
+class CustomPasswordResetView(auth_views.PasswordResetView):
+    template_name = "usuarios/contrasena/restablecer_contrasena.html"
+    email_template_name = "usuarios/contrasena/correo_reset.html"
+    subject_template_name = "usuarios/contrasena/asunto_reset.txt"
+    success_url = reverse_lazy("correo_enviado")
+    form_class = CustomPasswordResetForm 
+    def form_valid(self, form):
+        email = form.cleaned_data.get("email")
+        user = Usuarios.objects.get(email=email)
+        enviar_correo_reset(user, self.request)
+        self.request.session["reset_email"] = email
+        return redirect(self.success_url)
+
+
+
+def enviar_correo_reset(user, request):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = request.build_absolute_uri(
+        reverse('nueva_contrasena', kwargs={'uidb64': uid, 'token': token})
+    )
+
+    subject = "Restablece tu contraseña en Liher Fashion"
+    text_content = f"Hola {user.email}, usa este enlace para restablecer tu contraseña: {reset_url}"
+    html_content = render_to_string(
+        "usuarios/contrasena/correo_reset.html",
+        {"user": user, "reset_url": reset_url}
+    )
+    email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [user.email])
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
+
+class CorreoEnviadoView(auth_views.PasswordResetDoneView):
+    template_name = "usuarios/contrasena/correo_enviado.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["email"] = self.request.session.get("reset_email")
+        context["resend_seconds"] = 360
+        return context
+
+
+
+def reenviar_reset(request):
+    email = request.session.get("reset_email")
+    if not email:
+        messages.warning(
+            request,
+            "Tu sesión ha expirado. Ingresa nuevamente tu correo para reenviar el enlace."
+        )
+        return redirect("restablecer_contrasena")
+    form = PasswordResetForm(request.POST)
+    if form.is_valid():
+        form.save(
+            request=request,
+            email_template_name="usuarios/contrasena/correo_reset.html",
+            subject_template_name="usuarios/contrasena/asunto_reset.txt",
+            use_https=request.is_secure(),
+    )
+        messages.success(request, "El correo de restablecimiento se ha reenviado exitosamente.")
+    else:
+        messages.error(request, "No se pudo reenviar el correo. Verifica la dirección.")
+    return redirect("correo_enviado")
+
+
+
+class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = "usuarios/contrasena/nueva_contrasena.html"
+    success_url = reverse_lazy("contrasena_actualizada")
+    def form_valid(self, form):
+        user = form.user  # el usuario al que se le está cambiando la contraseña
+        new_password = form.cleaned_data.get("new_password1")
+        # Validar contraseña
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            form.add_error('new_password1', e)
+            return self.form_invalid(form)
+        if user.check_password(new_password):
+            form.add_error('new_password1', "La nueva contraseña no puede ser igual a la anterior.")
+            return self.form_invalid(form)
+        # Activar usuario si estaba inactivo
+        if not user.is_active:
+            user.is_active = True
+            user.save()
+        return super().form_valid(form)
+
+
+class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = "usuarios/contrasena/contrasena_actualizada.html"
+
+
+
+
+
+
+
+
+
+# ==========================================================
+#                   CARRITO
+# ==========================================================
+
+@require_POST
+def anadir_al_carrito(request, producto_id):
+    try:
+        # Obtener el producto del inventario
+        producto = get_object_or_404(Inventario, pk=producto_id)
+        # Leer la cantidad enviada desde el frontend
+        import json
+        try:
+            data = json.loads(request.body)
+            cantidad = int(data.get('cantidad', 1))
+        except (json.JSONDecodeError, ValueError):
+            cantidad = 1
+        if cantidad <= 0:
+            return JsonResponse({'success': False, 'message': 'La cantidad debe ser un número positivo.'})
+        if cantidad > producto.stock:
+            return JsonResponse({'success': False, 'message': f'Solo hay {producto.stock} unidades disponibles en stock.'})
+        # Obtener o crear carrito
+        carrito = obtener_o_crear_carrito(request)
+        # Verificar si el producto ya existe en el carrito
+        item_existente = ItemCarrito.objects.filter(carrito=carrito, producto=producto).first()
+        if item_existente:
+            item_existente.cantidad += cantidad
+            item_existente.save()
+            mensaje = f'Se han añadido {cantidad} unidades más de "{producto.catalogo.nombre}" al carrito.'
+        else:
+            ItemCarrito.objects.create(
+                carrito=carrito,
+                producto=producto,
+                cantidad=cantidad,
+                precio_unitario=producto.precio
+            )
+            mensaje = f'El producto "{producto.catalogo.nombre}" se ha añadido al carrito.'
+        return JsonResponse({
+            'success': True,
+            'message': mensaje,
+            'total_items': carrito.total_items_carrito
+        })
+    except Inventario.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'El producto no existe o está agotado.'}, status=404)
+    except Exception as e:
+        print(f"Error al añadir al carrito: {e}")
+        return JsonResponse({'success': False, 'message': f'Ocurrió un error interno: {str(e)}'}, status=500)
+
+    
+
+@require_POST
+def actualizar_carrito(request, item_id):
+    """
+    Actualiza la cantidad de un producto en el carrito y devuelve JSON.
+    """
+    try:
+        item = get_object_or_404(ItemCarrito, pk=item_id)
+        nueva_cantidad = int(request.POST.get('cantidad', 0))
+        if nueva_cantidad > 0:
+            item.cantidad = nueva_cantidad
+            item.save()
+            mensaje = 'La cantidad del producto ha sido actualizada.'
+            success = True
+        else:
+            item.delete()
+            mensaje = 'El producto ha sido eliminado del carrito.'
+            success = True
+        carrito = obtener_o_crear_carrito(request)
+        total_items_carrito = carrito.total_items_carrito
+        total_precio_carrito = carrito.total_precio_carrito
+        return JsonResponse({
+            'success': success,
+            'message': mensaje,
+            'total_items': total_items_carrito,
+            'total_precio': total_precio_carrito,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
+
+
+
+@require_POST
+def eliminar_del_carrito(request, item_id):
+    """
+    Elimina un producto del carrito y devuelve JSON.
+    """
+    try:
+        item = get_object_or_404(ItemCarrito, pk=item_id)
+        item.delete()
+        mensaje = 'El producto ha sido eliminado del carrito.'
+        carrito = obtener_o_crear_carrito(request)
+        total_items_carrito = carrito.total_items_carrito
+        total_precio_carrito = carrito.total_precio_carrito
+        return JsonResponse({
+            'success': True,
+            'message': mensaje,
+            'total_items': total_items_carrito,
+            'total_precio': total_precio_carrito,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
+    
+
+
+
+
+
+
+
+
+# ==========================================================
+#                   ADMIN
 # ==========================================================
 
 @login_required
 @admin_required
 def panel_admin(request):
-    return render(request, 'admin/panel_admin.html')
+    permisos = {"vista_usuario": True}  # Siempre visible
+    if hasattr(request.user, 'permisos'):
+        permisos.update({
+            "inicio": request.user.permisos.inicio,
+            "inventario": request.user.permisos.inventario,
+            "catalogo": request.user.permisos.catalogo,
+            "pedidos": request.user.permisos.pedidos,
+            "usuarios": request.user.permisos.usuarios,
+            "devoluciones": request.user.permisos.devoluciones,
+            "peticiones": request.user.permisos.peticiones,
+        })
+
+    return render(request, "admin/panel_admin.html", {
+        "permisos_json": json.dumps(permisos)
+    })
 
 
 
 
-# ==========================================================
-#                   CRUD USUARIOS
-# ==========================================================
-
-@staff_member_required
-def mostrar_usuarios(request):
-    usuarios = Usuarios.objects.all().order_by('email')
-    usuarios_activos = Usuarios.objects.filter(is_active=True).count()
-    usuarios_inactivos = Usuarios.objects.filter(is_active=False).count()
-    context = {
-        'usuarios': usuarios,
-        'usuarios_activos': usuarios_activos,
-        'usuarios_inactivos': usuarios_inactivos,
-    }
-    return render(request, 'admin/usuarios/mostrar_usuarios.html', context)
-
-
-@login_required
-def editar_usuario(request, id):
-    usuario = get_object_or_404(Usuarios, id=id)
-    if request.method == 'POST':
-        form = UsuarioUpdateForm(request.POST, instance=usuario)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Usuario actualizado exitosamente.")
-            return redirect('mostrar_usuarios')
-        else:
-            messages.error(request, "Error al actualizar el usuario.")
-    else:
-        form = UsuarioUpdateForm(instance=usuario)
-    return render(request, 'admin/usuarios/editar_usuario.html', {'form': form, 'usuario': usuario})
-
-
-@login_required
-def eliminar_usuario(request, id):
-    usuario = get_object_or_404(Usuarios, idusuarios=id)
-    if request.method == "POST":
-        usuario.delete()
-        usuarios_activos = Usuarios.objects.filter(is_active=True).count()
-        usuarios_inactivos = Usuarios.objects.filter(is_active=False).count()
-        if request.headers.get("x-requested-with") == "XMLHttpRequest":
-            return JsonResponse({
-                "success": True,
-                "stats": {
-                    "activos": usuarios_activos,
-                    "inactivos": usuarios_inactivos
-                }
-            })
-        messages.success(request, "Usuario eliminado exitosamente.")
-        return redirect("mostrar_usuarios")
-    return render(request, "admin/usuarios/eliminar_usuario.html", {"usuario": usuario})
 
 
 
 
 
 # ==========================================================
-#                   CRUD INVENTARIO
+#                   INVENTARIO
 # ==========================================================
 
 @login_required
+@permiso_requerido('inventario')
 def listar_productos_tabla(request):
-    # Traer los productos con relaciones (ForeignKey)
     productos = Inventario.objects.select_related('categoria', 'color', 'talla', 'catalogo').all().order_by('catalogo__nombre')
-    # Total de productos
     total_productos = productos.count()
-    # Valor total del inventario calculado por la base de datos
-    valor_inventario = productos.aggregate(
-        total=Sum(F('precio') * F('stock'))
-    )['total'] or 0
-    # Productos con stock bajo (<10)
+    valor_inventario = productos.aggregate(total=Sum(F('precio') * F('stock')))['total'] or 0
     productos_stock_bajo = productos.filter(stock__lt=10).count()
-    # Productos agotados (stock = 0)
     productos_agotados = productos.filter(stock=0).count()
-    # Total de unidades en stock
     stock_total_unidades = productos.aggregate(Sum('stock'))['stock__sum'] or 0
     context = {
         'productos': productos,
@@ -632,14 +722,16 @@ def listar_productos_tabla(request):
         'productos_stock_bajo': productos_stock_bajo,
         'productos_agotados': productos_agotados,
         'stock_total_unidades': stock_total_unidades,
+        'active': 'inventario',
     }
     return render(request, 'admin/inventario/vista_inventario.html', context)
+
 
 
 @login_required
 def crear_producto(request):
     if request.method == 'POST':
-        form = InventarioForm(request.POST, request.FILES)  # 👈 AÑADIR request.FILES
+        form = InventarioForm(request.POST, request.FILES)  #
         if form.is_valid():
             form.save()
             messages.success(request, "Producto añadido exitosamente al inventario.")
@@ -650,6 +742,7 @@ def crear_producto(request):
     else:
         form = InventarioForm()
     return render(request, 'admin/inventario/crear_producto.html', {'form': form})
+
 
 
 @login_required
@@ -730,34 +823,36 @@ def procesar_entrada_stock(request):
 
 
 
+
+
+
+
 # ==========================================================
 #                   CATÁLOGO
 # ==========================================================
 
-
-
 @login_required
+@permiso_requerido('catalogo')
 def listar_productos_catalogo(request):
-    # Annotate con número de variantes y stock total
     productos = Catalogo.objects.annotate(
         n_variantes=Count('inventarios', distinct=True),
-        total_stock=Sum('inventarios__stock')  # suma de stock de todas las variantes
+        total_stock=Sum('inventarios__stock')
     ).order_by('nombre')
-    # Estadísticas
+
     total_productos = productos.count()
     total_variantes = Inventario.objects.count()
-    # Productos que tienen al menos una variante con stock > 0
     productos_activos = productos.filter(total_stock__gt=0).count()
     productos_inactivos = total_productos - productos_activos
+
     context = {
         'productos': productos,
         'total_productos': total_productos,
         'total_variantes': total_variantes,
         'productos_activos': productos_activos,
         'productos_inactivos': productos_inactivos,
+        'active': 'inventario', 
     }
     return render(request, 'admin/catalogo/vista_catalogo.html', context)
-
 
 
 
@@ -789,6 +884,7 @@ def agregar_producto(request):
     return render(request, 'admin/catalogo/formulario_catalogo.html', {})
 
 
+
 @login_required
 def listar_movimientos_producto(request, id_catalogo):
     producto_principal = get_object_or_404(Catalogo, idcatalogo=id_catalogo)
@@ -811,119 +907,202 @@ def listar_movimientos_producto(request, id_catalogo):
 
 
 
+# ==========================================================
+#                   PEDIDOS
+# ==========================================================
+
+def pedidos(request):
+    pedidos = []
+    return render(request, 'admin/pedidos/pedidos.html', {'pedidos': pedidos, 'active': 'pedidos'})
+
+
+
+
+
+
+
+
+
 
 # ==========================================================
-#                   CARRITO
+#                   USUARIOS
 # ==========================================================
 
-@require_POST
-def anadir_al_carrito(request, producto_id):
-    try:
-        # Obtener el producto del inventario
-        producto = get_object_or_404(Inventario, pk=producto_id)
-        # Leer la cantidad enviada desde el frontend
-        import json
+@staff_member_required
+def mostrar_usuarios(request):
+    usuarios = Usuarios.objects.all().select_related('permisos')
+    usuarios_activos = usuarios.filter(is_active=True).count()
+    usuarios_inactivos = usuarios.filter(is_active=False).count()
+
+    return render(request, 'admin/usuarios/mostrar_usuarios.html', {
+        'usuarios': usuarios,
+        'usuarios_activos': usuarios_activos,
+        'usuarios_inactivos': usuarios_inactivos,
+        'active': 'usuarios'
+    })
+
+
+
+@login_required
+@staff_member_required
+def editar_usuario(request, id):
+    usuario = get_object_or_404(Usuarios, id=id)
+    if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            cantidad = int(data.get('cantidad', 1))
-        except (json.JSONDecodeError, ValueError):
-            cantidad = 1
-        if cantidad <= 0:
-            return JsonResponse({'success': False, 'message': 'La cantidad debe ser un número positivo.'})
-        if cantidad > producto.stock:
-            return JsonResponse({'success': False, 'message': f'Solo hay {producto.stock} unidades disponibles en stock.'})
-        # Obtener o crear carrito
-        carrito = obtener_o_crear_carrito(request)
-        # Verificar si el producto ya existe en el carrito
-        item_existente = ItemCarrito.objects.filter(carrito=carrito, producto=producto).first()
-        if item_existente:
-            item_existente.cantidad += cantidad
-            item_existente.save()
-            mensaje = f'Se han añadido {cantidad} unidades más de "{producto.catalogo.nombre}" al carrito.'
-        else:
-            ItemCarrito.objects.create(
-                carrito=carrito,
-                producto=producto,
-                cantidad=cantidad,
-                precio_unitario=producto.precio
-            )
-            mensaje = f'El producto "{producto.catalogo.nombre}" se ha añadido al carrito.'
-        return JsonResponse({
-            'success': True,
-            'message': mensaje,
-            'total_items': carrito.total_items_carrito
-        })
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'El producto no existe o está agotado.'}, status=404)
-    except Exception as e:
-        print(f"Error al añadir al carrito: {e}")
-        return JsonResponse({'success': False, 'message': f'Ocurrió un error interno: {str(e)}'}, status=500)
-
+            if usuario.is_staff:
+                campos_editables = ['first_name', 'last_name', 'email', 'phone', 'is_active']
+            else:
+                campos_editables = ['is_active']
+            
+            for campo in campos_editables:
+                nuevo_valor = request.POST.get(campo)
+                if nuevo_valor is not None:
+                    if campo == 'is_active':
+                        # Convertir a booleano
+                        setattr(usuario, campo, nuevo_valor.lower() == 'true')
+                    else:
+                        setattr(usuario, campo, nuevo_valor)
+            
+            usuario.save()
+            messages.success(request, "Usuario actualizado correctamente.")
+            
+            # Si es una petición AJAX, devolver JSON
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': 'Usuario actualizado correctamente.'})
+            else:
+                return redirect('mostrar_usuarios')
+                
+        except Exception as e:
+            error_msg = f"Error al actualizar usuario: {str(e)}"
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': error_msg}, status=400)
+            else:
+                messages.error(request, error_msg)
+                return redirect('mostrar_usuarios')
     
+    # GET request - mostrar formulario
+    return render(request, 'admin/usuarios/editar_usuario.html', {'usuario': usuario})
+
+
+
+@login_required
+def eliminar_usuario(request, id):
+    usuario = get_object_or_404(Usuarios, idusuarios=id)
+    if request.method == "POST":
+        usuario.delete()
+        usuarios_activos = Usuarios.objects.filter(is_active=True).count()
+        usuarios_inactivos = Usuarios.objects.filter(is_active=False).count()
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": True,
+                "stats": {
+                    "activos": usuarios_activos,
+                    "inactivos": usuarios_inactivos
+                }
+            })
+        messages.success(request, "Usuario eliminado exitosamente.")
+        return redirect("mostrar_usuarios")
+    return render(request, "admin/usuarios/eliminar_usuario.html", {"usuario": usuario})
+
+
+
+@csrf_exempt
 @require_POST
-def actualizar_carrito(request, item_id):
-    """
-    Actualiza la cantidad de un producto en el carrito y devuelve JSON.
-    """
-    try:
-        item = get_object_or_404(ItemCarrito, pk=item_id)
-        nueva_cantidad = int(request.POST.get('cantidad', 0))
-        if nueva_cantidad > 0:
-            item.cantidad = nueva_cantidad
-            item.save()
-            mensaje = 'La cantidad del producto ha sido actualizada.'
-            success = True
+@login_required
+def toggle_usuario_activo(request, id):
+    usuario = get_object_or_404(Usuarios, id=id)
+    usuario.is_active = not usuario.is_active
+    usuario.save(update_fields=["is_active"])
+
+    return JsonResponse({
+        "success": True,
+        "nuevo_estado": usuario.is_active,
+        "mensaje": f"Usuario {'activado' if usuario.is_active else 'desactivado'} correctamente."
+    })
+
+
+
+@login_required
+@staff_member_required
+def obtener_usuario(request, id):
+    usuario = get_object_or_404(Usuarios, id=id)
+    return JsonResponse({
+        "id": usuario.id,
+        "first_name": usuario.first_name or "",
+        "last_name": usuario.last_name or "",
+        "email": usuario.email or "",
+        "phone": usuario.phone or "",
+        "is_staff": usuario.is_staff,
+        "is_active": usuario.is_active,
+        "last_login": usuario.last_login.strftime("%d/%m/%Y %H:%M") if usuario.last_login else "Nunca",
+        "date_joined": usuario.date_joined.strftime("%d/%m/%Y %H:%M"),
+    })
+
+
+
+@csrf_exempt
+@login_required
+@staff_member_required
+def actualizar_usuario(request, id):
+    if request.method == "POST":
+        usuario = get_object_or_404(Usuarios, id=id)
+        data = request.POST
+        if usuario.is_staff:
+            usuario.first_name = data.get("first_name", usuario.first_name)
+            usuario.last_name = data.get("last_name", usuario.last_name)
+            usuario.email = data.get("email", usuario.email)
+            usuario.phone = data.get("phone", usuario.phone)
+            usuario.is_active = data.get("is_active") == "True"
         else:
-            item.delete()
-            mensaje = 'El producto ha sido eliminado del carrito.'
-            success = True
-        carrito = obtener_o_crear_carrito(request)
-        total_items_carrito = carrito.total_items_carrito
-        total_precio_carrito = carrito.total_precio_carrito
-        return JsonResponse({
-            'success': success,
-            'message': mensaje,
-            'total_items': total_items_carrito,
-            'total_precio': total_precio_carrito,
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
+            usuario.is_active = data.get("is_active") == "True"
+        usuario.save()
+        return JsonResponse({"success": True, "message": "Usuario actualizado correctamente."})
+    return JsonResponse({"success": False, "message": "Método no permitido."})
 
 
-@require_POST
-def eliminar_del_carrito(request, item_id):
-    """
-    Elimina un producto del carrito y devuelve JSON.
-    """
-    try:
-        item = get_object_or_404(ItemCarrito, pk=item_id)
-        item.delete()
-        mensaje = 'El producto ha sido eliminado del carrito.'
-        carrito = obtener_o_crear_carrito(request)
-        total_items_carrito = carrito.total_items_carrito
-        total_precio_carrito = carrito.total_precio_carrito
-        return JsonResponse({
-            'success': True,
-            'message': mensaje,
-            'total_items': total_items_carrito,
-            'total_precio': total_precio_carrito,
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
+
+
+
 
 
 
 
 # ==========================================================
-#                   PETICIONES A ADMIN
+#                   DECOLUCIONES
 # ==========================================================
+
+@permiso_requerido('devoluciones')
+def devoluciones(request):
+    return render(request, 'admin/devoluciones/devoluciones.html', {
+        'active': 'devoluciones'
+    })
+
+
+
+
+
+
+
+
+
+
+# ==========================================================
+#                   PETICIONES
+# ==========================================================
+
+def peticiones(request):
+    return render(request, 'admin/peticiones/peticiones.html', {
+        'active': 'peticiones'
+    })
+
 
 
 @login_required
 @admin_required
+@permiso_requerido('peticiones')
 def listar_peticiones(request):
     peticiones = PeticionProducto.objects.select_related('usuario', 'producto').order_by('-fecha_peticion')
-    return render(request, 'admin/peticiones/peticiones.html', {'peticiones': peticiones})
+    return render(request, 'admin/peticiones/peticiones.html', {'active': 'peticiones', 'peticiones': peticiones})
 
 
 

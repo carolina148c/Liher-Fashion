@@ -162,10 +162,9 @@ class UsuariosManager(BaseUserManager):
 
 class Usuarios(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=50, blank=True)  # antes nombre
+    first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
     phone = models.CharField(max_length=20, blank=True)
-
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)

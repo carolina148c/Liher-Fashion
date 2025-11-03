@@ -1,451 +1,143 @@
+{% extends 'admin/includes/base_admin.html' %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Devoluciones</title>
-    <link rel="stylesheet" href="{% static 'css/devolucion.css' %}">
-</head>
-<body>
-    <div class="main-layout">
-        <!-- Botón toggle para móvil -->
-        <button class="toggle-sidebar" id="toggleSidebar">(menu burguer)</button>
+{% block title %}Devoluciones{% endblock %}
 
-        <!-- Overlay para cerrar sidebar en móvil -->
-        <div class="overlay" id="overlay"></div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/secciones_admin.css' %}">
+{% endblock %}
 
-        <!-- Barra lateral -->
-        <aside class="barra-lateral" id="barraSidebar">
-            <div class="encabezado-barra">
-                Panel Administrador
+{% block header_title %}DEVOLUCIONES{% endblock %}
+
+{% block main_content %}
+<div class="dashboard-devoluciones">
+    <!-- Estadísticas -->
+    <div class="stats-container">
+        <div class="stat-card" data-filter="pendiente">
+            <div class="stat-icon pendientes"></div>
+            <div class="stat-content">
+                <div class="stat-number">128</div>
+                <div class="stat-label">Pendientes</div>
             </div>
-            <ul class="menu-barra">
-                <li><a href="#" class="activo"><span class="icono icono-inicio"></span> Inicio</a></li>
-                <li><a href="{% url 'listar_productos_tabla' %}"><span class="icono icono-inventario"></span> Inventario</a></li>
-                <li><a href="{% url 'listar_productos_catalogo' %}"><span class="icono icono-catalogo"></span> Catálogo</a></li>
-                <li><a href="{% url 'pedidos' %}"><span class="icono icono-pedidos"></span> Pedidos</a></li>
-                <li><a href="{% url 'mostrar_usuarios' %}"><span class="icono icono-usuarios"></span> Usuarios</a></li>
-                <li><a href="{% url 'devoluciones' %}"><span class="icono icono-devoluciones"></span> Devoluciones</a></li>
-                <li><a href="{% url 'peticiones' %}"><span class="icono icono-peticiones"></span> Peticiones</a></li>
-                <li><a href="{% url 'pagina_principal' %}"><span class="icono icono-peticiones"></span> Vista del usuario </a></li>
-            </ul>
-        </aside>
+        </div>
 
-        <!-- Contenido principal -->
-        <main class="contenido-principal" id="contenidoPrincipal">
-            <!-- Header -->
-            <div class="header">
-                <div class="title">Dashboard de Devoluciones</div>
+        <div class="stat-card" data-filter="aprobada">
+            <div class="stat-icon aprobados"></div>
+            <div class="stat-content">
+                <div class="stat-number">24,680</div>
+                <div class="stat-label">Aprobadas</div>
             </div>
+        </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-container">
-                <div class="stat-card" data-filter="pendiente">
-                    <div class="stat-icon pendientes"></div>
-                    <div class="stat-content">
-                        <div class="stat-main">
-                            <span class="stat-number">128</span>
-                        </div>
-                        <span class="stat-label">Pendientes</span>
-                    </div>
-                </div>
-                <div class="stat-card" data-filter="aprobada">
-                    <div class="stat-icon aprobados"></div>
-                    <div class="stat-content">
-                        <div class="stat-main">
-                            <span class="stat-number">24,680</span>
-                        </div>
-                        <span class="stat-label">Aprobados</span>
-                    </div>
-                </div>
-                <div class="stat-card" data-filter="proceso">
-                    <div class="stat-icon proceso"></div>
-                    <div class="stat-content">
-                        <div class="stat-main">
-                            <span class="stat-number">-</span>
-                        </div>
-                        <span class="stat-label">En proceso</span>
-                    </div>
-                </div>
-                <div class="stat-card" data-filter="rechazada">
-                    <div class="stat-icon rechazadas"></div>
-                    <div class="stat-content">
-                        <div class="stat-main">
-                            <span class="stat-number">3</span>
-                        </div>
-                        <span class="stat-label">Rechazadas</span>
-                    </div>
-                </div>
+        <div class="stat-card" data-filter="proceso">
+            <div class="stat-icon proceso"></div>
+            <div class="stat-content">
+                <div class="stat-number">-</div>
+                <div class="stat-label">En proceso</div>
             </div>
+        </div>
 
-            
-            <div class="filters-section">
-                <div class="filters-grid">
-                    <div class="form-group">
-                        <label class="form-label">Estado de Devolución</label>
-                        <select class="form-select">
-                            <option>Todos los estados</option>
-                            <option>Pendiente</option>
-                            <option>Aprobada</option>
-                            <option>Rechazada</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Cliente</label>
-                        <input type="text" class="form-input" placeholder="Buscar por cliente">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Nº de Pedido</label>
-                        <input type="text" class="form-input" placeholder="Ej. ORD-001">
-                    </div>
-                </div>
-                <div class="filters-grid">
-                    <div class="form-group">
-                        <label class="form-label">Fecha Desde</label>
-                        <input type="date" class="form-input" value="2025-06-21">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Fecha Hasta</label>
-                        <input type="date" class="form-input" value="2025-06-21">
-                    </div>
-                </div>
-                <div class="filter-buttons">
-                    <button class="btn btn-primary">🔍 Aplicar Filtros</button>
-                    <button class="btn btn-secondary">Limpiar Filtros</button>
-                </div>
+        <div class="stat-card" data-filter="rechazada">
+            <div class="stat-icon rechazadas"></div>
+            <div class="stat-content">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Rechazadas</div>
             </div>
-
-            <!-- Table -->
-            <div class="table-container">
-                <table class="table">
-                    <thead class="table-header">
-                        <tr>
-                            <th>Nº Pedido</th>
-                            <th>Cliente</th>
-                            <th>Fecha Solicitud</th>
-                            <th>Productos Devueltos</th>
-                            <th>Estado</th>
-                            <th>Devolución</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>#12345</td>
-                            <td>
-                                <div class="client-info">
-                                    <span class="client-name">Ana Carolina Correa</span>
-                                    <span class="client-email">ana2007@gmail.com</span>
-                                </div>
-                            </td>
-                            <td>21/06/2025</td>
-                            <td>2</td>
-                            <td><span class="status-badge status-pendiente">Pendiente</span></td>
-                            <td>-</td>
-                            <td><a href="#" class="btn-view">👁 Ver</a></td>
-                        </tr>
-                        <tr>
-                            <td>#12345</td>
-                            <td>
-                                <div class="client-info">
-                                    <span class="client-name">Santiago Meza Sanchez</span>
-                                </div>
-                            </td>
-                            <td>21/06/2025</td>
-                            <td>2</td>
-                            <td><span class="status-badge status-aprobada">Aprobada</span></td>
-                            <td>-</td>
-                            <td><a href="#" class="btn-view">👁 Ver</a></td>
-                        </tr>
-                        <tr>
-                            <td>#12345</td>
-                            <td>
-                                <div class="client-info">
-                                    <span class="client-name">Damian Ortiz</span>
-                                </div>
-                            </td>
-                            <td>21/06/2025</td>
-                            <td>2</td>
-                            <td><span class="status-badge status-rechazada">Rechazada</span></td>
-                            <td>-</td>
-                            <td><a href="#" class="btn-view">👁 Ver</a></td>
-                        </tr>
-                        <tr>
-                            <td>#12345</td>
-                            <td>
-                                <div class="client-info">
-                                    <span class="client-name">Simon Montoya</span>
-                                </div>
-                            </td>
-                            <td>21/06/2025</td>
-                            <td>2</td>
-                            <td><span class="status-badge status-pendiente">Pendiente</span></td>
-                            <td>-</td>
-                            <td><a href="#" class="btn-view">👁 Ver</a></td>
-                        </tr>
-                        <tr>
-                            <td>#12345</td>
-                            <td>
-                                <div class="client-info">
-                                    <span class="client-name">Manuela Vasquez</span>
-                                </div>
-                            </td>
-                            <td>21/06/2025</td>
-                            <td>2</td>
-                            <td><span class="status-badge status-aprobada">Aprobada</span></td>
-                            <td>-</td>
-                            <td><a href="#" class="btn-view">👁 Ver</a></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
+        </div>
     </div>
 
-    <script>
-        // Variables globales
-        let currentFilter = 'all';
-        let allRows = [];
+    <!-- Filtros -->
+    <div class="filters-section">
+        <div class="filters-grid">
+            <div class="form-group">
+                <label class="form-label">Estado de Devolución</label>
+                <select class="form-select">
+                    <option>Todos los estados</option>
+                    <option>Pendiente</option>
+                    <option>Aprobada</option>
+                    <option>Rechazada</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cliente</label>
+                <input type="text" class="form-input" placeholder="Buscar por cliente">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nº de Pedido</label>
+                <input type="text" class="form-input" placeholder="Ej. ORD-001">
+            </div>
+        </div>
 
-        // Inicializar cuando la página carga
-        document.addEventListener('DOMContentLoaded', function() {
-            // Almacenar todas las filas de la tabla
-            allRows = Array.from(document.querySelectorAll('.table tbody tr'));
-            
-            // Configurar sidebar
-            setupSidebar();
-            
-            // Configurar eventos para las tarjetas de estadísticas
-            setupStatCards();
-            
-            // Configurar eventos para botones y filtros
-            setupFilterButtons();
-            
-            // Configurar efectos hover para filas
-            setupTableHoverEffects();
-        });
+        <div class="filters-grid">
+            <div class="form-group">
+                <label class="form-label">Fecha Desde</label>
+                <input type="date" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-input">
+            </div>
+        </div>
 
-        // Configurar sidebar y responsividad
-        function setupSidebar() {
-            const toggleBtn = document.getElementById('toggleSidebar');
-            const sidebar = document.getElementById('barraSidebar');
-            const overlay = document.getElementById('overlay');
-            const contenido = document.getElementById('contenidoPrincipal');
+        <div class="filter-buttons">
+            <button class="btn btn-primary">🔍 Aplicar Filtros</button>
+            <button class="btn btn-secondary">Limpiar Filtros</button>
+        </div>
+    </div>
 
-            // Toggle sidebar en móvil
-            toggleBtn.addEventListener('click', function() {
-                sidebar.classList.toggle('mostrar');
-                overlay.classList.toggle('activo');
-            });
+    <!-- Tabla -->
+    <div class="table-container">
+        <table class="table">
+            <thead class="table-header">
+                <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente</th>
+                    <th>Fecha Solicitud</th>
+                    <th>Productos Devueltos</th>
+                    <th>Estado</th>
+                    <th>Devolución</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>#12345</td>
+                    <td>
+                        <div class="client-info">
+                            <span class="client-name">Ana Carolina Correa</span>
+                            <span class="client-email">ana2007@gmail.com</span>
+                        </div>
+                    </td>
+                    <td>21/06/2025</td>
+                    <td>2</td>
+                    <td><span class="status-badge status-pendiente">Pendiente</span></td>
+                    <td>-</td>
+                    <td><a href="#" class="btn-view">👁 Ver</a></td>
+                </tr>
+                <tr>
+                    <td>#12346</td>
+                    <td><div class="client-info"><span class="client-name">Santiago Meza</span></div></td>
+                    <td>21/06/2025</td>
+                    <td>2</td>
+                    <td><span class="status-badge status-aprobada">Aprobada</span></td>
+                    <td>-</td>
+                    <td><a href="#" class="btn-view">👁 Ver</a></td>
+                </tr>
+                <tr>
+                    <td>#12347</td>
+                    <td><div class="client-info"><span class="client-name">Damian Ortiz</span></div></td>
+                    <td>21/06/2025</td>
+                    <td>1</td>
+                    <td><span class="status-badge status-rechazada">Rechazada</span></td>
+                    <td>-</td>
+                    <td><a href="#" class="btn-view">👁 Ver</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
 
-            // Cerrar sidebar al hacer clic en overlay
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('mostrar');
-                overlay.classList.remove('activo');
-            });
-
-            // Cerrar sidebar al hacer clic en un enlace (en móvil)
-            document.querySelectorAll('.menu-barra a').forEach(link => {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) {
-                        sidebar.classList.remove('mostrar');
-                        overlay.classList.remove('activo');
-                    }
-                });
-            });
-        }
-
-        // Configurar las tarjetas de estadísticas como filtros
-        function setupStatCards() {
-            const statCards = document.querySelectorAll('.stat-card');
-            
-            statCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const filterType = this.getAttribute('data-filter');
-                    
-                    // Remover clase active de todas las tarjetas
-                    statCards.forEach(c => c.classList.remove('active'));
-                    
-                    // Si se hace clic en la misma tarjeta, mostrar todas las filas
-                    if (currentFilter === filterType) {
-                        currentFilter = 'all';
-                        showAllRows();
-                        resetFilterSelect();
-                    } else {
-                        // Agregar clase active a la tarjeta seleccionada
-                        this.classList.add('active');
-                        currentFilter = filterType;
-                        filterTableByStatus(filterType);
-                        // También actualizar el select de filtros
-                        updateFilterSelect(filterType);
-                    }
-                });
-            });
-        }
-
-        // Configurar botones de filtro
-        function setupFilterButtons() {
-            // Botón aplicar filtros
-            document.querySelector('.btn-primary').addEventListener('click', function() {
-                applyAllFilters();
-            });
-
-            // Botón limpiar filtros
-            document.querySelector('.btn-secondary').addEventListener('click', function() {
-                clearAllFilters();
-            });
-
-            // Sincronizar el select con las tarjetas de estadísticas
-            document.querySelector('.form-select').addEventListener('change', function() {
-                const selectedStatus = this.value.toLowerCase();
-                const statCards = document.querySelectorAll('.stat-card');
-                
-                // Remover todas las clases active
-                statCards.forEach(card => card.classList.remove('active'));
-                
-                if (selectedStatus === 'todos los estados') {
-                    currentFilter = 'all';
-                    showAllRows();
-                } else {
-                    // Encontrar y activar la tarjeta correspondiente
-                    statCards.forEach(card => {
-                        const cardFilter = card.getAttribute('data-filter');
-                        if (selectedStatus.includes(cardFilter) || 
-                            (cardFilter === 'proceso' && selectedStatus.includes('proceso'))) {
-                            card.classList.add('active');
-                            currentFilter = cardFilter;
-                            filterTableByStatus(cardFilter);
-                        }
-                    });
-                }
-            });
-        }
-
-        // Filtrar tabla por estado
-        function filterTableByStatus(status) {
-            allRows.forEach(row => {
-                const statusBadge = row.querySelector('.status-badge');
-                if (statusBadge) {
-                    const rowStatus = statusBadge.textContent.toLowerCase().trim();
-                    
-                    if (status === 'proceso' && rowStatus === 'en proceso') {
-                        row.style.display = '';
-                    } else if (rowStatus.includes(status.toLowerCase())) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                }
-            });
-        }
-
-        // Mostrar todas las filas
-        function showAllRows() {
-            allRows.forEach(row => {
-                row.style.display = '';
-            });
-        }
-
-        // Actualizar el select de filtros
-        function updateFilterSelect(status) {
-            const select = document.querySelector('.form-select');
-            const statusMap = {
-                'pendiente': 'Pendiente',
-                'aprobada': 'Aprobada', 
-                'rechazada': 'Rechazada',
-                'proceso': 'En proceso'
-            };
-            
-            // Buscar la opción correspondiente
-            for (let option of select.options) {
-                if (option.text === statusMap[status]) {
-                    option.selected = true;
-                    break;
-                }
-            }
-        }
-
-        // Resetear el select de filtros
-        function resetFilterSelect() {
-            const select = document.querySelector('.form-select');
-            select.selectedIndex = 0;
-        }
-
-        // Aplicar todos los filtros
-        function applyAllFilters() {
-            const estadoSelect = document.querySelector('.form-select');
-            const clienteInput = document.querySelector('input[placeholder="Buscar por cliente"]');
-            const pedidoInput = document.querySelector('input[placeholder="Ej. ORD-001"]');
-            
-            const filters = {
-                estado: estadoSelect.value,
-                cliente: clienteInput.value.toLowerCase(),
-                pedido: pedidoInput.value.toLowerCase()
-            };
-            
-            allRows.forEach(row => {
-                let shouldShow = true;
-                
-                // Filtro por estado
-                if (filters.estado && filters.estado !== 'Todos los estados') {
-                    const statusBadge = row.querySelector('.status-badge');
-                    const rowStatus = statusBadge ? statusBadge.textContent.trim() : '';
-                    if (rowStatus !== filters.estado) {
-                        shouldShow = false;
-                    }
-                }
-                
-                // Filtro por cliente
-                if (filters.cliente) {
-                    const clientName = row.querySelector('.client-name');
-                    const clientText = clientName ? clientName.textContent.toLowerCase() : '';
-                    if (!clientText.includes(filters.cliente)) {
-                        shouldShow = false;
-                    }
-                }
-                
-                // Filtro por número de pedido
-                if (filters.pedido) {
-                    const pedidoCell = row.cells[0];
-                    const pedidoText = pedidoCell ? pedidoCell.textContent.toLowerCase() : '';
-                    if (!pedidoText.includes(filters.pedido)) {
-                        shouldShow = false;
-                    }
-                }
-                
-                row.style.display = shouldShow ? '' : 'none';
-            });
-        }
-
-        // Limpiar todos los filtros
-        function clearAllFilters() {
-            // Limpiar todos los campos de filtro
-            document.querySelectorAll('.form-input, .form-select').forEach(input => {
-                if (input.type === 'date') {
-                    input.value = '';
-                } else {
-                    input.value = '';
-                    if (input.tagName === 'SELECT') {
-                        input.selectedIndex = 0;
-                    }
-                }
-            });
-            
-            // Remover filtros activos y mostrar todas las filas
-            document.querySelectorAll('.stat-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            currentFilter = 'all';
-            showAllRows();
-        }
-
-        // Configurar efectos hover para las filas de la tabla
-        function setupTableHoverEffects() {
-            // Los efectos hover ya están definidos en CSS
-            // Esta función se mantiene para consistencia con el código original
-        }
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{% static 'js/devoluciones.js' %}"></script>
+{% endblock %}

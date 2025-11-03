@@ -28,7 +28,10 @@ body {
   background:rgba(255,255,255,.1);
   border-left-color:#fff;
 }
-.contenido-principal {flex:1;padding:30px;}
+.contenido-principal {
+  flex: 1;
+  padding: 50px;
+}
 .encabezado {display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
 .barra-herramientas button {
   border:1px solid #ddd;

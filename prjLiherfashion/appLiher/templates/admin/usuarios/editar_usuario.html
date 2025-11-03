@@ -1,452 +1,88 @@
-{# prjLiherfashion/appLiher/templates/admin/usuarios-registrados/editar_usuario.html #}
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Usuario</title>
-    <style>
-        /* Reset básico */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        /* Overlay para el modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        /* Container principal del modal */
-        .modal-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow: hidden;
-            position: relative;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        /* Header del modal */
-        .modal-header {
-            background: linear-gradient(135deg, #ff6b9d, #ff8fab);
-            color: white;
-            padding: 20px;
-            position: relative;
-            text-align: center;
-        }
-
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 5px;
-            line-height: 1;
-            transition: opacity 0.2s;
-        }
-
-        .close-btn:hover {
-            opacity: 0.7;
-        }
-
-        /* Contenido del modal */
-        .modal-content {
-            padding: 30px;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-
-        /* Mensajes de error/éxito */
-        .messages {
-            list-style: none;
-            margin-bottom: 20px;
-        }
-
-        .messages li {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .messages .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .messages .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* Estilos del formulario */
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-            font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            background-color: white;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #ff6b9d;
-            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
-        }
-
-        /* Grupo de campos en línea */
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
-
-        /* Campos de solo lectura */
-        .readonly-field {
-            background-color: #f8f9fa !important;
-            color: #6c757d;
-            cursor: not-allowed;
-        }
-
-        /* Botones */
-        .modal-footer {
-            padding: 20px 30px;
-            background-color: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: all 0.3s;
-            min-width: 100px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #ff6b9d, #ff8fab);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #ff5a8c, #ff7e9a);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #5a6268;
-            transform: translateY(-1px);
-        }
-
-        /* Estados especiales */
-        .form-group.required label::after {
-            content: ' *';
-            color: #dc3545;
-        }
-
-        /* Errores de campo */
-        .field-errors {
-            margin-top: 5px;
-        }
-
-        .error-text {
-            color: #dc3545;
-            font-size: 12px;
-            display: block;
-            margin-top: 2px;
-        }
-
-        .form-group input.error,
-        .form-group select.error,
-        .form-group textarea.error {
-            border-color: #dc3545;
-        }
-
-        .form-group input.error:focus,
-        .form-group select.error:focus,
-        .form-group textarea.error:focus {
-            border-color: #dc3545;
-            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-        }
-
-        /* Estilos específicos para campos de Django */
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-        }
-
-        select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
-        }
-
-        /* Estilos para campos específicos */
-        input[type="email"] {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2zm13 2.383-4.758 2.855L15 11.114v-5.73zm-.034 6.878L9.271 8.82 8 9.583 6.728 8.82l-5.694 3.44A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.739zM1 11.114l4.758-2.876L1 5.383v5.73z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
-        }
-
-        /* Animaciones */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .modal-container {
-                width: 95%;
-                margin: 20px;
-            }
-            
-            .modal-content {
-                padding: 20px;
-            }
-            
-            .modal-footer {
-                padding: 15px 20px;
-                flex-direction: column;
-            }
-            
-            .btn {
-                width: 100%;
-            }
-            
-            .form-row {
-                flex-direction: column;
-                gap: 0;
-            }
-            
-            .form-row .form-group {
-                margin-bottom: 25px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Overlay del modal -->
-    <div class="modal-overlay">
-        <div class="modal-container">
-            <!-- Header del modal -->
-            <div class="modal-header">
-                <h2 class="modal-title">Editar Usuario</h2>
-            </div>
-            
-            <!-- Contenido del modal -->
-            <div class="modal-content">
-                {% if messages %}
-                    <ul class="messages">
-                        {% for message in messages %}
-                            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-                
-                <form method="post" id="editUserForm">
-                    {% csrf_token %}
-                    
-                    <!-- Renderizar todos los campos del formulario automáticamente -->
-                    {% for field in form %}
-                        {% if field.name == 'first_name' or field.name == 'last_name' %}
-                            <!-- Campos de nombre en una fila -->
-                            {% if field.name == 'first_name' %}
-                                <div class="form-row">
-                            {% endif %}
-                            <div class="form-group {% if field.field.required %}required{% endif %}">
-                                <label for="{{ field.id_for_label }}">
-                                    {% if field.name == 'first_name' %}Nombre{% endif %}
-                                    {% if field.name == 'last_name' %}Apellido{% endif %}
-                                </label>
-                                {{ field }}
-                                {% if field.errors %}
-                                    <div class="field-errors">
-                                        {% for error in field.errors %}
-                                            <span class="error-text">{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            {% if field.name == 'last_name' %}
-                                </div>
-                            {% endif %}
-                        {% elif field.name == 'email' %}
-                            <!-- Campo de email -->
-                            <div class="form-group {% if field.field.required %}required{% endif %}">
-                                <label for="{{ field.id_for_label }}">Correo Electrónico</label>
-                                {{ field }}
-                                {% if field.errors %}
-                                    <div class="field-errors">
-                                        {% for error in field.errors %}
-                                            <span class="error-text">{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% elif field.name == 'is_active' %}
-                            <!-- Campo de estado -->
-                            <div class="form-group {% if field.field.required %}required{% endif %}">
-                                <label for="{{ field.id_for_label }}">Estado de cuenta</label>
-                                <select id="{{ field.id_for_label }}" name="{{ field.name }}" {% if field.field.required %}required{% endif %}>
-                                    <option value="True" {% if field.value %}selected{% endif %}>Activo</option>
-                                    <option value="False" {% if not field.value %}selected{% endif %}>Inactivo</option>
-                                </select>
-                                {% if field.errors %}
-                                    <div class="field-errors">
-                                        {% for error in field.errors %}
-                                            <span class="error-text">{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% else %}
-                            <!-- Otros campos -->
-                            <div class="form-group {% if field.field.required %}required{% endif %}">
-                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.errors %}
-                                    <div class="field-errors">
-                                        {% for error in field.errors %}
-                                            <span class="error-text">{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    <!-- Fila con fechas (solo lectura) -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="fecha_creacion">Fecha de creación:</label>
-                            <input type="text" 
-                                   id="fecha_creacion" 
-                                   value="{{ usuario.date_joined|date:'d/m/Y' }}" 
-                                   class="readonly-field" 
-                                   readonly>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="ultimo_acceso">Último acceso:</label>
-                            <input type="text" 
-                                   id="ultimo_acceso" 
-                                   value="{% if usuario.last_login %}{{ usuario.last_login|date:'d/m/Y' }}{% else %}Nunca{% endif %}" 
-                                   class="readonly-field" 
-                                   readonly>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Footer con botones -->
-            <div class="modal-footer">
-                <a href="{% url 'mostrar_usuarios' %}" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" form="editUserForm" class="btn btn-primary">Guardar Cambios</button>
-            </div>
-        </div>
+<div id="editUserModal" class="modal-overlay" style="display: none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Editar Usuario</h2>
+      <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
     </div>
-    
-    <script>
-        // Cerrar modal con ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                window.location.href = '{% url "mostrar_usuarios" %}';
-            }
-        });
-        
-        // Cerrar modal al hacer clic fuera
-        document.querySelector('.modal-overlay').addEventListener('click', function(e) {
-            if (e.target === this) {
-                window.location.href = '{% url "mostrar_usuarios" %}';
-            }
-        });
-    </script>
-</body>
-</html>
+
+    <div class="modal-body">
+      <form id="editUserForm">
+        {% csrf_token %}
+        <input type="hidden" id="editUserId">
+
+        <!-- Nombre -->
+        <div class="form-group">
+          <label for="editFirstName">Nombre <span class="required">*</span></label>
+          <input type="text" id="editFirstName" placeholder="Ej: Manuela">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Apellido -->
+        <div class="form-group">
+          <label for="editLastName">Apellido <span class="required">*</span></label>
+          <input type="text" id="editLastName" placeholder="Ej: Vásquez Herrera">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Correo -->
+        <div class="form-group">
+          <label for="editEmail">Correo Electrónico <span class="required">*</span></label>
+          <input type="email" id="editEmail" placeholder="Ej: correo@gmail.com">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="form-group">
+          <label for="editPhone">Teléfono <span class="required">*</span></label>
+          <input type="tel" id="editPhone" placeholder="Ingrese el número">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Rol -->
+        <div class="form-group">
+          <label for="editRole">Rol</label>
+          <input type="text" id="editRole" disabled class="readonly">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Último acceso -->
+        <div class="form-group">
+          <label>Último acceso</label>
+          <input type="text" id="editLastLogin" disabled class="readonly">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Fecha de creación -->
+        <div class="form-group">
+          <label>Fecha de creación</label>
+          <input type="text" id="editDateJoined" disabled class="readonly">
+          <div class="input-alert"></div>
+        </div>
+
+        <!-- Estado -->
+        <div class="form-group">
+          <label for="editActive">Estado</label>
+          <select id="editActive">
+            <option value="True">Activo</option>
+            <option value="False">Inactivo</option>
+          </select>
+          <div class="input-alert"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeModal('editUserModal')">Cancelar</button>
+          <button type="button" class="btn-guardar" onclick="saveEditedUser()">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<style>
+.readonly {
+  background-color: #f0f0f0 !important;
+  color: #555 !important;
+  cursor: not-allowed !important;
+}
+</style>
