@@ -850,7 +850,7 @@ def listar_productos_catalogo(request):
         'total_variantes': total_variantes,
         'productos_activos': productos_activos,
         'productos_inactivos': productos_inactivos,
-        'active': 'inventario', 
+        'active': 'catalogo', 
     }
     return render(request, 'admin/catalogo/vista_catalogo.html', context)
 

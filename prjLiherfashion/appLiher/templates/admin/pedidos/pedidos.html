@@ -10,178 +10,283 @@
 {% block header_title %}PEDIDOS{% endblock %}
 
 {% block main_content %}
-<div class="stats-container">
-    <div class="stat-card confirmed" onclick="filterByStatus('confirmado')">
-        <div class="stat-icon">
-            <input type="checkbox" checked disabled>
-        </div>
-        <div class="stat-info">
-            <div class="stat-number">15</div>
-            <div class="stat-label">Pedidos confirmados</div>
-        </div>
-    </div>
+<div class="container">
 
-    <div class="stat-card active" onclick="filterByStatus('activo')">
-        <div class="stat-icon">
-            <input type="checkbox" checked disabled>
-        </div>
-        <div class="stat-info">
-            <div class="stat-number">47</div>
-            <div class="stat-label">Pedidos activos</div>
-        </div>
-    </div>
-
-    <div class="stat-card pending" onclick="filterByStatus('pendiente')">
-        <div class="stat-icon">⚠</div>
-        <div class="stat-info">
-            <div class="stat-number">8</div>
-            <div class="stat-label">Pedidos pendientes</div>
-        </div>
-    </div>
-
-    <div class="stat-card cancelled" onclick="filterByStatus('cancelado')">
-        <div class="stat-icon">✕</div>
-        <div class="stat-info">
-            <div class="stat-number">3</div>
-            <div class="stat-label">Pedidos cancelados</div>
-        </div>
-    </div>
-</div>
-
-<!-- FILTROS -->
-<div class="filters-section">
-    <div class="filters-grid">
-        <div class="filter-group">
-            <label class="filter-label">Número del Pedido</label>
-            <input type="text" class="filter-input" placeholder="Ej: ORD-2024-001">
+    <!-- Estadísticas -->
+    <div class="stats">
+        <div class="stat-item stat-active" onclick="filterByStatus('confirmado')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">15</div>
+                <div class="stat-label">Pedidos confirmados</div>
+            </div>
         </div>
 
-        <div class="filter-group">
-            <label class="filter-label">Cliente</label>
-            <input type="text" class="filter-input" placeholder="Nombre o correo electrónico">
+        <div class="stat-item stat-total" onclick="filterByStatus('activo')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">47</div>
+                <div class="stat-label">Pedidos activos</div>
+            </div>
         </div>
 
-        <div class="filter-group">
-            <label class="filter-label">Estado del Pedido</label>
-            <select class="filter-select">
-                <option>Todos los estados</option>
-                <option>Pendiente</option>
-                <option>Confirmado</option>
-                <option>En preparación</option>
-                <option>Enviado</option>
-                <option>Entregado</option>
-                <option>Cancelado</option>
-                <option>Devuelto</option>
-            </select>
+        <div class="stat-item inventory-low" onclick="filterByStatus('pendiente')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Pedidos pendientes</div>
+            </div>
         </div>
 
-        <div class="filter-group">
-            <label class="filter-label">Estado de Pago</label>
-            <select class="filter-select">
-                <option>Todos los estados</option>
-                <option>Pendiente</option>
-                <option>Pagado</option>
-                <option>Fallido</option>
-                <option>Reembolsado</option>
-            </select>
-        </div>
-
-        <div class="filter-group">
-            <label class="filter-label">Método de Pago</label>
-            <select class="filter-select">
-                <option>Todos los métodos</option>
-                <option>Transferencia</option>
-                <option>Tarjeta</option>
-                <option>Efectivo</option>
-            </select>
-        </div>
-
-        <div class="filter-group">
-            <label class="filter-label">Fecha Desde</label>
-            <input type="date" class="filter-input">
-        </div>
-
-        <div class="filter-group">
-            <label class="filter-label">Fecha Hasta</label>
-            <input type="date" class="filter-input">
+        <div class="stat-item stat-inactive" onclick="filterByStatus('cancelado')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Pedidos cancelados</div>
+            </div>
         </div>
     </div>
 
-    <div class="filter-buttons">
-        <button class="btn btn-primary" onclick="applyFilters()">🔍 Aplicar Filtros</button>
-        <button class="btn btn-secondary" onclick="clearFilters()">🗑 Limpiar Filtros</button>
-    </div>
-</div>
+    <!-- Mensajes -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
-<div class="update-info">
-    Última actualización: hace 2 minutos
-</div>
+    <!-- Filtros -->
+    <div class="search-filter-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div style="grid-column: 1 / -1;">
+            <div class="search-bar">
+                <input type="text" placeholder="Buscar por número de pedido o cliente..." id="searchInput">
+                <span class="search-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </span>
+            </div>
+        </div>
 
-<!-- TABLA DE PEDIDOS -->
-<div class="orders-section">
-    <div class="orders-header">
-        <h2 class="orders-title">Lista de Pedidos</h2>
-        <span class="orders-total">Total: <strong>73 pedidos</strong></span>
-    </div>
+        <select class="filter-dropdown" id="statusFilter">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="preparacion">En preparación</option>
+            <option value="enviado">Enviado</option>
+            <option value="entregado">Entregado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="devuelto">Devuelto</option>
+        </select>
 
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nº Pedido</th>
-                    <th>Cliente</th>
-                    <th>Fecha</th>
-                    <th>Estado Pedido</th>
-                    <th>Método Pago</th>
-                    <th>Total</th>
-                    <th>Estado Pago</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pedido in pedidos %}
-                <tr>
-                    <td class="order-id">#{{ pedido.codigo }}</td>
-                    <td>
-                        <div class="client-info">
-                            <span class="client-name">{{ pedido.cliente.nombre }}</span>
-                            <span class="client-email">{{ pedido.cliente.email }}</span>
-                        </div>
-                    </td>
-                    <td>{{ pedido.fecha|date:"d/m/Y" }}</td>
-                    <td><span class="status-badge status-{{ pedido.estado|lower }}">{{ pedido.estado }}</span></td>
-                    <td>{{ pedido.metodo_pago }}</td>
-                    <td>{{ pedido.total }}</td>
-                    <td><span class="status-badge status-{{ pedido.estado_pago|lower }}">{{ pedido.estado_pago }}</span></td>
-                    <td>
-                        <div class="actions">
-                            <button class="action-btn action-view">👁 Ver</button>
-                            <button class="action-btn action-edit">✏ Editar</button>
-                            <button class="action-btn action-cancel">✕ Cancelar</button>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="empty-state">No hay pedidos registrados</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <select class="filter-dropdown" id="paymentStatusFilter">
+            <option value="">Estado de Pago</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="pagado">Pagado</option>
+            <option value="fallido">Fallido</option>
+            <option value="reembolsado">Reembolsado</option>
+        </select>
+
+        <select class="filter-dropdown" id="paymentMethodFilter">
+            <option value="">Método de Pago</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="efectivo">Efectivo</option>
+        </select>
+
+        <input type="date" class="filter-dropdown" id="dateFrom">
+        <input type="date" class="filter-dropdown" id="dateTo">
     </div>
 
-    <div class="pagination">
-        <button class="pagination-btn">&lt; Anterior</button>
-        <button class="pagination-btn active">1</button>
-        <button class="pagination-btn">2</button>
-        <button class="pagination-btn">3</button>
-        <button class="pagination-btn">...</button>
-        <button class="pagination-btn">25</button>
-        <button class="pagination-btn">Siguiente &gt;</button>
+    <!-- Botones de filtro -->
+    <div class="action-buttons" style="justify-content: flex-start; margin-top: 0;">
+        <button class="btn-primary" onclick="applyFilters()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Aplicar Filtros
+        </button>
+        <button class="btn-outline" onclick="clearFilters()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Limpiar Filtros
+        </button>
+    </div>
+
+    <!-- Info de actualización -->
+    <div style="text-align: right; color: #7f8c8d; font-size: 13px; margin-bottom: 20px;">
+        Última actualización: hace 2 minutos • <strong>73 pedidos</strong>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-container">
+        {% if pedidos %}
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Nº Pedido</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Estado Pedido</th>
+                        <th>Método Pago</th>
+                        <th>Total</th>
+                        <th>Estado Pago</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td>
+                            <strong style="color: #FF4081; font-weight: 600;">#{{ pedido.codigo }}</strong>
+                        </td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar">
+                                    {{ pedido.cliente.nombre|first|upper }}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">{{ pedido.cliente.nombre }}</div>
+                                    <div class="user-email">{{ pedido.cliente.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ pedido.fecha|date:"d/m/Y" }}</td>
+                        <td>
+                            <span class="status-badge {% if pedido.estado == 'Confirmado' or pedido.estado == 'Entregado' %}status-active{% elif pedido.estado == 'Enviado' %}status-shipped{% elif pedido.estado == 'Pendiente' %}status-pending{% elif pedido.estado == 'Cancelado' %}status-inactive{% else %}status-processing{% endif %}">
+                                {{ pedido.estado }}
+                            </span>
+                        </td>
+                        <td>{{ pedido.metodo_pago }}</td>
+                        <td><strong style="color: #2c3e50;">${{ pedido.total|floatformat:2 }}</strong></td>
+                        <td>
+                            <span class="status-badge {% if pedido.estado_pago == 'Pagado' %}status-active{% elif pedido.estado_pago == 'Pendiente' %}status-pending{% else %}status-inactive{% endif %}">
+                                {{ pedido.estado_pago }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <button class="view-btn" onclick="viewOrder('{{ pedido.id }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    Ver
+                                </button>
+                                <button class="edit-btn" onclick="editOrder('{{ pedido.id }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    Editar
+                                </button>
+                                <button class="delete-btn" onclick="return confirm('¿Cancelar pedido #{{ pedido.codigo }}?') && cancelOrder('{{ pedido.id }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    Cancelar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Paginación -->
+            <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 30px; flex-wrap: wrap;">
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Anterior
+                </button>
+                <button class="btn-primary" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">1</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">2</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">3</button>
+                <span style="color: #7f8c8d; padding: 0 5px;">...</span>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">25</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px;">
+                    Siguiente
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h3>No hay pedidos registrados</h3>
+                <p>Los pedidos aparecerán aquí cuando los clientes realicen compras</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/pedidos.js' %}"></script>
+<script>
+function filterByStatus(status) {
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.value = status;
+        applyFilters();
+    }
+}
+
+function applyFilters() {
+    // Implementar lógica de filtrado
+    console.log('Aplicando filtros...');
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('paymentStatusFilter').value = '';
+    document.getElementById('paymentMethodFilter').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+}
+
+function viewOrder(id) {
+    console.log('Ver pedido:', id);
+}
+
+function editOrder(id) {
+    console.log('Editar pedido:', id);
+}
+
+function cancelOrder(id) {
+    console.log('Cancelar pedido:', id);
+}
+</script>
 {% endblock %}
