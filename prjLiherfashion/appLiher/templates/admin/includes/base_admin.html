@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    ...
+    <meta charset="UTF-8">
     <title>{% block title %}Panel Admin{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/base_admin.css' %}">
     {% block extra_css %}{% endblock %}
@@ -13,7 +13,15 @@
     <div class="overlay" id="overlay"></div>
 
     <main class="contenido-principal">
-        {% include 'admin/includes/header.html' %}
+        {% block header %}
+        <div class="encabezado">
+            <h1>{% block header_title %}{% endblock %}</h1>
+            <div class="barra-herramientas">
+                {% block header_tools %}{% endblock %}
+            </div>
+        </div>
+        {% endblock %}
+
         {% block main_content %}{% endblock %}
     </main>
 </div>

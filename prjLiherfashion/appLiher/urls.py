@@ -6,6 +6,7 @@ urlpatterns = [
     # PÁGINA PRINCIPAL 
     path('', views.pagina_principal, name='pagina_principal'),
 
+
     # USUARIO / TIENDA 
     path('carrito/', views.carrito, name='carrito'),
     path('envio/', views.envio, name='envio'),
@@ -41,16 +42,30 @@ urlpatterns = [
     path('contrasena-actualizada/', views.CustomPasswordResetCompleteView.as_view(), name='contrasena_actualizada'),
 
 
+    # CARRITO
+    path('anadir-al-carrito/<int:producto_id>/', views.anadir_al_carrito, name='anadir_al_carrito'),
+    path('carrito/', views.carrito, name='carrito'),
+    path('carrito/actualizar/<int:item_id>/', views.actualizar_carrito, name='actualizar_carrito'),
+    path('carrito/eliminar/<int:item_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),
+
+
+
+
+
     # ADMIN PERSONALIZADO 
     path('panel-admin/', views.panel_admin, name='panel_admin'),
 
-    # CRUD USUARIOS 
+
+    # USUARIOS 
     path('usuarios/', views.mostrar_usuarios, name='mostrar_usuarios'),
     path('usuarios-editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
     path('usuarios-eliminar/<int:id>/', views.eliminar_usuario, name='eliminar_usuario'),
+    path('usuarios/toggle/<int:id>/', views.toggle_usuario_activo, name='toggle_usuario_activo'),
+    path('usuarios/actualizar/<int:id>/', views.actualizar_usuario, name='actualizar_usuario'),
 
 
-    # CRUD INVENTARIO 
+
+    # INVENTARIO 
     path('inventario/', views.listar_productos_tabla, name='listar_productos_tabla'),
     path('inventario-crear/', views.crear_producto, name='crear_producto'),
     path('inventario-editar/<int:id>/', views.editar_producto, name='editar_producto'),
@@ -66,14 +81,21 @@ urlpatterns = [
     path('inventario/movimientos/<int:id_catalogo>/', views.listar_movimientos_producto, name='listar_movimientos_producto'),
 
 
-    # CARRITO
-    path('anadir-al-carrito/<int:producto_id>/', views.anadir_al_carrito, name='anadir_al_carrito'),
-    path('carrito/', views.carrito, name='carrito'),
-    path('carrito/actualizar/<int:item_id>/', views.actualizar_carrito, name='actualizar_carrito'),
-    path('carrito/eliminar/<int:item_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),
+    #PEDIDOS
 
 
-    # PETICIONES A ADMIN
+    # USUARIOS 
+    path('usuarios/', views.mostrar_usuarios, name='mostrar_usuarios'),
+    path('usuarios/editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/obtener/<int:id>/', views.obtener_usuario, name='obtener_usuario'),
+    path('usuarios/actualizar/<int:id>/', views.actualizar_usuario, name='actualizar_usuario'),
+    path('usuarios-eliminar/<int:id>/', views.eliminar_usuario, name='eliminar_usuario'),
+
+
+    # DEVOLUCIONES
+
+
+    # PETICIONES
     path('peticiones/crear/<int:producto_id>/', views.crear_peticion, name='crear_peticion'),
     path('admin/peticiones/', views.listar_peticiones, name='listar_peticiones'),
 ]

@@ -99,19 +99,25 @@ class CustomPasswordResetForm(PasswordResetForm):
 
 
 class UsuarioUpdateForm(forms.ModelForm):
-    """Formulario para actualizar datos de usuario desde admin"""
     class Meta:
         model = Usuarios
-        fields = ['email', 'is_active', 'is_staff', 'is_superuser']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'is_active', 'is_staff', 'is_superuser']
         widgets = {
             'email': forms.EmailInput(attrs={'placeholder': 'Email'}),
+            'first_name': forms.TextInput(attrs={'placeholder': 'Nombre'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'Apellido'}),
+            'phone': forms.TextInput(attrs={'placeholder': 'Teléfono'}),
         }
         labels = {
-            'email': 'Email',
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'email': 'Correo electrónico',
+            'phone': 'Teléfono',
             'is_active': 'Activo',
             'is_staff': 'Es Staff',
             'is_superuser': 'Es Superusuario',
         }
+
 
 # ==========================
 # FORMULARIOS PARA INVENTARIO

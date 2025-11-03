@@ -14,9 +14,9 @@ body {
 
 /* ===== CONTENEDOR PRINCIPAL ===== */
 .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 30px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 /* ===== HEADER DE USUARIOS ===== */
@@ -343,3 +343,4 @@ body {
     .actions { flex-direction: column; gap: 6px; }
     .btn-action { width: 100%; text-align: center; padding: 8px 12px; }
 }
+

@@ -10,7 +10,7 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 0;
 }
 
 /* ========================
@@ -332,3 +332,5 @@ select.error {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.4rem 1rem;
 }
+
+
