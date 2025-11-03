@@ -11,118 +11,304 @@
 
 {% block main_content %}
 <div class="container">
+
     <!-- Estadísticas -->
-    <div class="stats-container">
-        <div class="stat-card" onclick="filterByStatus('Pendiente')">
-            <div class="stat-icon blue">📄</div>
+    <div class="stats">
+        <div class="stat-item stat-total" onclick="filterByStatus('Pendiente')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
             <div class="stat-content">
-                <strong id="stat-pendientes" class="stat-number">15</strong>
-                <span class="stat-label">Peticiones Pendientes</span>
+                <div class="stat-number" id="stat-pendientes">15</div>
+                <div class="stat-label">Peticiones Pendientes</div>
             </div>
         </div>
-        <div class="stat-card" onclick="filterByStatus('En revisión')">
-            <div class="stat-icon green">✓</div>
+
+        <div class="stat-item inventory-value" onclick="filterByStatus('En revisión')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <circle cx="12" cy="13" r="2"></circle>
+                </svg>
+            </div>
             <div class="stat-content">
-                <strong id="stat-revision" class="stat-number">47</strong>
-                <span class="stat-label">En Revisión</span>
+                <div class="stat-number" id="stat-revision">47</div>
+                <div class="stat-label">En Revisión</div>
             </div>
         </div>
-        <div class="stat-card" onclick="filterByStatus('Aceptada')">
-            <div class="stat-icon orange">✓</div>
+
+        <div class="stat-item stat-active" onclick="filterByStatus('Aceptada')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <polyline points="9 14 11 16 15 12"></polyline>
+                </svg>
+            </div>
             <div class="stat-content">
-                <strong id="stat-aceptadas" class="stat-number">8</strong>
-                <span class="stat-label">Aprobadas</span>
+                <div class="stat-number" id="stat-aceptadas">8</div>
+                <div class="stat-label">Aprobadas</div>
             </div>
         </div>
-        <div class="stat-card" onclick="filterByStatus('Rechazada')">
-            <div class="stat-icon red">✕</div>
+
+        <div class="stat-item stat-inactive" onclick="filterByStatus('Rechazada')" style="cursor: pointer;">
+            <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="14" y1="14" x2="10" y2="18"></line>
+                    <line x1="10" y1="14" x2="14" y2="18"></line>
+                </svg>
+            </div>
             <div class="stat-content">
-                <strong id="stat-rechazadas" class="stat-number">3</strong>
-                <span class="stat-label">Rechazadas</span>
+                <div class="stat-number" id="stat-rechazadas">3</div>
+                <div class="stat-label">Rechazadas</div>
             </div>
         </div>
     </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
     <!-- Filtros -->
-    <div class="filters-section">
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label class="filter-label">Número de la petición</label>
-                <input type="text" id="filter-petition" class="filter-input" placeholder="Ej: PET-001">
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Usuario</label>
-                <input type="text" id="filter-user" class="filter-input" placeholder="Nombre o correo electrónico">
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Estado de la petición</label>
-                <select id="filter-status" class="filter-input">
-                    <option value="">Todos los estados</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="En revisión">En revisión</option>
-                    <option value="Aceptada">Aceptada</option>
-                    <option value="Rechazada">Rechazada</option>
-                    <option value="Respondida">Respondida</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Fecha desde</label>
-                <input type="date" id="filter-date-from" class="filter-input">
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Fecha hasta</label>
-                <input type="date" id="filter-date-to" class="filter-input">
+    <div class="search-filter-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div style="grid-column: 1 / -1;">
+            <div class="search-bar">
+                <input type="text" id="filter-petition" placeholder="Buscar por número de petición o usuario..." id="searchInput">
+                <span class="search-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </span>
             </div>
         </div>
-        <div class="filter-actions">
-            <button class="btn btn-primary" id="btn-apply-filters">🔍 Aplicar Filtros</button>
-            <button class="btn btn-secondary" id="btn-clear-filters">🗑️ Limpiar Filtros</button>
-        </div>
+
+        <input type="text" id="filter-user" class="filter-dropdown" placeholder="Nombre o correo">
+
+        <select id="filter-status" class="filter-dropdown">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En revisión">En revisión</option>
+            <option value="Aceptada">Aceptada</option>
+            <option value="Rechazada">Rechazada</option>
+            <option value="Respondida">Respondida</option>
+        </select>
+
+        <input type="date" id="filter-date-from" class="filter-dropdown">
+        <input type="date" id="filter-date-to" class="filter-dropdown">
     </div>
 
-    <div class="update-info" id="last-update">
-        Última actualización: hace 2 minutos
+    <!-- Botones de filtro -->
+    <div class="action-buttons" style="justify-content: flex-start; margin-top: 0;">
+        <button class="btn-primary" id="btn-apply-filters">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Aplicar Filtros
+        </button>
+        <button class="btn-outline" id="btn-clear-filters">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Limpiar Filtros
+        </button>
+    </div>
+
+    <!-- Info de actualización -->
+    <div style="text-align: right; color: #7f8c8d; font-size: 13px; margin-bottom: 20px;" id="last-update">
+        Última actualización: hace 2 minutos • <strong id="total-peticiones">73 peticiones</strong>
     </div>
 
     <!-- Tabla -->
     <div class="table-container">
-        <div class="table-header">
-            <h2 class="table-title">Lista de Peticiones</h2>
-            <span class="table-total">Total: <strong id="total-peticiones">73 peticiones</strong></span>
-        </div>
-        
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID Petición</th>
-                        <th>Producto</th>
-                        <th>Usuario</th>
-                        <th>Cantidad</th>
-                        <th>Fecha</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="petitions-tbody">
-                    <!-- Se llenará dinámicamente con JavaScript -->
-                </tbody>
-            </table>
-        </div>
+        <table class="requests-table">
+            <thead>
+                <tr>
+                    <th>ID Petición</th>
+                    <th>Producto</th>
+                    <th>Usuario</th>
+                    <th>Cantidad</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="petitions-tbody">
+                <!-- Ejemplo de datos estáticos -->
+                <tr>
+                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-001</strong></td>
+                    <td>
+                        <div class="product-cell">
+                            <div class="product-image">📦</div>
+                            <div class="product-info">
+                                <div class="product-name">Camiseta Básica</div>
+                                <div class="product-id">SKU: CAM-001</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">JD</div>
+                            <div class="user-info">
+                                <div class="user-name">Juan Pérez</div>
+                                <div class="user-email">juan@example.com</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><strong>5 unidades</strong></td>
+                    <td>15/03/2024</td>
+                    <td><span class="status-badge status-pending">Pendiente</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="view-btn" onclick="viewPetition('PET-001')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Ver
+                            </button>
+                            <button class="edit-btn" onclick="approvePetition('PET-001')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Aprobar
+                            </button>
+                            <button class="delete-btn" onclick="return confirm('¿Rechazar petición #PET-001?') && rejectPetition('PET-001')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                                Rechazar
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-002</strong></td>
+                    <td>
+                        <div class="product-cell">
+                            <div class="product-image">📦</div>
+                            <div class="product-info">
+                                <div class="product-name">Pantalón Deportivo</div>
+                                <div class="product-id">SKU: PAN-005</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">MG</div>
+                            <div class="user-info">
+                                <div class="user-name">María García</div>
+                                <div class="user-email">maria@example.com</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><strong>3 unidades</strong></td>
+                    <td>14/03/2024</td>
+                    <td><span class="status-badge status-active">Aceptada</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="view-btn" onclick="viewPetition('PET-002')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Ver
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-003</strong></td>
+                    <td>
+                        <div class="product-cell">
+                            <div class="product-image">📦</div>
+                            <div class="product-info">
+                                <div class="product-name">Zapatos Casuales</div>
+                                <div class="product-id">SKU: ZAP-012</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">CR</div>
+                            <div class="user-info">
+                                <div class="user-name">Carlos Rodríguez</div>
+                                <div class="user-email">carlos@example.com</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><strong>2 unidades</strong></td>
+                    <td>13/03/2024</td>
+                    <td><span class="status-badge status-inactive">Rechazada</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="view-btn" onclick="viewPetition('PET-003')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Ver
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
         <!-- Paginación -->
-        <div class="pagination-container">
-            <div class="pagination-info" id="pagination-info">Mostrando 5 de 73 peticiones</div>
-            <div class="pagination" id="pagination"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 15px;">
+            <div style="color: #7f8c8d; font-size: 14px;" id="pagination-info">
+                Mostrando 3 de 73 peticiones
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="pagination">
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Anterior
+                </button>
+                <button class="btn-primary" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">1</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">2</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px; min-width: 40px;">3</button>
+                <button class="btn-outline" style="padding: 10px 16px; font-size: 13px;">
+                    Siguiente
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Modal -->
-<div id="modal-details" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Detalles de la Petición</h2>
+<div id="modal-details" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: #2c3e50; margin: 0;">Detalles de la Petición</h2>
+            <button onclick="closeModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #7f8c8d;">&times;</button>
+        </div>
         <div id="modal-body"></div>
     </div>
 </div>
@@ -130,4 +316,46 @@
 
 {% block extra_js %}
 <script src="{% static 'js/peticiones.js' %}"></script>
+<script>
+function filterByStatus(status) {
+    const statusFilter = document.getElementById('filter-status');
+    if (statusFilter) {
+        statusFilter.value = status;
+        applyFilters();
+    }
+}
+
+function viewPetition(id) {
+    document.getElementById('modal-details').style.display = 'flex';
+    document.getElementById('modal-body').innerHTML = `
+        <p><strong>ID:</strong> ${id}</p>
+        <p><strong>Estado:</strong> Pendiente</p>
+        <p>Detalles de la petición...</p>
+    `;
+}
+
+function closeModal() {
+    document.getElementById('modal-details').style.display = 'none';
+}
+
+function approvePetition(id) {
+    alert('Petición ' + id + ' aprobada');
+}
+
+function rejectPetition(id) {
+    alert('Petición ' + id + ' rechazada');
+}
+
+document.getElementById('btn-apply-filters').addEventListener('click', function() {
+    console.log('Aplicando filtros...');
+});
+
+document.getElementById('btn-clear-filters').addEventListener('click', function() {
+    document.getElementById('filter-petition').value = '';
+    document.getElementById('filter-user').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+});
+</script>
 {% endblock %}
