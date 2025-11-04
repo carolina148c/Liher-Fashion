@@ -56,15 +56,6 @@ urlpatterns = [
     path('panel-admin/', views.panel_admin, name='panel_admin'),
 
 
-    # USUARIOS 
-    path('usuarios/', views.mostrar_usuarios, name='mostrar_usuarios'),
-    path('usuarios-editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
-    path('usuarios-eliminar/<int:id>/', views.eliminar_usuario, name='eliminar_usuario'),
-    path('usuarios/toggle/<int:id>/', views.toggle_usuario_activo, name='toggle_usuario_activo'),
-    path('usuarios/actualizar/<int:id>/', views.actualizar_usuario, name='actualizar_usuario'),
-
-
-
     # INVENTARIO 
     path('inventario/', views.listar_productos_tabla, name='listar_productos_tabla'),
     path('inventario-crear/', views.crear_producto, name='crear_producto'),
@@ -86,10 +77,11 @@ urlpatterns = [
 
     # USUARIOS 
     path('usuarios/', views.mostrar_usuarios, name='mostrar_usuarios'),
-    path('usuarios/editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios-editar/<int:id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/ver/<int:user_id>/', views.ver_usuario, name='ver_usuario'),
     path('usuarios/obtener/<int:id>/', views.obtener_usuario, name='obtener_usuario'),
+    path('usuarios/toggle/<int:id>/', views.toggle_usuario_activo, name='toggle_usuario_activo'),
     path('usuarios/actualizar/<int:id>/', views.actualizar_usuario, name='actualizar_usuario'),
-    path('usuarios-eliminar/<int:id>/', views.eliminar_usuario, name='eliminar_usuario'),
 
 
     # DEVOLUCIONES

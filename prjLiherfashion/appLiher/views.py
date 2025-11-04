@@ -986,24 +986,24 @@ def editar_usuario(request, id):
 
 
 @login_required
-def eliminar_usuario(request, id):
-    usuario = get_object_or_404(Usuarios, idusuarios=id)
-    if request.method == "POST":
-        usuario.delete()
-        usuarios_activos = Usuarios.objects.filter(is_active=True).count()
-        usuarios_inactivos = Usuarios.objects.filter(is_active=False).count()
-        if request.headers.get("x-requested-with") == "XMLHttpRequest":
-            return JsonResponse({
-                "success": True,
-                "stats": {
-                    "activos": usuarios_activos,
-                    "inactivos": usuarios_inactivos
-                }
-            })
-        messages.success(request, "Usuario eliminado exitosamente.")
-        return redirect("mostrar_usuarios")
-    return render(request, "admin/usuarios/eliminar_usuario.html", {"usuario": usuario})
-
+def ver_usuario(request, user_id):
+    usuario = Usuarios.objects.get(id=user_id)
+    first_initial = usuario.first_name[0] if usuario.first_name else "?"
+    last_initial = usuario.last_name[0] if usuario.last_name else "?"
+    last_login = usuario.last_login.strftime('%d/%m/%Y %H:%M') if usuario.last_login else "Nunca"
+    permisos = list(usuario.get_all_permissions()) if request.user.is_staff else []
+    data = {
+        "full_name": f"{usuario.first_name} {usuario.last_name}".strip() or "Sin nombre",
+        "initials": f"{first_initial}{last_initial}".upper(),
+        "email": usuario.email or "-",
+        "phone": getattr(usuario, 'phone', '-') if request.user.is_staff else None,
+        "role": "Administrador" if usuario.is_staff else "Usuario",
+        "status": "Activo" if usuario.is_active else "Inactivo",
+        "date_joined": usuario.date_joined.strftime('%d/%m/%Y'),
+        "last_login": last_login,
+        "permissions": permisos
+    }
+    return JsonResponse(data)
 
 
 @csrf_exempt
