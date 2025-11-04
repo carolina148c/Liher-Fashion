@@ -910,3 +910,96 @@ window.saveEditedUser = async function() {
     window.showToast("Error de conexión con el servidor.");
   }
 };
+
+
+
+
+
+
+
+
+// ==========================
+// 🔹 MODAL VER USUARIO
+// ==========================
+window.verUsuario = function(userId) {
+    fetch(`/usuarios/ver/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Iniciales
+            document.getElementById('usuarioIniciales').innerText = data.initials || '?';
+
+            // Nombre y rol
+            document.getElementById('usuarioNombre').innerText = data.full_name || 'Sin nombre';
+            document.getElementById('usuarioRol').innerText = data.role;
+
+            // Estado
+            const estadoElement = document.getElementById('usuarioEstado');
+            estadoElement.innerText = data.status;
+            estadoElement.className = `status-badge ${data.status === 'Activo' ? 'active' : 'inactive'}`;
+
+            // Información personal
+            document.getElementById('usuarioFullName').innerText = data.full_name;
+            document.getElementById('usuarioEmail').innerText = data.email;
+            document.getElementById('usuarioDateJoined').innerText = data.date_joined;
+            document.getElementById('usuarioLastLogin').innerText = data.last_login;
+
+            // Teléfono: solo para admin
+            const telefonoItem = document.getElementById('telefonoItem');
+            if (data.phone) {
+                telefonoItem.style.display = 'block';
+                document.getElementById('usuarioPhone').innerText = data.phone;
+            } else {
+                telefonoItem.style.display = 'none';
+            }
+
+            // Permisos: solo admin
+            const permisosSection = document.getElementById('permisosSection');
+            const permisosContainer = document.getElementById('usuarioPermisos');
+            if (data.permissions && data.permissions.length > 0) {
+                permisosSection.style.display = 'block';
+                permisosContainer.innerHTML = '';
+                data.permissions.forEach(perm => {
+                    const div = document.createElement('div');
+                    div.className = 'permission-badge granted';
+                    div.innerText = perm;
+                    permisosContainer.appendChild(div);
+                });
+            } else {
+                permisosSection.style.display = 'none';
+                permisosContainer.innerHTML = '';
+            }
+
+            // Botón editar
+            document.getElementById('btnEditarUsuario').onclick = () => {
+                window.closeModal('verUsuarioModal');
+                setTimeout(() => window.openEditUser(userId), 300);
+            };
+
+            // Abrir modal
+            window.openModal('verUsuarioModal');
+        })
+        .catch(err => {
+            console.error('Error al cargar usuario:', err);
+            alert('Error al cargar los datos del usuario');
+        });
+};
+
+window.openModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+};
+
+function closeModalOnOverlay(event) {
+    if (event.target === event.currentTarget) {
+        window.closeModal(event.currentTarget.id);
+    }
+}
