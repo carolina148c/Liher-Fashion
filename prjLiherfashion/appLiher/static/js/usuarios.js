@@ -351,6 +351,29 @@ window.validateEmailRealTime = async function(input) {
     return true;
   }
 
+
+
+document.querySelectorAll('.toggle-password').forEach(button => {
+  button.addEventListener('click', () => {
+    const inputId = button.getAttribute('data-target');
+    const input = document.getElementById(inputId);
+    const icon = button.querySelector('i');
+
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
+});
+
+
+
+
   // ==========================
   // 🔹 VALIDACIÓN EN TIEMPO REAL - CREAR USUARIO
   // ==========================
@@ -525,9 +548,7 @@ window.validateEmailRealTime = async function(input) {
     });
   });
 
-  // ==========================
-  // 🔹 INICIALIZACIÓN DE VALIDACIONES PARA EDITAR USUARIO
-  // ==========================
+
 // ==========================
 // 🔹 INICIALIZACIÓN DE VALIDACIONES PARA EDITAR USUARIO
 // ==========================
@@ -705,7 +726,6 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// Obtener token CSRF desde cookies
 function getCSRFToken() {
   let cookieValue = null;
   const name = "csrftoken";
@@ -722,6 +742,68 @@ function getCSRFToken() {
   return cookieValue;
 }
 
+
+// ==========================
+// 🔹 FILTROS DE BÚSQUEDA
+// ==========================
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    const statusFilter = document.getElementById("statusFilter");
+    const roleFilter = document.getElementById("roleFilter");
+    const tableBody = document.getElementById("usersTableBody");
+
+    function filtrarUsuarios() {
+        const texto = searchInput.value.toLowerCase();
+        const estado = statusFilter.value;
+        const rol = roleFilter.value;
+
+        const filas = tableBody.querySelectorAll("tr");
+
+        filas.forEach(fila => {
+            const nombre = fila.querySelector(".user-cell").textContent.toLowerCase();
+            const correo = fila.children[1].textContent.toLowerCase();
+            const estadoFila = fila.dataset.status;  // active | inactive
+            const rolFila = fila.dataset.role;        // Administrador | Usuario
+
+            let coincideBusqueda = nombre.includes(texto) || correo.includes(texto);
+            let coincideEstado = estado === "" || estado === estadoFila;
+            let coincideRol = rol === "" || rol === rolFila;
+
+            if (coincideBusqueda && coincideEstado && coincideRol) {
+                fila.style.display = "";
+            } else {
+                fila.style.display = "none";
+            }
+        });
+    }
+
+    searchInput.addEventListener("input", filtrarUsuarios);
+    statusFilter.addEventListener("change", filtrarUsuarios);
+    roleFilter.addEventListener("change", filtrarUsuarios);
+
+    // 🔹 BOTÓN LIMPIAR FILTROS
+    const clearBtn = document.getElementById("clearFilters");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            searchInput.value = "";
+            statusFilter.value = "";
+            roleFilter.value = "";
+            filtrarUsuarios();
+        });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
 // ==========================
 // 🔹 MODAL EDITAR USUARIO
 // ==========================
@@ -729,22 +811,22 @@ window.openEditUser = function(id) {
   const modal = document.getElementById("editUserModal");
   modal.style.display = "flex";
 
-  // Limpiar campos y mensajes previos
+  // Limpiar campos previos
   document.querySelectorAll("#editUserForm input, #editUserForm select").forEach(el => {
     el.classList.remove("error");
     const alert = el.parentElement.querySelector(".input-alert");
     if (alert) alert.textContent = "";
   });
 
+  // Mostrar estado de carga
   document.getElementById("editFirstName").value = "Cargando...";
 
-  // Pedir datos del usuario al servidor
   fetch(`/usuarios/obtener/${id}/`)
-    .then((response) => {
+    .then(response => {
       if (!response.ok) throw new Error("Error al obtener datos del usuario");
       return response.json();
     })
-    .then((data) => {
+    .then(data => {
       document.getElementById("editUserId").value = data.id;
       document.getElementById("editFirstName").value = data.first_name || "";
       document.getElementById("editLastName").value = data.last_name || "";
@@ -757,20 +839,20 @@ window.openEditUser = function(id) {
 
       const isAdmin = data.is_staff;
 
-      // Mostrar/ocultar campos según el tipo de usuario
+      // Mostrar/ocultar campos según tipo
       const adminFields = ["editFirstName", "editLastName", "editPhone"];
       adminFields.forEach(id => {
-        const fieldGroup = document.getElementById(id)?.closest(".form-group");
-        if (fieldGroup) fieldGroup.style.display = isAdmin ? "block" : "none";
+        const group = document.getElementById(id)?.closest(".form-group");
+        if (group) group.style.display = isAdmin ? "block" : "none";
       });
 
       const commonFields = ["editEmail", "editRole", "editLastLogin", "editDateJoined", "editActive"];
       commonFields.forEach(id => {
-        const fieldGroup = document.getElementById(id)?.closest(".form-group");
-        if (fieldGroup) fieldGroup.style.display = "block";
+        const group = document.getElementById(id)?.closest(".form-group");
+        if (group) group.style.display = "block";
       });
 
-      // Habilitar / deshabilitar según tipo de usuario
+      // Habilitar/deshabilitar
       if (isAdmin) {
         ["editFirstName", "editLastName", "editPhone", "editActive"].forEach(id => {
           const el = document.getElementById(id);
@@ -783,7 +865,6 @@ window.openEditUser = function(id) {
           el.classList.add("readonly");
         });
       } else {
-        // Usuario normal: solo estado editable
         document.querySelectorAll("#editUserForm input, #editUserForm select").forEach(el => {
           el.disabled = true;
           el.classList.add("readonly");
@@ -793,34 +874,55 @@ window.openEditUser = function(id) {
         activeEl.classList.remove("readonly");
       }
 
-      // 🔹 INICIALIZAR VALIDACIONES DESPUÉS DE CARGAR LOS DATOS
+      // 🔹 Cargar permisos si el usuario es administrador
+      if (isAdmin) {
+        fetch(`/usuarios/ver/${id}/`)
+          .then(res => res.json())
+          .then(permData => {
+            const permisosContainer = document.getElementById("editPermisosContainer");
+            const permisosSection = document.getElementById("editPermisosSection");
+
+            permisosContainer.innerHTML = "";
+
+            if (permData.permissions && permData.permissions.length > 0) {
+              permisosSection.style.display = "block";
+              permisosContainer.style.display = "grid";
+
+              // 🔹 Mostrar todos los permisos (activos e inactivos)
+              permData.permissions.forEach(perm => {
+                const div = document.createElement("label");
+                div.className = "permiso-item";
+                div.innerHTML = `
+                  <input type="checkbox" name="permiso" value="${perm.nombre}" ${perm.activo ? "checked" : ""}>
+                  <span>${perm.nombre}</span>
+                `;
+                permisosContainer.appendChild(div);
+              });
+            } else {
+              permisosSection.style.display = "block";
+              permisosContainer.innerHTML = "<p>No hay permisos registrados para este usuario.</p>";
+            }
+          })
+          .catch(err => {
+            console.error("Error cargando permisos:", err);
+            document.getElementById("editPermisosContainer").innerHTML = "<p>Error al cargar permisos.</p>";
+          });
+      } else {
+        // 🔹 Si no es admin, ocultar completamente la sección
+        document.getElementById("editPermisosSection").style.display = "none";
+      }
+
+
       setTimeout(() => {
         initializeEditUserValidations();
-        
-        // 🔹 VALIDAR CAMPOS INICIALES SI TIENEN DATOS
-        if (isAdmin) {
-          const firstNameInput = document.getElementById("editFirstName");
-          const lastNameInput = document.getElementById("editLastName");
-          const phoneInput = document.getElementById("editPhone");
-          
-          if (firstNameInput.value.trim()) window.validateNameField(firstNameInput, 50, "nombre");
-          if (lastNameInput.value.trim()) window.validateNameField(lastNameInput, 100, "apellido");
-          if (phoneInput.value.trim()) window.validatePhoneField(phoneInput);
-          
-          // Validar igualdad de nombre y apellido inicial
-          const nameVal = firstNameInput.value.trim().toLowerCase();
-          const lastVal = lastNameInput.value.trim().toLowerCase();
-          if (nameVal && lastVal && nameVal === lastVal) {
-            window.showMessage(lastNameInput, 'Nombre y apellido no pueden ser iguales.');
-          }
-        }
       }, 100);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error("Error:", error);
       alert("No se pudo cargar la información del usuario.");
     });
 };
+
 
 // ==========================
 // 🔹 VALIDAR Y GUARDAR EDICIÓN DE USUARIO
@@ -831,78 +933,69 @@ window.saveEditedUser = async function() {
   const activeInput = document.getElementById("editActive");
 
   let valid = true;
-  let firstNameInput, lastNameInput, phoneInput, emailInput;
 
   if (isAdmin) {
-    firstNameInput = document.getElementById("editFirstName");
-    lastNameInput = document.getElementById("editLastName");
-    phoneInput = document.getElementById("editPhone");
-    emailInput = document.getElementById("editEmail");
+    const firstName = document.getElementById("editFirstName");
+    const lastName = document.getElementById("editLastName");
+    const phone = document.getElementById("editPhone");
 
-    // 🔹 Validaciones para administradores
-    const nameOk = window.validateNameField(firstNameInput, 50, "nombre");
-    const lastOk = window.validateNameField(lastNameInput, 100, "apellido");
-    const phoneOk = window.validatePhoneField(phoneInput);
-    
-    // 🔹 Solo validar email si NO está deshabilitado
-    const emailOk = emailInput.disabled ? true : await window.validateEmailRealTime(emailInput);
+    const nameOk = window.validateNameField(firstName, 50, "nombre");
+    const lastOk = window.validateNameField(lastName, 100, "apellido");
+    const phoneOk = window.validatePhoneField(phone);
 
-    if (!nameOk || !lastOk || !phoneOk || !emailOk) valid = false;
+    if (!nameOk || !lastOk || !phoneOk) valid = false;
 
-    // Evitar nombre y apellido iguales
-    const nameVal = firstNameInput.value.trim().toLowerCase();
-    const lastVal = lastNameInput.value.trim().toLowerCase();
-    if (nameVal && lastVal && nameVal === lastVal) {
-      window.showMessage(lastNameInput, "Nombre y apellido no pueden ser iguales.");
+    // Validar al menos un permiso activo
+    const checkboxes = document.querySelectorAll('#editPermisosContainer input[type="checkbox"]');
+    const algunoMarcado = Array.from(checkboxes).some(chk => chk.checked);
+
+    if (!algunoMarcado) {
+      window.showToast("Debe haber al menos un permiso activo antes de guardar.");
       valid = false;
     }
-  } else {
-    // Para usuarios normales, solo validar email si no está deshabilitado
-    emailInput = document.getElementById("editEmail");
-    const emailOk = emailInput.disabled ? true : await window.validateEmailRealTime(emailInput);
-    if (!emailOk) valid = false;
   }
 
   if (!valid) {
-    window.showToast("Por favor, corrige los errores en el formulario.");
+    window.showToast("Por favor corrige los errores antes de guardar.");
     return;
   }
 
-  // 🔹 Preparar datos en formato FormData para Django
+  // Preparar datos
   const formData = new FormData();
-  formData.append('id', id);
   formData.append('is_admin', isAdmin);
-  
-  if (isAdmin) {
-    formData.append('first_name', firstNameInput.value.trim());
-    formData.append('last_name', lastNameInput.value.trim());
-    formData.append('phone', phoneInput.value.trim());
-    formData.append('email', emailInput.value.trim().toLowerCase());
-  }
-  
   formData.append('is_active', activeInput.value === "True");
 
+  if (isAdmin) {
+    formData.append('first_name', document.getElementById("editFirstName").value.trim());
+    formData.append('last_name', document.getElementById("editLastName").value.trim());
+    formData.append('phone', document.getElementById("editPhone").value.trim());
+    formData.append('email', document.getElementById("editEmail").value.trim().toLowerCase());
+
+    // Agregar permisos seleccionados
+    const permisos = Array.from(document.querySelectorAll('#editPermisosContainer input[type="checkbox"]')).map(chk => ({
+      nombre: chk.value,
+      activo: chk.checked
+    }));
+    formData.append('permisos', JSON.stringify(permisos));
+  }
+
   try {
-    const response = await fetch(`/usuarios/editar/${id}/`, {
+    const response = await fetch(`/usuarios-editar/${id}/`, {
       method: "POST",
       headers: {
         "X-CSRFToken": getCSRFToken(),
-        // NO incluir Content-Type para FormData, el navegador lo establecerá automáticamente
       },
-      body: formData,
+      body: formData
     });
 
     if (response.ok) {
-      // Redirección manejada por Django
       window.showToast("Usuario actualizado correctamente.", () => {
         window.closeModal("editUserModal");
-        // Django redirige a mostrar_usuarios, así que recargamos
         window.location.reload();
       });
     } else {
-      // Si hay error, mostrar mensaje
       const errorText = await response.text();
-      console.error('Error del servidor:', errorText);
+      console.error("Error:", errorText);
       window.showToast("Error al guardar los cambios. Código: " + response.status);
     }
   } catch (error) {
@@ -917,89 +1010,79 @@ window.saveEditedUser = async function() {
 
 
 
-
 // ==========================
 // 🔹 MODAL VER USUARIO
 // ==========================
 window.verUsuario = function(userId) {
-    fetch(`/usuarios/ver/${userId}/`)
-        .then(response => response.json())
-        .then(data => {
-            // Iniciales
-            document.getElementById('usuarioIniciales').innerText = data.initials || '?';
+  fetch(`/usuarios/ver/${userId}/`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('usuarioIniciales').innerText = data.initials || '?';
+      document.getElementById('usuarioNombre').innerText = data.full_name || 'Sin nombre';
+      document.getElementById('usuarioRol').innerText = data.role;
 
-            // Nombre y rol
-            document.getElementById('usuarioNombre').innerText = data.full_name || 'Sin nombre';
-            document.getElementById('usuarioRol').innerText = data.role;
+      const estadoEl = document.getElementById('usuarioEstado');
+      estadoEl.innerText = data.status;
+      estadoEl.className = `status-badge ${data.status === 'Activo' ? 'active' : 'inactive'}`;
 
-            // Estado
-            const estadoElement = document.getElementById('usuarioEstado');
-            estadoElement.innerText = data.status;
-            estadoElement.className = `status-badge ${data.status === 'Activo' ? 'active' : 'inactive'}`;
+      document.getElementById('usuarioFullName').innerText = data.full_name;
+      document.getElementById('usuarioEmail').innerText = data.email;
+      document.getElementById('usuarioDateJoined').innerText = data.date_joined;
+      document.getElementById('usuarioLastLogin').innerText = data.last_login;
 
-            // Información personal
-            document.getElementById('usuarioFullName').innerText = data.full_name;
-            document.getElementById('usuarioEmail').innerText = data.email;
-            document.getElementById('usuarioDateJoined').innerText = data.date_joined;
-            document.getElementById('usuarioLastLogin').innerText = data.last_login;
+      const telefonoItem = document.getElementById('telefonoItem');
+      if (data.phone) {
+        telefonoItem.style.display = 'block';
+        document.getElementById('usuarioPhone').innerText = data.phone;
+      } else {
+        telefonoItem.style.display = 'none';
+      }
 
-            // Teléfono: solo para admin
-            const telefonoItem = document.getElementById('telefonoItem');
-            if (data.phone) {
-                telefonoItem.style.display = 'block';
-                document.getElementById('usuarioPhone').innerText = data.phone;
-            } else {
-                telefonoItem.style.display = 'none';
-            }
-
-            // Permisos: solo admin
-            const permisosSection = document.getElementById('permisosSection');
-            const permisosContainer = document.getElementById('usuarioPermisos');
-            if (data.permissions && data.permissions.length > 0) {
-                permisosSection.style.display = 'block';
-                permisosContainer.innerHTML = '';
-                data.permissions.forEach(perm => {
-                    const div = document.createElement('div');
-                    div.className = 'permission-badge granted';
-                    div.innerText = perm;
-                    permisosContainer.appendChild(div);
-                });
-            } else {
-                permisosSection.style.display = 'none';
-                permisosContainer.innerHTML = '';
-            }
-
-            // Botón editar
-            document.getElementById('btnEditarUsuario').onclick = () => {
-                window.closeModal('verUsuarioModal');
-                setTimeout(() => window.openEditUser(userId), 300);
-            };
-
-            // Abrir modal
-            window.openModal('verUsuarioModal');
-        })
-        .catch(err => {
-            console.error('Error al cargar usuario:', err);
-            alert('Error al cargar los datos del usuario');
+      // 🔹 Permisos (mostrar todos)
+      const permisosSection = document.getElementById('permisosSection');
+      const permisosContainer = document.getElementById('usuarioPermisos');
+      if (data.permissions && data.permissions.length > 0) {
+        permisosSection.style.display = 'block';
+        permisosContainer.innerHTML = '';
+        data.permissions.forEach(permiso => {
+          const div = document.createElement('div');
+          div.className = `permission-badge ${permiso.activo ? 'granted' : 'denied'}`;
+          div.innerHTML = `
+            <i class="fas ${permiso.activo ? 'fa-check-circle' : 'fa-lock'}"></i>
+            <span>${permiso.nombre}</span>
+          `;
+          permisosContainer.appendChild(div);
         });
+      } else {
+        permisosSection.style.display = 'none';
+        permisosContainer.innerHTML = '';
+      }
+
+      document.getElementById('btnEditarUsuario').onclick = () => {
+        window.closeModal('verUsuarioModal');
+        setTimeout(() => window.openEditUser(userId), 300);
+      };
+
+      window.openModal('verUsuarioModal');
+    })
+    .catch(err => {
+      console.error('Error al cargar usuario:', err);
+      alert('Error al cargar los datos del usuario');
+    });
 };
 
-window.openModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+
+window.openModal = function(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 };
 
-window.closeModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
+window.closeModal = function(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto';
 };
 
-function closeModalOnOverlay(event) {
-    if (event.target === event.currentTarget) {
-        window.closeModal(event.currentTarget.id);
-    }
-}

@@ -96,7 +96,11 @@
     <div class="btn-group">
       <a href="{% url 'reenviar_activacion' email=email %}" 
          id="resend-btn" class="btn btn-secondary">Reenviar correo</a>
-      <a href="{% url 'acceso' %}" class="btn btn-primary">Volver al inicio</a>
+      {% if viene_de_admin %}
+        <a href="{% url 'mostrar_usuarios' %}" class="btn btn-primary">Volver al panel de usuarios</a>
+      {% else %}
+        <a href="{% url 'acceso' %}" class="btn btn-primary">Ir al inicio de sesión</a>
+      {% endif %}
     </div>
 
   </div>

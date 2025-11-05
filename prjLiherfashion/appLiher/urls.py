@@ -81,7 +81,6 @@ urlpatterns = [
     path('usuarios/ver/<int:user_id>/', views.ver_usuario, name='ver_usuario'),
     path('usuarios/obtener/<int:id>/', views.obtener_usuario, name='obtener_usuario'),
     path('usuarios/toggle/<int:id>/', views.toggle_usuario_activo, name='toggle_usuario_activo'),
-    path('usuarios/actualizar/<int:id>/', views.actualizar_usuario, name='actualizar_usuario'),
 
 
     # DEVOLUCIONES
