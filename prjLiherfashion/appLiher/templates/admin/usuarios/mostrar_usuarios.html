@@ -5,33 +5,45 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/secciones_admin.css' %}">
-<link rel="stylesheet" href="{% static 'css/crear_usuario.css' %}">
+<link rel="stylesheet" href="{% static 'css/estilos_modales.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 {% endblock %}
 
 {% block header_title %}USUARIOS{% endblock %}
 
 {% block main_content %}
-<div class="container">
+<div class="main-container">
 
-    <!-- Estadísticas de usuarios -->
+    <!-- ===== ESTADÍSTICAS ===== -->
     <div class="header">
         <div class="stats">
             <div class="stat-item stat-total">
-                <div class="stat-number">{{ usuarios|length }}</div>
-                <div class="stat-label">Total de usuarios</div>
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ usuarios|length }}</div>
+                    <div class="stat-label">Total de usuarios</div>
+                </div>
             </div>
+
             <div class="stat-item stat-active">
-                <div class="stat-number">{{ usuarios_activos }}</div>
-                <div class="stat-label">Usuarios activos</div>
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ usuarios_activos }}</div>
+                    <div class="stat-label">Usuarios activos</div>
+                </div>
             </div>
+
             <div class="stat-item stat-inactive">
-                <div class="stat-number">{{ usuarios_inactivos }}</div>
-                <div class="stat-label">Usuarios inactivos</div>
+                <div class="stat-icon"><i class="fas fa-user-slash"></i></div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ usuarios_inactivos }}</div>
+                    <div class="stat-label">Usuarios inactivos</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Mensajes del sistema -->
+    <!-- ===== MENSAJES DEL SISTEMA ===== -->
     {% if messages %}
     <ul class="messages">
         {% for message in messages %}
@@ -40,35 +52,51 @@
     </ul>
     {% endif %}
 
-    <!-- Controles de búsqueda y filtros -->
+    <!-- ===== CONTROLES (Búsqueda + Filtros + Botón) ===== -->
     <div class="controls">
-        <input type="text" id="searchInput" placeholder="Buscar por nombre o correo">
-        <select id="statusFilter">
-            <option value="">Todos los estados</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-        </select>
-        <select id="roleFilter">
-            <option value="">Todos los roles</option>
-            <option value="Administrador">Administrador</option>
-            <option value="Usuario">Usuario</option>
-        </select>
-        <button type="button" class="btn-add" onclick="openModal('createUserModal')">Agregar Usuario</button>
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre o correo...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+
+        <div class="filters">
+            <select id="statusFilter" class="filter-select">
+                <option value="">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+            </select>
+
+            <select id="roleFilter" class="filter-select">
+                <option value="">Todos los roles</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Usuario">Usuario</option>
+            </select>
+
+            <button id="clearFilters" class="btn-reset">
+                <i class="fas fa-undo"></i> Limpiar
+            </button>
+        </div>
+
+        <div class="action-buttons">
+            <button type="button" class="btn-add" onclick="openModal('createUserModal')">
+                <i class="fas fa-user-plus"></i>Agregar Usuario
+            </button>
+        </div>
     </div>
 
-    <!-- Tabla de usuarios -->
+    <!-- ===== TABLA DE USUARIOS ===== -->
     <div class="table-container">
         {% if usuarios %}
         <table class="users-table">
             <thead>
                 <tr>
-                    <th>Nombre</th>
+                    <th>Usuario</th>
                     <th>Correo electrónico</th>
                     <th>Teléfono</th>
                     <th>Rol</th>
                     <th>Último acceso</th>
                     <th>Estado</th>
-                    <th>Fecha de creación</th>
+                    <th>Creado el</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -76,27 +104,49 @@
                 {% for usuario in usuarios %}
                 <tr data-status="{% if usuario.is_active %}active{% else %}inactive{% endif %}"
                     data-role="{% if usuario.is_staff %}Administrador{% else %}Usuario{% endif %}">
-                    <td>{{ usuario.first_name }} {{ usuario.last_name }}</td>
+
+                    <!-- Columna: Usuario -->
+                    <td class="user-cell">
+                        {{ usuario.first_name }} {{ usuario.last_name }}
+                    </td>
+
+                    <!-- Columna: Correo -->
                     <td>{{ usuario.email }}</td>
+
+                    <!-- Columna: Teléfono -->
                     <td>{{ usuario.phone|default:"-" }}</td>
+
+                    <!-- Columna: Rol -->
                     <td>
                         <span class="role-badge {% if usuario.is_staff %}role-admin{% else %}role-usuario{% endif %}">
                             {% if usuario.is_staff %}Administrador{% else %}Usuario{% endif %}
                         </span>
                     </td>
+
+                    <!-- Columna: Último acceso -->
                     <td>{{ usuario.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+
+                    <!-- Columna: Estado -->
                     <td>
-                        <label class="switch">
-                            <input type="checkbox" class="toggle-status" data-id="{{ usuario.id }}" {% if usuario.is_active %}checked{% endif %}>
-                            <span class="slider round"></span>
-                        </label>
-                        <span class="status-text {% if usuario.is_active %}active-text{% else %}inactive-text{% endif %}">
-                            {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
-                        </span>
+                        <div class="status-indicator">
+                            <label class="switch">
+                                <input type="checkbox" class="toggle-status" data-id="{{ usuario.id }}" {% if usuario.is_active %}checked{% endif %}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="status-text {% if usuario.is_active %}active-text{% else %}inactive-text{% endif %}">
+                                {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </div>
                     </td>
+
+                    <!-- Columna: Fecha de creación -->
                     <td>{{ usuario.date_joined|date:"d/m/Y" }}</td>
-                    <td>
-                        <button type="button" onclick="verUsuario({{ usuario.id }})" class="btn-view">Ver</button>
+
+                    <!-- Columna: Acciones -->
+                    <td class="table-actions">
+                        <button type="button" onclick="verUsuario({{ usuario.id }})" class="view-btn">
+                            <i class="fas fa-eye"></i> Ver
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -112,7 +162,7 @@
 
 </div>
 
-<!-- Modales -->
+<!-- ===== MODALES ===== -->
 {% include 'admin/usuarios/crear_usuario.html' %}
 {% include 'admin/usuarios/editar_usuario.html' %}
 {% include 'admin/usuarios/ver_usuario.html' %}

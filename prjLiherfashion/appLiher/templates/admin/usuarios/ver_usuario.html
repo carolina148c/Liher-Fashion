@@ -1,307 +1,54 @@
-<div class="modal-overlay" id="verUsuarioModal" style="display: none;" onclick="closeModalOnOverlay(event)">
-    <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <h2>Perfil de Usuario</h2>
-            <button class="close-button" onclick="closeModal('verUsuarioModal')">&times;</button>
-        </div>
-        <div class="modal-body" id="verUsuarioBody">
-            <div class="profile-avatar">
-                <div class="avatar-circle" id="usuarioIniciales"></div>
-                <div class="profile-name" id="usuarioNombre"></div>
-                <div class="profile-role" id="usuarioRol"></div>
-                <div class="status-badge" id="usuarioEstado"></div>
+<div class="ver-usuario-container">
+    <div class="modal-overlay" id="verUsuarioModal" style="display: none;" onclick="closeModalOnOverlay(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Perfil de Usuario</h2>
+                <button class="close-button" onclick="closeModal('verUsuarioModal')">&times;</button>
             </div>
+            <div class="modal-body" id="verUsuarioBody">
+                <div class="profile-avatar">
+                    <div class="avatar-circle" id="usuarioIniciales"></div>
+                    <div class="profile-name" id="usuarioNombre"></div>
+                    <div class="profile-role" id="usuarioRol"></div>
+                    <div class="status-badge" id="usuarioEstado"></div>
+                </div>
 
-            <div class="section">
-                <div class="section-title">📋 Información Personal</div>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Nombre Completo</div>
-                        <div class="info-value" id="usuarioFullName"></div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Correo Electrónico</div>
-                        <div class="info-value" id="usuarioEmail"></div>
-                    </div>
-                    <div class="info-item" id="telefonoItem">
-                        <div class="info-label">Teléfono</div>
-                        <div class="info-value" id="usuarioPhone"></div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Miembro Desde</div>
-                        <div class="info-value" id="usuarioDateJoined"></div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Último Acceso</div>
-                        <div class="info-value" id="usuarioLastLogin"></div>
+                <div class="section">
+                    <div class="section-title">📋 Información Personal</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Nombre Completo</div>
+                            <div class="info-value" id="usuarioFullName"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Correo Electrónico</div>
+                            <div class="info-value" id="usuarioEmail"></div>
+                        </div>
+                        <div class="info-item" id="telefonoItem">
+                            <div class="info-label">Teléfono</div>
+                            <div class="info-value" id="usuarioPhone"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Miembro Desde</div>
+                            <div class="info-value" id="usuarioDateJoined"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Último Acceso</div>
+                            <div class="info-value" id="usuarioLastLogin"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="section" id="permisosSection" style="display:none;">
-                <div class="section-title">🔑 Permisos y Accesos</div>
-                <div class="permissions-grid" id="usuarioPermisos"></div>
-            </div>
+                <div class="section" id="permisosSection" style="display:none;">
+                    <div class="section-title">🔒 Permisos y Accesos</div>
+                    <div class="permissions-grid" id="usuarioPermisos"></div>
+                </div>
 
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-cancel" onclick="closeModal('verUsuarioModal')">Cerrar</button>
-            <button class="btn btn-primary" id="btnEditarUsuario">Editar Usuario</button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeModal('verUsuarioModal')">Cerrar</button>
+                <button class="btn btn-primary" id="btnEditarUsuario">Editar Usuario</button>
+            </div>
         </div>
     </div>
 </div>
-
-
-<style>
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.modal-overlay.active {
-    display: flex;
-}
-
-.modal {
-    background: #f5f5f5;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 90vh;
-    overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-    from { opacity: 0; transform: translateY(-50px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.modal-header {
-    background: #ff4081;
-    color: white;
-    padding: 20px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h2 {
-    font-size: 20px;
-    font-weight: 600;
-}
-
-.close-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: background 0.2s ease;
-}
-
-.close-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.modal-body {
-    padding: 30px 24px;
-    overflow-y: auto;
-    max-height: calc(90vh - 160px);
-}
-
-.profile-avatar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 24px;
-}
-
-.avatar-circle {
-    width: 80px;
-    height: 80px;
-    background: #ff4081;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 12px;
-}
-
-.profile-name {
-    font-size: 20px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 4px;
-}
-
-.profile-role {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 12px;
-}
-
-.status-badge {
-    background: #4caf50;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.status-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    background: white;
-    border-radius: 50%;
-}
-
-.status-badge.inactive {
-    background: #f44336;
-}
-
-.section {
-    margin-top: 30px;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-.info-item {
-    background: white;
-    padding: 12px 16px;
-    border-radius: 6px;
-    border-left: 3px solid #ff4081;
-}
-
-.info-label {
-    font-size: 11px;
-    color: #666;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-}
-
-.info-value {
-    font-size: 14px;
-    color: #333;
-    font-weight: 500;
-}
-
-.permissions-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
-
-.permission-badge {
-    background: white;
-    padding: 10px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-}
-
-.permission-badge.granted::before {
-    content: '✓';
-    color: #4caf50;
-    font-weight: 700;
-}
-
-.permission-badge.denied::before {
-    content: '✕';
-    color: #f44336;
-    font-weight: 700;
-}
-
-.modal-footer {
-    padding: 16px 24px;
-    background: white;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    border-top: 1px solid #e0e0e0;
-}
-
-.btn {
-    padding: 10px 24px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s ease;
-}
-
-.btn-cancel {
-    background: #e0e0e0;
-    color: #666;
-}
-
-.btn-cancel:hover {
-    background: #d0d0d0;
-}
-
-.btn-primary {
-    background: #ff4081;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #e91e63;
-    box-shadow: 0 2px 8px rgba(255, 64, 129, 0.4);
-}
-
-@media (max-width: 600px) {
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    .permissions-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>

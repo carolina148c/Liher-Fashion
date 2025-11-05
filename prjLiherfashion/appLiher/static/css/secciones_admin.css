@@ -698,6 +698,21 @@ body {
     box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
+
+.btn-reset {
+    background: rgba(255, 255, 255, 0.9);
+    color: #6c757d;
+    border: 2px solid #dee2e6;
+}
+
+.btn-reset:hover {
+    background: #f8f9fa;
+    color: #343a40;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+
 /* ===== ESTADO VACÍO ===== */
 .empty-state,
 .no-results {

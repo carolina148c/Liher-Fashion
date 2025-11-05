@@ -49,7 +49,7 @@ from .forms import (
 )
 from .models import (
     Carrito, Catalogo, EntradaInventario, Inventario,
-    Categoria, Color, ItemCarrito, PeticionProducto, Talla, Usuarios
+    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Talla, Usuarios
 )
 
 
@@ -331,10 +331,9 @@ def registro_ajax(request):
 
     usuarios_activos = Usuarios.objects.filter(is_active=True).count()
     usuarios_inactivos = Usuarios.objects.filter(is_active=False).count()
-
     redirect_url = request.build_absolute_uri(
         reverse('registro_revisar_email', kwargs={'email': user.email})
-    )
+    ) + "?admin=true"
 
     return JsonResponse({
         "success": True,
@@ -352,6 +351,7 @@ def registro_ajax(request):
             "inactivos": usuarios_inactivos,
         }
     })
+
 
 
 
@@ -398,12 +398,15 @@ def registro_revisar_email(request, email):
     except Usuarios.DoesNotExist:
         messages.error(request, "El usuario no existe.")
         return redirect('acceso')
-
+    viene_de_admin = request.GET.get('admin', 'false').lower() == 'true'
     return render(request, 'usuarios/autenticacion/registro_revisar_email.html', {
         'email': email,
         'es_admin': es_admin,
-        'resend_seconds': 30, 
+        'resend_seconds': 30,
+        'viene_de_admin': viene_de_admin,
     })
+
+
 
 
 
@@ -943,55 +946,79 @@ def mostrar_usuarios(request):
 
 
 
+@csrf_exempt
 @login_required
 @staff_member_required
 def editar_usuario(request, id):
-    usuario = get_object_or_404(Usuarios, id=id)
-    if request.method == 'POST':
-        try:
-            if usuario.is_staff:
-                campos_editables = ['first_name', 'last_name', 'email', 'phone', 'is_active']
-            else:
-                campos_editables = ['is_active']
-            
-            for campo in campos_editables:
-                nuevo_valor = request.POST.get(campo)
-                if nuevo_valor is not None:
-                    if campo == 'is_active':
-                        # Convertir a booleano
-                        setattr(usuario, campo, nuevo_valor.lower() == 'true')
-                    else:
-                        setattr(usuario, campo, nuevo_valor)
-            
-            usuario.save()
-            messages.success(request, "Usuario actualizado correctamente.")
-            
-            # Si es una petición AJAX, devolver JSON
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': True, 'message': 'Usuario actualizado correctamente.'})
-            else:
-                return redirect('mostrar_usuarios')
-                
-        except Exception as e:
-            error_msg = f"Error al actualizar usuario: {str(e)}"
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'message': error_msg}, status=400)
-            else:
-                messages.error(request, error_msg)
-                return redirect('mostrar_usuarios')
-    
-    # GET request - mostrar formulario
-    return render(request, 'admin/usuarios/editar_usuario.html', {'usuario': usuario})
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Método no permitido."}, status=405)
+    try:
+        usuario = get_object_or_404(Usuarios, id=id)
+        def to_bool(value):
+            return str(value).lower() in ["true", "1", "on"]
+        is_admin = to_bool(request.POST.get("is_admin"))
+        is_active = to_bool(request.POST.get("is_active"))
+        usuario.is_active = is_active
+        if is_admin:
+            usuario.first_name = request.POST.get("first_name", usuario.first_name).strip()
+            usuario.last_name = request.POST.get("last_name", usuario.last_name).strip()
+            usuario.phone = request.POST.get("phone", usuario.phone).strip()
+            permisos_json = request.POST.get("permisos")
+            if permisos_json:
+                import json
+                permisos = json.loads(permisos_json)
+                permisos_usuario, _ = Permiso.objects.get_or_create(usuario=usuario)
+                mapa_permisos = {
+                    "inicio": "inicio",
+                    "inventario": "inventario",
+                    "catálogo": "catalogo", 
+                    "catalogo": "catalogo",
+                    "pedidos": "pedidos",
+                    "usuarios": "usuarios",
+                    "devoluciones": "devoluciones",
+                    "peticiones": "peticiones",
+                }
+                for p in permisos:
+                    nombre_raw = p.get("nombre", "").strip().lower()
+                    activo = p.get("activo", False)
+                    campo = mapa_permisos.get(nombre_raw)
+                    if campo and hasattr(permisos_usuario, campo):
+                        setattr(permisos_usuario, campo, activo)
+
+                permisos_usuario.save()
+        usuario.save()
+        return JsonResponse({
+            "success": True,
+            "message": "Usuario actualizado correctamente."
+        })
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": f"Error al actualizar usuario: {str(e)}"
+        }, status=400)
+
 
 
 
 @login_required
 def ver_usuario(request, user_id):
-    usuario = Usuarios.objects.get(id=user_id)
+    usuario = get_object_or_404(Usuarios, id=user_id)
     first_initial = usuario.first_name[0] if usuario.first_name else "?"
     last_initial = usuario.last_name[0] if usuario.last_name else "?"
     last_login = usuario.last_login.strftime('%d/%m/%Y %H:%M') if usuario.last_login else "Nunca"
-    permisos = list(usuario.get_all_permissions()) if request.user.is_staff else []
+    permisos_data = []
+    if hasattr(usuario, 'permisos'):
+        permisos = usuario.permisos
+        permisos_dict = {
+            "Inicio": permisos.inicio,
+            "Inventario": permisos.inventario,
+            "Catálogo": permisos.catalogo,
+            "Pedidos": permisos.pedidos,
+            "Usuarios": permisos.usuarios,
+            "Devoluciones": permisos.devoluciones,
+            "Peticiones": permisos.peticiones,
+        }
+        permisos_data = [{"nombre": k, "activo": v} for k, v in permisos_dict.items()]
     data = {
         "full_name": f"{usuario.first_name} {usuario.last_name}".strip() or "Sin nombre",
         "initials": f"{first_initial}{last_initial}".upper(),
@@ -1001,9 +1028,11 @@ def ver_usuario(request, user_id):
         "status": "Activo" if usuario.is_active else "Inactivo",
         "date_joined": usuario.date_joined.strftime('%d/%m/%Y'),
         "last_login": last_login,
-        "permissions": permisos
+        "permissions": permisos_data,
     }
+
     return JsonResponse(data)
+
 
 
 @csrf_exempt
@@ -1037,27 +1066,6 @@ def obtener_usuario(request, id):
         "last_login": usuario.last_login.strftime("%d/%m/%Y %H:%M") if usuario.last_login else "Nunca",
         "date_joined": usuario.date_joined.strftime("%d/%m/%Y %H:%M"),
     })
-
-
-
-@csrf_exempt
-@login_required
-@staff_member_required
-def actualizar_usuario(request, id):
-    if request.method == "POST":
-        usuario = get_object_or_404(Usuarios, id=id)
-        data = request.POST
-        if usuario.is_staff:
-            usuario.first_name = data.get("first_name", usuario.first_name)
-            usuario.last_name = data.get("last_name", usuario.last_name)
-            usuario.email = data.get("email", usuario.email)
-            usuario.phone = data.get("phone", usuario.phone)
-            usuario.is_active = data.get("is_active") == "True"
-        else:
-            usuario.is_active = data.get("is_active") == "True"
-        usuario.save()
-        return JsonResponse({"success": True, "message": "Usuario actualizado correctamente."})
-    return JsonResponse({"success": False, "message": "Método no permitido."})
 
 
 

@@ -10,7 +10,7 @@
         {% csrf_token %}
 
         <!-- ===================== -->
-        <!-- 🔹 SELECCIÓN DE ROL -->
+        <!-- SELECCIÓN DE ROL -->
         <!-- ===================== -->
         <div class="form-group full-width">
           <label for="userRole">Rol <span class="required">*</span></label>
@@ -23,7 +23,7 @@
         </div>
 
         <!-- ===================== -->
-        <!-- 🔹 CAMPOS PARA USUARIO -->
+        <!-- CAMPOS PARA USUARIO -->
         <!-- ===================== -->
         <div id="usuarioFields" class="additional-fields">
           <div class="form-group full-width">
@@ -36,6 +36,9 @@
             <label for="userPassword">Contraseña <span class="required">*</span></label>
             <div class="password-input-container">
               <input type="password" id="userPassword" placeholder="Mínimo 8 caracteres">
+              <button type="button" class="toggle-password" data-target="userPassword">
+                <i class="fas fa-eye"></i>
+              </button>
               <ul class="password-requisitos" id="password-requisitos-usuario">
                 <li data-req="length">Mínimo 8 caracteres</li>
                 <li data-req="uppercase">Al menos una letra mayúscula</li>
@@ -50,13 +53,18 @@
 
           <div class="form-group full-width">
             <label for="userPasswordConfirm">Confirmar Contraseña <span class="required">*</span></label>
-            <input type="password" id="userPasswordConfirm" placeholder="Repite la Contraseña">
+            <div class="password-input-container">
+              <input type="password" id="userPasswordConfirm" placeholder="Repite la Contraseña">
+              <button type="button" class="toggle-password" data-target="userPasswordConfirm">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
             <div class="input-alert" id="error-userPasswordConfirm"></div>
           </div>
         </div>
 
         <!-- ========================== -->
-        <!-- 🔹 CAMPOS PARA ADMINISTRADOR -->
+        <!-- CAMPOS PARA ADMINISTRADOR -->
         <!-- ========================== -->
         <div id="adminFields" class="additional-fields">
           <div class="form-group">
@@ -87,6 +95,9 @@
             <label for="adminPassword">Contraseña <span class="required">*</span></label>
             <div class="password-input-container">
               <input type="password" id="adminPassword" placeholder="Ingrese una contraseña">
+              <button type="button" class="toggle-password" data-target="adminPassword">
+                <i class="fas fa-eye"></i>
+              </button>
               <ul class="password-requisitos" id="password-requisitos-admin">
                 <li data-req="length">Mínimo 8 caracteres</li>
                 <li data-req="uppercase">Al menos una letra mayúscula</li>
@@ -101,12 +112,17 @@
 
           <div class="form-group full-width">
             <label for="adminPasswordConfirm">Confirmar Contraseña <span class="required">*</span></label>
-            <input type="password" id="adminPasswordConfirm" placeholder="Repite la Contraseña">
+            <div class="password-input-container">
+              <input type="password" id="adminPasswordConfirm" placeholder="Repite la Contraseña">
+              <button type="button" class="toggle-password" data-target="adminPasswordConfirm">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
             <div class="input-alert" id="error-adminPasswordConfirm"></div>
           </div>
 
           <!-- ========================== -->
-          <!-- 🔹 PERMISOS PERSONALIZADOS -->
+          <!-- PERMISOS PERSONALIZADOS -->
           <!-- ========================== -->
           <div class="form-group full-width permisos-container" id="adminPermissions">
             <label><span class="icono-bloqueo">🔒</span> Permisos y Accesos</label>
@@ -123,15 +139,15 @@
               <label><input type="checkbox" name="permiso" value="devoluciones"> Gestión de Devoluciones</label>
               <label><input type="checkbox" name="permiso" value="peticiones"> Gestión de Peticiones</label>
             </div>
+            <div class="input-alert" id="error-adminPermissions"></div>
           </div>
-        </div>
 
         <!-- ===================== -->
-        <!-- 🔹 BOTONES DE ACCIÓN -->
+        <!-- BOTONES DE ACCIÓN -->
         <!-- ===================== -->
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeModal('createUserModal')">Cancelar</button>
-          <button type="button" class="btn-primary" onclick="createUser()">➕ Crear Usuario</button>
+          <button type="button" class="btn-primary" onclick="createUser()">Crear Usuario</button>
         </div>
       </form>
     </div>
