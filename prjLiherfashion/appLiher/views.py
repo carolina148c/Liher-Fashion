@@ -1076,7 +1076,7 @@ def obtener_usuario(request, id):
 
 
 # ==========================================================
-#                   DECOLUCIONES
+#                   DEVOLUCIONES
 # ==========================================================
 
 @permiso_requerido('devoluciones')
