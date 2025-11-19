@@ -2,10 +2,9 @@
 
 from django import forms
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
-from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Usuarios, Inventario
+from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
 import re
 
 User = get_user_model()
@@ -119,41 +118,99 @@ class UsuarioUpdateForm(forms.ModelForm):
         }
 
 
-# ==========================
-# FORMULARIOS PARA INVENTARIO
-# ==========================
-
-class InventarioForm(forms.ModelForm):
-    ESTADO_CHOICES = [
-        ('disponible', 'Disponible'),
-        ('agotado', 'Agotado'),
-        ('stock_bajo', 'Stock Bajo'),
-        ('inactivo', 'Inactivo'),
-    ]
-    estado = forms.ChoiceField(
-        choices=ESTADO_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-
+class ProductoForm(forms.ModelForm):
     class Meta:
-        model = Inventario
-        fields = ['catalogo', 'categoria', 'color', 'talla', 'precio', 'estado', 'imagen']
-        widgets = {
-            'catalogo': forms.Select(attrs={'class': 'form-control'}),
-            'categoria': forms.Select(attrs={'class': 'form-control'}),
-            'color': forms.Select(attrs={'class': 'form-control'}),
-            'talla': forms.Select(attrs={'class': 'form-control'}),
-            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-        }
+        model = Producto
+        fields = [
+            'nombre',
+            'referencia',
+            'categoria',
+            'precio',
+            'descripcion',
+            'imagen',
+            'estado'
+        ]
         labels = {
-            'catalogo': 'Catálogo',
+            'nombre': 'Nombre del producto',
+            'referencia': 'Referencia',
             'categoria': 'Categoría',
-            'color': 'Color',
-            'talla': 'Talla',
             'precio': 'Precio',
+            'descripcion': 'Descripción',
+            'imagen': 'Imagen',
             'estado': 'Estado',
-            'imagen': 'Imagen del Producto',
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'referencia': forms.TextInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
         }
 
+
+class VarianteProductoForm(forms.ModelForm):
+    class Meta:
+        model = VarianteProducto
+        fields = [
+            'producto',
+            'talla',
+            'color',
+            'imagen',
+            'stock',
+        ]
+        labels = {
+            'producto': 'Producto',
+            'talla': 'Talla',
+            'color': 'Color',
+            'imagen': 'Imagen de la variante',
+            'stock': 'Stock disponible',
+        }
+        widgets = {
+            'producto': forms.Select(attrs={'class': 'form-control'}),
+            'talla': forms.Select(attrs={'class': 'form-control'}),
+            'color': forms.Select(attrs={'class': 'form-control'}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+
+
+
+from django import forms
+from .models import Categoria, Color, Talla
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['categoria']
+
+    def clean_categoria(self):
+        data = self.cleaned_data['categoria']
+        if Categoria.objects.filter(categoria__iexact=data).exists():
+            raise forms.ValidationError("Esta categoría ya existe")
+        return data
+
+class ColorForm(forms.ModelForm):
+    class Meta:
+        model = Color
+        fields = ['color']
+
+    def clean_color(self):
+        data = self.cleaned_data['color']
+        if Color.objects.filter(color__iexact=data).exists():
+            raise forms.ValidationError("Este color ya existe")
+        return data
+
+class TallaForm(forms.ModelForm):
+    class Meta:
+        model = Talla
+        fields = ['talla']
+
+    def clean_talla(self):
+        data = self.cleaned_data['talla']
+        if Talla.objects.filter(talla__iexact=data).exists():
+            raise forms.ValidationError("Esta talla ya existe")
+        return data
 

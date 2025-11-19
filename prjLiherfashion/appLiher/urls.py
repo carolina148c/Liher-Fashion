@@ -56,20 +56,25 @@ urlpatterns = [
     path('panel-admin/', views.panel_admin, name='panel_admin'),
 
 
-    # INVENTARIO 
-    path('inventario/', views.listar_productos_tabla, name='listar_productos_tabla'),
-    path('inventario-crear/', views.crear_producto, name='crear_producto'),
-    path('inventario-editar/<int:id>/', views.editar_producto, name='editar_producto'),
-    path('inventario-eliminar/<int:id>/', views.eliminar_producto, name='eliminar_producto'),
-    path('inventario/variantes/tabla/', views.listar_productos_tabla, name='listar_productos_tabla'),
-    path('inventario/stock/add/<int:id_catalogo>/', views.mostrar_formulario_stock, name='mostrar_formulario_stock'),
-    path('inventario/stock/process/', views.procesar_entrada_stock, name='procesar_entrada_stock'),
+
+    #INVENTARIO
+    path('inventario/', views.listar_productos_inventario, name='listar_productos_inventario'),
+    path('inventario/agregar/', views.agregar_producto, name='agregar_producto'),
+    path('productos/editar/<int:idproducto>/', views.editar_producto, name='editar_producto'),
+    path('inventario/configuracion/', views.configuracion_inventario, name='configuracion_inventario'),
+    path('inventario/categoria/agregar/', views.agregar_categoria, name='agregar_categoria'),
+    path('inventario/color/agregar/', views.agregar_color, name='agregar_color'),
+    path('inventario/talla/agregar/', views.agregar_talla, name='agregar_talla'),
+    path('categoria/editar/<str:pk>/', views.editar_categoria, name='editar_categoria'),
+    path('categoria/eliminar/<str:pk>/', views.eliminar_categoria, name='eliminar_categoria'),
+
+    path('color/editar/<str:pk>/', views.editar_color, name='editar_color'),
+    path('color/eliminar/<str:pk>/', views.eliminar_color, name='eliminar_color'),
+
+    path('talla/editar/<str:pk>/', views.editar_talla, name='editar_talla'),
+    path('talla/eliminar/<str:pk>/', views.eliminar_talla, name='eliminar_talla'),
 
 
-    #CATALOGO
-    path('catalogo/', views.listar_productos_catalogo, name='listar_productos_catalogo'),
-    path('catalogo/agregar/', views.agregar_producto, name='agregar_producto'),
-    path('inventario/movimientos/<int:id_catalogo>/', views.listar_movimientos_producto, name='listar_movimientos_producto'),
 
 
     #PEDIDOS
@@ -87,6 +92,6 @@ urlpatterns = [
 
 
     # PETICIONES
-    path('peticiones/crear/<int:producto_id>/', views.crear_peticion, name='crear_peticion'),
-    path('admin/peticiones/', views.listar_peticiones, name='listar_peticiones'),
+    path('peticiones/', views.listar_peticiones, name='listar_peticiones'),
+    path('catalogo/guardar-variantes/<int:idproducto>/', views.guardar_variantes, name='guardar_variantes'),
 ]
