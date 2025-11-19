@@ -149,131 +149,73 @@
                     <th>Acciones</th>
                 </tr>
             </thead>
-            <tbody id="petitions-tbody">
-                <!-- Ejemplo de datos estáticos -->
-                <tr>
-                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-001</strong></td>
-                    <td>
-                        <div class="product-cell">
-                            <div class="product-image">📦</div>
-                            <div class="product-info">
-                                <div class="product-name">Camiseta Básica</div>
-                                <div class="product-id">SKU: CAM-001</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-avatar">JD</div>
-                            <div class="user-info">
-                                <div class="user-name">Juan Pérez</div>
-                                <div class="user-email">juan@example.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><strong>5 unidades</strong></td>
-                    <td>15/03/2024</td>
-                    <td><span class="status-badge status-pending">Pendiente</span></td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="view-btn" onclick="viewPetition('PET-001')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Ver
-                            </button>
-                            <button class="edit-btn" onclick="approvePetition('PET-001')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                                Aprobar
-                            </button>
-                            <button class="delete-btn" onclick="return confirm('¿Rechazar petición #PET-001?') && rejectPetition('PET-001')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                                </svg>
-                                Rechazar
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+<tbody id="petitions-tbody">
 
-                <tr>
-                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-002</strong></td>
-                    <td>
-                        <div class="product-cell">
-                            <div class="product-image">📦</div>
-                            <div class="product-info">
-                                <div class="product-name">Pantalón Deportivo</div>
-                                <div class="product-id">SKU: PAN-005</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-avatar">MG</div>
-                            <div class="user-info">
-                                <div class="user-name">María García</div>
-                                <div class="user-email">maria@example.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><strong>3 unidades</strong></td>
-                    <td>14/03/2024</td>
-                    <td><span class="status-badge status-active">Aceptada</span></td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="view-btn" onclick="viewPetition('PET-002')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Ver
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+{% if peticiones %}
+    {% for p in peticiones %}
+        <tr>
+            <td>
+                <strong style="color: #FF4081; font-weight: 600;">
+                    #PET-{{ p.id }}
+                </strong>
+            </td>
 
-                <tr>
-                    <td><strong style="color: #FF4081; font-weight: 600;">#PET-003</strong></td>
-                    <td>
-                        <div class="product-cell">
-                            <div class="product-image">📦</div>
-                            <div class="product-info">
-                                <div class="product-name">Zapatos Casuales</div>
-                                <div class="product-id">SKU: ZAP-012</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-avatar">CR</div>
-                            <div class="user-info">
-                                <div class="user-name">Carlos Rodríguez</div>
-                                <div class="user-email">carlos@example.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><strong>2 unidades</strong></td>
-                    <td>13/03/2024</td>
-                    <td><span class="status-badge status-inactive">Rechazada</span></td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="view-btn" onclick="viewPetition('PET-003')">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                Ver
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
+            <td>
+                <div class="product-cell">
+                    <div class="product-image">📦</div>
+                    <div class="product-info">
+                        <div class="product-name">{{ p.producto.catalogo.nombre }}</div>
+                        <div class="product-id">SKU: {{ p.producto.sku }}</div>
+                    </div>
+                </div>
+            </td>
+
+            <td>
+                <div class="user-cell">
+                    <div class="user-avatar">
+                        {{ p.usuario.nombre|make_list|first }}{{ p.usuario.apellido|make_list|first }}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">{{ p.usuario.nombre }} {{ p.usuario.apellido }}</div>
+                        <div class="user-email">{{ p.usuario.email }}</div>
+                    </div>
+                </div>
+            </td>
+
+            <td>
+                <strong>{{ p.cantidad_solicitada }} unidades</strong>
+            </td>
+
+            <td>{{ p.fecha_peticion|date:"d/m/Y" }}</td>
+
+            <td>
+                {% if p.atendida %}
+                    <span class="status-badge status-active">Aceptada</span>
+                {% else %}
+                    <span class="status-badge status-pending">Pendiente</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <div class="table-actions">
+                    <button class="view-btn" onclick="viewPetition({{ p.id }})">Ver</button>
+
+                    {% if not p.atendida %}
+                        <button class="edit-btn" onclick="approvePetition({{ p.id }})">Aprobar</button>
+                        <button class="delete-btn" onclick="rejectPetition({{ p.id }})">Rechazar</button>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="7" style="text-align:center; padding:20px;">No hay peticiones registradas.</td>
+    </tr>
+{% endif %}
+
+</tbody>
+
         </table>
 
         <!-- Paginación -->

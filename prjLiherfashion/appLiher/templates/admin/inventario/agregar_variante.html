@@ -1,0 +1,67 @@
+<div id="modalVariante" class="fixed inset-0 z-50 flex items-center justify-center bg-black hidden">
+    
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h2>Agregar Nueva Variante al Producto</h2>
+            <button class="close-btn" type="button" onclick="cerrarModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+
+            <!-- Selección de Talla y Colores -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Talla <span class="required">*</span></label>
+                    <select class="form-select" id="tallaSelect" onchange="generarPreview()">
+                        <option value="">Seleccione una talla</option>
+                        {% for t in tallas %}
+                            <option value="{{ t.pk }}">{{ t.talla }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Agregar Colores <span class="required">*</span></label>
+                    <div class="color-tags" id="colorTags"></div>
+                    <select class="form-select" id="colorSelect" onchange="addColor()">
+                        <option value="">Seleccione colores</option>
+                        {% for c in colores %}
+                            <option value="{{ c.pk }}">{{ c.color }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Stock Personalizado -->
+            <div class="section-title">Stock Personalizado <span class="required">*</span></div>
+            <div class="stock-grid" id="stockGrid">
+                <!-- Se generarán dinámicamente las tarjetas de stock -->
+            </div>
+
+            <!-- Vista previa de variantes -->
+            <div class="preview-section">
+                <div class="preview-header">
+                    👁️ Vista previa de variantes
+                </div>
+                <div class="preview-grid" id="previewGrid">
+                    <div style="grid-column: 1/-1; text-align: center; color: #999; padding: 20px;">
+                        Seleccione una talla y colores para ver la vista previa
+                    </div>
+                </div>
+            </div>  
+
+        </div>
+
+        <div class="modal-footer">
+            <div></div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-cancel" type="button" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn btn-save" type="button" onclick="guardarVariantes()">
+                    💾 Guardar Variantes
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
