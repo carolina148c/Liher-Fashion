@@ -10,6 +10,10 @@ let editIndex = null;
 let stockData = {};
 let imageData = {};
 
+// Mapeos para convertir IDs a nombres
+let nombresTallas = {};
+let nombresColores = {};
+
 // Elementos del DOM
 const modal = document.getElementById("modalVariante");
 const stockGrid = document.getElementById("stockGrid");
@@ -17,6 +21,91 @@ const previewGrid = document.getElementById("previewGrid");
 
 // Detectar modo (agregar o editar)
 const isEditMode = document.querySelector('form[action*="editar"]') !== null;
+
+// ===== INICIALIZACIÓN =====
+
+document.addEventListener('DOMContentLoaded', function() {
+    initImagePreview();
+    initModalVariantes();
+    initMapeosNombres();
+    initPriceFormatting();
+    
+    if (isEditMode) {
+        cargarVariantesExistentes();
+    } else {
+        cargarDesdeStorage();
+        
+        if (variantesGeneradas.length > 0) {
+            renderVariantes();
+            actualizarContadorVariantes();
+            inyectarInputsHidden();
+        }
+    }
+    
+    setupFormHandlers();
+});
+
+// ===== FUNCIONES DE INICIALIZACIÓN =====
+
+function initMapeosNombres() {
+    // Llenar mapeo de tallas desde el select
+    const tallaSelect = document.getElementById("tallaSelect");
+    if (tallaSelect) {
+        Array.from(tallaSelect.options).forEach(option => {
+            if (option.value && option.dataset.nombre) {
+                nombresTallas[option.value] = option.dataset.nombre;
+            }
+        });
+    }
+    
+    // Llenar mapeo de colores desde el select
+    const colorSelect = document.getElementById("colorSelect");
+    if (colorSelect) {
+        Array.from(colorSelect.options).forEach(option => {
+            if (option.value && option.dataset.nombre) {
+                nombresColores[option.value] = option.dataset.nombre;
+            }
+        });
+    }
+}
+
+function initPriceFormatting() {
+    const priceInput = document.querySelector('input[name="precio"]');
+    if (priceInput && priceInput.value) {
+        let currentValue = priceInput.value;
+        if (currentValue && !currentValue.includes('.')) {
+            formatPrice(priceInput);
+        }
+    }
+    
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            preparePriceForSubmit();
+        });
+    }
+}
+
+function setupFormHandlers() {
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            if (!isEditMode) {
+                setTimeout(limpiarStorage, 1000);
+            }
+            inyectarInputsHidden();
+        });
+    }
+    
+    const btnCancelar = document.querySelector('.btn-cancel');
+    if (btnCancelar) {
+        btnCancelar.addEventListener('click', function() {
+            if (!isEditMode) {
+                limpiarStorage();
+            }
+        });
+    }
+}
 
 // ===== FUNCIONES DE PERSISTENCIA =====
 
@@ -50,45 +139,30 @@ function limpiarStorage() {
     }
 }
 
-// ===== INICIALIZACIÓN =====
+// ===== FUNCIONES PARA OBTENER NOMBRES =====
 
-document.addEventListener('DOMContentLoaded', function() {
-    initImagePreview();
-    initModalVariantes();
-    
-    if (isEditMode) {
-        cargarVariantesExistentes();
-    } else {
-        cargarDesdeStorage();
-        
-        if (variantesGeneradas.length > 0) {
-            renderVariantes();
-            actualizarContadorVariantes();
-            inyectarInputsHidden();
-        }
-    }
-    
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function() {
-            if (!isEditMode) {
-                setTimeout(limpiarStorage, 1000);
-            }
-            inyectarInputsHidden();
-        });
-    }
-    
-    const btnCancelar = document.querySelector('.btn-cancel');
-    if (btnCancelar) {
-        btnCancelar.addEventListener('click', function() {
-            if (!isEditMode) {
-                limpiarStorage();
-            }
-        });
-    }
-});
+function getNombreTalla(idTalla) {
+    return nombresTallas[idTalla] || idTalla;
+}
+
+function getNombreColor(idColor) {
+    return nombresColores[idColor] || idColor;
+}
+
+function getNombreTallaFromSelect(idTalla) {
+    const select = document.getElementById("tallaSelect");
+    const option = select.querySelector(`option[value="${idTalla}"]`);
+    return option ? option.dataset.nombre : idTalla;
+}
+
+function getNombreColorFromSelect(idColor) {
+    const select = document.getElementById("colorSelect");
+    const option = select.querySelector(`option[value="${idColor}"]`);
+    return option ? option.dataset.nombre : idColor;
+}
 
 // ===== CARGAR VARIANTES EXISTENTES (MODO EDICIÓN) =====
+
 function cargarVariantesExistentes() {
     const variantCards = document.querySelectorAll('.variant-card[data-id]');
     
@@ -161,7 +235,6 @@ function initImagePreview() {
                     transition: opacity 0.3s;
                 `;
                 
-                // Hacer la imagen clickeable para expandir
                 img.addEventListener('click', function() {
                     expandirImagen(event.target.result);
                 });
@@ -235,14 +308,15 @@ function cerrarModalExitoso() {
 
 function addColor() {
     const select = document.getElementById("colorSelect");
-    const color = select.value;
+    const colorId = select.value;
+    const colorNombre = getNombreColorFromSelect(colorId);
 
-    if (!color || selectedColors.includes(color)) {
+    if (!colorId || selectedColors.includes(colorId)) {
         select.value = "";
         return;
     }
 
-    selectedColors.push(color);
+    selectedColors.push(colorId);
     select.value = "";
 
     actualizarColorTags();
@@ -250,10 +324,10 @@ function addColor() {
     generarPreview();
 }
 
-function removeColor(color) {
-    selectedColors = selectedColors.filter(c => c !== color);
-    delete stockData[color];
-    delete imageData[color];
+function removeColor(colorId) {
+    selectedColors = selectedColors.filter(c => c !== colorId);
+    delete stockData[colorId];
+    delete imageData[colorId];
     actualizarColorTags();
     generarStockInputs();
     generarPreview();
@@ -267,12 +341,15 @@ function actualizarColorTags() {
         return;
     }
 
-    container.innerHTML = selectedColors.map(color => `
-        <div class="color-tag">
-            ${color}
-            <button type="button" class="color-tag-remove" onclick="removeColor('${color}')">×</button>
-        </div>
-    `).join('');
+    container.innerHTML = selectedColors.map(colorId => {
+        const colorNombre = getNombreColor(colorId);
+        return `
+            <div class="color-tag">
+                ${colorNombre}
+                <button type="button" class="color-tag-remove" onclick="removeColor('${colorId}')">×</button>
+            </div>
+        `;
+    }).join('');
 }
 
 // ===== GESTIÓN DE STOCK E IMÁGENES =====
@@ -283,14 +360,15 @@ function generarStockInputs() {
         return;
     }
 
-    stockGrid.innerHTML = selectedColors.map(color => {
-        const stockValue = stockData[color] || '';
-        const imagePreview = imageData[color] || '';
+    stockGrid.innerHTML = selectedColors.map(colorId => {
+        const colorNombre = getNombreColor(colorId);
+        const stockValue = stockData[colorId] || '';
+        const imagePreview = imageData[colorId] || '';
         
         return `
             <div class="stock-card">
                 <div class="stock-card-header">
-                    ${color}
+                    ${colorNombre}
                 </div>
                 <label style="font-size: 12px; color: #666; margin-bottom: 4px; display: block;">
                     Stock <span class="required">*</span>
@@ -301,8 +379,8 @@ function generarStockInputs() {
                     placeholder="Ingrese cantidad" 
                     min="0"
                     value="${stockValue}"
-                    onchange="updateStock('${color}', this.value)"
-                    id="stock_${color}"
+                    onchange="updateStock('${colorId}', this.value)"
+                    id="stock_${colorId}"
                 >
                 
                 <div style="margin: 12px 0;">
@@ -310,18 +388,18 @@ function generarStockInputs() {
                         Imagen de la variante
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button type="button" class="upload-btn" onclick="document.getElementById('imageInput_${color}').click()">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('imageInput_${colorId}').click()">
                             📎 Subir Imagen
                         </button>
                         <input 
                             type="file" 
-                            id="imageInput_${color}" 
+                            id="imageInput_${colorId}" 
                             accept="image/*" 
                             style="display: none;" 
-                            onchange="handleImageUpload('${color}', this)"
+                            onchange="handleImageUpload('${colorId}', this)"
                         >
                         ${imagePreview ? 
-                            `<button type="button" class="btn-remove" onclick="removeImage('${color}')" style="padding: 6px 12px; font-size: 11px; background: #fff5f5; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; cursor: pointer;">
+                            `<button type="button" class="btn-remove" onclick="removeImage('${colorId}')" style="padding: 6px 12px; font-size: 11px; background: #fff5f5; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; cursor: pointer;">
                                 🗑️ Quitar
                             </button>` : 
                             ''
@@ -334,7 +412,7 @@ function generarStockInputs() {
     }).join('');
 }
 
-function handleImageUpload(color, input) {
+function handleImageUpload(colorId, input) {
     const file = input.files[0];
     
     if (!file) return;
@@ -355,7 +433,7 @@ function handleImageUpload(color, input) {
     const reader = new FileReader();
     
     reader.onload = function(event) {
-        imageData[color] = event.target.result;
+        imageData[colorId] = event.target.result;
         generarStockInputs();
         generarPreview();
     };
@@ -368,16 +446,16 @@ function handleImageUpload(color, input) {
     reader.readAsDataURL(file);
 }
 
-function removeImage(color) {
-    delete imageData[color];
-    const input = document.getElementById(`imageInput_${color}`);
+function removeImage(colorId) {
+    delete imageData[colorId];
+    const input = document.getElementById(`imageInput_${colorId}`);
     if (input) input.value = '';
     generarStockInputs();
     generarPreview();
 }
 
-function updateStock(color, value) {
-    stockData[color] = value;
+function updateStock(colorId, value) {
+    stockData[colorId] = value;
     generarPreview();
 }
 
@@ -386,28 +464,30 @@ function updateStock(color, value) {
 function generarPreview() {
     if (!previewGrid) return;
     
-    const talla = document.getElementById("tallaSelect").value;
+    const tallaId = document.getElementById("tallaSelect").value;
+    const tallaNombre = getNombreTallaFromSelect(tallaId);
     
-    if (!talla || selectedColors.length === 0) {
+    if (!tallaId || selectedColors.length === 0) {
         previewGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #999; padding: 20px;">Seleccione una talla y colores para ver la vista previa</div>';
         return;
     }
 
-    previewGrid.innerHTML = selectedColors.map(color => {
-        const stock = stockData[color] || '0';
-        const imagen = imageData[color] || '';
+    previewGrid.innerHTML = selectedColors.map(colorId => {
+        const colorNombre = getNombreColor(colorId);
+        const stock = stockData[colorId] || '0';
+        const imagen = imageData[colorId] || '';
         
         return `
             <div class="preview-card">
                 ${imagen ? 
                     `<div class="preview-image" style="width: 100%; height: 80px; margin-bottom: 8px; border-radius: 4px; overflow: hidden; cursor: pointer;" onclick="expandirImagen('${imagen}')">
-                        <img src="${imagen}" alt="${color}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="${imagen}" alt="${colorNombre}" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>` :
                     `<div class="preview-image-placeholder" style="width: 100%; height: 80px; margin-bottom: 8px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;">
                         Sin imagen
                     </div>`
                 }
-                <div class="preview-card-title">${talla} - ${color}</div>
+                <div class="preview-card-title">${tallaNombre} - ${colorNombre}</div>
                 <div class="preview-card-stock">Stock: ${stock} unidades</div>
             </div>
         `;
@@ -417,9 +497,10 @@ function generarPreview() {
 // ===== GESTIÓN DE VARIANTES =====
 
 function guardarVariantes() {
-    const talla = document.getElementById("tallaSelect").value;
+    const tallaId = document.getElementById("tallaSelect").value;
+    const tallaNombre = getNombreTallaFromSelect(tallaId);
 
-    if (!talla) {
+    if (!tallaId) {
         alert("Por favor selecciona una talla");
         return;
     }
@@ -430,10 +511,11 @@ function guardarVariantes() {
     }
 
     let todoOk = true;
-    for (const color of selectedColors) {
-        const stock = stockData[color];
+    for (const colorId of selectedColors) {
+        const stock = stockData[colorId];
         if (!stock || stock === '0' || stock < 0) {
-            alert(`Por favor ingresa un stock válido para el color ${color}`);
+            const colorNombre = getNombreColor(colorId);
+            alert(`Por favor ingresa un stock válido para el color ${colorNombre}`);
             todoOk = false;
             break;
         }
@@ -441,22 +523,22 @@ function guardarVariantes() {
 
     if (!todoOk) return;
 
-    selectedColors.forEach(color => {
-        const stock = stockData[color];
-        const imagenBase64 = imageData[color] || null;
+    selectedColors.forEach(colorId => {
+        const stock = stockData[colorId];
+        const imagenBase64 = imageData[colorId] || null;
 
         if (editIndex !== null) {
-            // Modo edición de variante existente
-            variantesGeneradas[editIndex] = { talla, color, stock, imagenBase64 };
+            variantesGeneradas[editIndex] = { talla: tallaId, color: colorId, stock, imagenBase64 };
         } else {
-            // Verificar si ya existe
-            const existe = variantesGeneradas.some(v => v.talla === talla && v.color === color);
+            const existe = variantesGeneradas.some(v => v.talla === tallaId && v.color === colorId);
             if (existe) {
-                alert(`La variante ${talla} - ${color} ya existe`);
+                const tallaNombre = getNombreTalla(tallaId);
+                const colorNombre = getNombreColor(colorId);
+                alert(`La variante ${tallaNombre} - ${colorNombre} ya existe`);
                 return;
             }
 
-            variantesGeneradas.push({ talla, color, stock, imagenBase64 });
+            variantesGeneradas.push({ talla: tallaId, color: colorId, stock, imagenBase64 });
         }
     });
 
@@ -488,7 +570,6 @@ function renderVariantes() {
         variantsSection.appendChild(lista);
     }
 
-    // Combinar variantes existentes (no eliminadas) con nuevas variantes
     const todasVariantes = [
         ...variantesExistentes.filter(v => !v.eliminada),
         ...variantesGeneradas.map(v => ({ ...v, esNueva: true }))
@@ -515,12 +596,15 @@ function renderVariantes() {
         const editada = variantesEditadas.has(v.id);
         const imagenSrc = v.imagenBase64 || v.imagen;
         
+        const nombreTalla = getNombreTalla(v.talla);
+        const nombreColor = getNombreColor(v.color);
+        
         return `
             <div class="variant-card" ${!esNueva ? `data-id="${v.id}" data-talla="${v.talla}" data-color="${v.color}" data-stock="${v.stock}" data-imagen="${v.imagen || ''}"` : ''}>
                 <div style="display: flex; gap: 16px; align-items: center;">
                     ${imagenSrc ? 
                         `<div style="width: 60px; height: 60px; border-radius: 6px; overflow: hidden; flex-shrink: 0; cursor: pointer;" onclick="expandirImagen('${imagenSrc}')">
-                            <img src="${imagenSrc}" alt="${v.color}" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="${imagenSrc}" alt="${nombreColor}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>` :
                         `<div style="width: 60px; height: 60px; background: #f5f5f5; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; flex-shrink: 0; text-align: center; padding: 4px;">
                             Sin imagen
@@ -529,11 +613,11 @@ function renderVariantes() {
                     <div style="display: flex; gap: 24px; align-items: center;">
                         <div>
                             <span style="font-size: 12px; color: #999;">Talla</span>
-                            <div style="font-size: 14px; font-weight: 600; color: #333;">${v.talla}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #333;">${nombreTalla}</div>
                         </div>
                         <div>
                             <span style="font-size: 12px; color: #999;">Color</span>
-                            <div style="font-size: 14px; font-weight: 600; color: #333;">${v.color}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #333;">${nombreColor}</div>
                         </div>
                         <div>
                             <span style="font-size: 12px; color: #999;">Stock</span>
@@ -615,7 +699,10 @@ function editarVarianteExistente(id) {
     const variante = variantesExistentes.find(v => v.id === id);
     if (!variante) return;
 
-    const nuevoStock = prompt(`Editar stock para ${variante.talla} - ${variante.color}:`, variante.stock);
+    const nombreTalla = getNombreTalla(variante.talla);
+    const nombreColor = getNombreColor(variante.color);
+    
+    const nuevoStock = prompt(`Editar stock para ${nombreTalla} - ${nombreColor}:`, variante.stock);
     
     if (nuevoStock === null) return;
     
@@ -651,6 +738,25 @@ function eliminarVarianteNueva(index) {
         renderVariantes();
         actualizarContadorVariantes();
         inyectarInputsHidden();
+    }
+}
+
+// ===== FUNCIONES DE PRECIO =====
+
+function formatPrice(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    
+    if (value.length > 0) {
+        value = parseInt(value).toLocaleString('es-CO');
+    }
+    
+    input.value = value;
+}
+
+function preparePriceForSubmit() {
+    const priceInput = document.querySelector('input[name="precio"]');
+    if (priceInput) {
+        priceInput.value = priceInput.value.replace(/\./g, '');
     }
 }
 

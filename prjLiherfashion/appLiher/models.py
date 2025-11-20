@@ -170,10 +170,10 @@ class Permiso(models.Model):
 # ============================================================
 
 class Categoria(models.Model):
-    categoria = models.CharField(max_length=50, unique=True, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    categoria = models.CharField(max_length=50, unique=True)
 
     class Meta:
-        managed = True
         db_table = 'categoria'
         verbose_name = 'Categoría'
         verbose_name_plural = 'Categorías'
@@ -183,10 +183,10 @@ class Categoria(models.Model):
 
 
 class Color(models.Model):
-    color = models.CharField(max_length=100, unique=True, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    color = models.CharField(max_length=100, unique=True)
 
     class Meta:
-        managed = True
         db_table = 'color'
         verbose_name = 'Color'
         verbose_name_plural = 'Colores'
@@ -196,16 +196,17 @@ class Color(models.Model):
 
 
 class Talla(models.Model):
-    talla = models.CharField(max_length=50, unique=True, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    talla = models.CharField(max_length=50, unique=True)
 
     class Meta:
-        managed = True
         db_table = 'talla'
         verbose_name = 'Talla'
         verbose_name_plural = 'Tallas'
 
     def __str__(self):
         return self.talla
+
 
 
 class Producto(models.Model):
