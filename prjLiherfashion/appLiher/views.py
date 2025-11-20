@@ -37,7 +37,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Sum, Q
 from django.views.decorators.csrf import csrf_exempt
 import json
-
+from decimal import Decimal, InvalidOperation
 
 # ==========================================================
 #                   IMPORTACIONES LOCALES
@@ -893,7 +893,7 @@ def agregar_producto(request):
         categoria_id = request.POST.get('categoria')
         descripcion = request.POST.get('descripcion', '')
         estado = request.POST.get('estado', 'Activo')
-        precio = request.POST.get('precio', '0')
+        precio_str = request.POST.get('precio', '0')
         imagen = request.FILES.get('imagen')
 
         # Mantener los datos en el contexto para rellenar el formulario
@@ -902,7 +902,7 @@ def agregar_producto(request):
             "referencia": referencia,
             "categoria_id": categoria_id,
             "descripcion": descripcion,
-            "precio": precio,
+            "precio": precio_str,
         })
 
         # VALIDAR NOMBRE
@@ -922,6 +922,15 @@ def agregar_producto(request):
             messages.error(request, "La categoría seleccionada no existe.")
             return render(request, 'admin/inventario/agregar_producto.html', context)
 
+        # Procesar precio
+        try:
+            # Remover puntos y convertir a decimal
+            precio_limpio = precio_str.replace('.', '')
+            precio_decimal = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
+        except (ValueError, TypeError, InvalidOperation) as e:
+            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
         # Crear producto
         try:
             producto = Producto.objects.create(
@@ -931,7 +940,7 @@ def agregar_producto(request):
                 descripcion=descripcion,
                 imagen=imagen,
                 estado=estado,
-                precio=precio
+                precio=precio_decimal
             )
         except Exception as e:
             messages.error(request, f"Error al crear el producto: {str(e)}")
@@ -977,7 +986,6 @@ def agregar_producto(request):
 
 @login_required
 def editar_producto(request, idproducto):
-
     producto = get_object_or_404(Producto, idproducto=idproducto)
     variantes = VarianteProducto.objects.filter(producto=producto)
 
@@ -990,24 +998,54 @@ def editar_producto(request, idproducto):
     }
 
     if request.method == 'POST':
+        # Obtener los datos del formulario
+        producto.nombre = request.POST.get("nombre", "").strip()
+        producto.referencia = request.POST.get("referencia", "").strip()
+        
+        # CORRECCIÓN: Obtener la categoría por ID
+        categoria_id = request.POST.get("categoria")
+        try:
+            if categoria_id:
+                producto.categoria = Categoria.objects.get(id=categoria_id)
+        except Categoria.DoesNotExist:
+            messages.error(request, "La categoría seleccionada no existe.")
+            return render(request, "admin/inventario/editar_producto.html", context)
+        
+        # MEJORA: Manejo del precio con formato de puntos
+        precio_str = request.POST.get("precio", "0").strip()
+        try:
+            # Remover puntos y convertir a decimal
+            precio_limpio = precio_str.replace('.', '')
+            producto.precio = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
+        except (ValueError, TypeError, InvalidOperation) as e:
+            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
+            return render(request, "admin/inventario/editar_producto.html", context)
+        
+        producto.descripcion = request.POST.get("descripcion", "")
+        producto.estado = request.POST.get("estado", "Activo")
 
-        producto.nombre = request.POST.get("nombre")
-        producto.referencia = request.POST.get("referencia")
-        producto.categoria = Categoria.objects.filter(
-            categoria=request.POST.get("categoria")
-        ).first()
-        producto.precio = request.POST.get("precio")
-        producto.descripcion = request.POST.get("descripcion")
-        producto.estado = request.POST.get("estado")
-
+        # Manejar la imagen
         imagen = request.FILES.get("imagen")
         if imagen:
+            # Validar que sea una imagen
+            if not imagen.content_type.startswith('image/'):
+                messages.error(request, "El archivo debe ser una imagen válida.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+            
+            # Validar tamaño (opcional, máximo 5MB)
+            if imagen.size > 5 * 1024 * 1024:
+                messages.error(request, "La imagen no debe superar los 5MB.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+            
             producto.imagen = imagen
 
-        producto.save()
-
-        messages.success(request, "Producto actualizado correctamente.")
-        return redirect("editar_producto", idproducto=idproducto)
+        try:
+            producto.save()
+            messages.success(request, "Producto actualizado correctamente.")
+            return redirect("editar_producto", idproducto=idproducto)
+        except Exception as e:
+            messages.error(request, f"Error al actualizar el producto: {str(e)}")
+            return render(request, "admin/inventario/editar_producto.html", context)
 
     return render(request, "admin/inventario/editar_producto.html", context)
 

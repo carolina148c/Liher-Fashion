@@ -57,8 +57,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Precio:</label>
-                        <input type="number" class="form-input" name="precio" step="0.01" min="0" 
-                               value="{{ precio|default:'0' }}" required>
+                        <input type="text" class="form-input" name="precio" 
+                               value="{% if precio %}{{ precio }}{% else %}{% endif %}" 
+                               required
+                               oninput="formatPrice(this)">
                     </div>
                 </div>
                 
@@ -128,35 +130,6 @@
     <div id="variantesHiddenContainer"></div>
     
     <script src="{% static 'js/inventario.js' %}"></script>
-    
-    <script>
-        // Inicializar datos de variantes desde el servidor (si existen)
-        document.addEventListener('DOMContentLoaded', function() {
-            // Recuperar variantes del sessionStorage si existen
-            const variantesGuardadas = sessionStorage.getItem('variantesProducto');
-            if (variantesGuardadas) {
-                try {
-                    variantesGeneradas = JSON.parse(variantesGuardadas);
-                    if (variantesGeneradas.length > 0) {
-                        renderVariantes();
-                        actualizarContadorVariantes();
-                        inyectarInputsHidden();
-                    }
-                } catch (e) {
-                    console.error('Error al cargar variantes guardadas:', e);
-                }
-            }
-            
-            // Guardar variantes antes de enviar el formulario
-            document.getElementById('productoForm').addEventListener('submit', function() {
-                sessionStorage.setItem('variantesProducto', JSON.stringify(variantesGeneradas));
-            });
-            
-            // Limpiar storage cuando se cancela
-            document.querySelector('.btn-cancel').addEventListener('click', function() {
-                sessionStorage.removeItem('variantesProducto');
-            });
-        });
-    </script>
+
 </body>
 </html>

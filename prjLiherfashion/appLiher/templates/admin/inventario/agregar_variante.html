@@ -16,7 +16,7 @@
                     <select class="form-select" id="tallaSelect" onchange="generarPreview()">
                         <option value="">Seleccione una talla</option>
                         {% for t in tallas %}
-                            <option value="{{ t.pk }}">{{ t.talla }}</option>
+                            <option value="{{ t.id }}" data-nombre="{{ t.talla }}">{{ t.talla }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -27,7 +27,7 @@
                     <select class="form-select" id="colorSelect" onchange="addColor()">
                         <option value="">Seleccione colores</option>
                         {% for c in colores %}
-                            <option value="{{ c.pk }}">{{ c.color }}</option>
+                            <option value="{{ c.id }}" data-nombre="{{ c.color }}">{{ c.color }}</option>
                         {% endfor %}
                     </select>
                 </div>
