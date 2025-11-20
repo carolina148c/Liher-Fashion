@@ -876,20 +876,17 @@ def listar_productos_inventario(request):
 
 @login_required
 def agregar_producto(request):
-
+    categorias = Categoria.objects.all()
+    tallas = Talla.objects.all()
+    colores = Color.objects.all()
+    
     context = {
-        "nombre": request.POST.get("nombre", ""),
-        "referencia": request.POST.get("referencia", ""),
-        "categoria": request.POST.get("categoria", ""),
-        "descripcion": request.POST.get("descripcion", ""),
-        "precio": request.POST.get("precio", ""),
-        "categorias": Categoria.objects.all(),
-        "tallas": Talla.objects.all(),
-        "colores": Color.objects.all()
+        "categorias": categorias,
+        "tallas": tallas,
+        "colores": colores,
     }
 
     if request.method == 'POST':
-
         # CAMPOS GENERALES
         nombre = request.POST.get('nombre', '').strip()
         referencia = request.POST.get('referencia', '').strip()
@@ -898,6 +895,15 @@ def agregar_producto(request):
         estado = request.POST.get('estado', 'Activo')
         precio = request.POST.get('precio', '0')
         imagen = request.FILES.get('imagen')
+
+        # Mantener los datos en el contexto para rellenar el formulario
+        context.update({
+            "nombre": nombre,
+            "referencia": referencia,
+            "categoria_id": categoria_id,
+            "descripcion": descripcion,
+            "precio": precio,
+        })
 
         # VALIDAR NOMBRE
         if not nombre:
@@ -910,43 +916,60 @@ def agregar_producto(request):
             return render(request, 'admin/inventario/agregar_producto.html', context)
 
         # Buscar categoría
-        categoria = Categoria.objects.filter(categoria=categoria_id).first()
+        try:
+            categoria = Categoria.objects.get(id=categoria_id)
+        except Categoria.DoesNotExist:
+            messages.error(request, "La categoría seleccionada no existe.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
 
         # Crear producto
-        producto = Producto.objects.create(
-            nombre=nombre,
-            referencia=referencia,
-            categoria=categoria,
-            descripcion=descripcion,
-            imagen=imagen,
-            estado=estado,
-            precio=precio
-        )
+        try:
+            producto = Producto.objects.create(
+                nombre=nombre,
+                referencia=referencia,
+                categoria=categoria,
+                descripcion=descripcion,
+                imagen=imagen,
+                estado=estado,
+                precio=precio
+            )
+        except Exception as e:
+            messages.error(request, f"Error al crear el producto: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
 
         # Guardar variantes dinámicas
         index = 0
+        variantes_guardadas = 0
         while True:
             talla_id = request.POST.get(f"variantes[{index}][talla]")
             color_id = request.POST.get(f"variantes[{index}][color]")
             stock = request.POST.get(f"variantes[{index}][stock]")
-
+            
             if talla_id is None:
                 break
-
-            talla_obj = Talla.objects.get(pk=talla_id)
-            color_obj = Color.objects.get(pk=color_id)
-
-            VarianteProducto.objects.create(
-                producto=producto,
-                talla=talla_obj,
-                color=color_obj,
-                stock=int(stock),
-            )
-
+                
+            try:
+                talla_obj = Talla.objects.get(pk=talla_id)
+                color_obj = Color.objects.get(pk=color_id)
+                
+                VarianteProducto.objects.create(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj,
+                    stock=int(stock) if stock else 0,
+                )
+                variantes_guardadas += 1
+            except (Talla.DoesNotExist, Color.DoesNotExist, ValueError) as e:
+                messages.warning(request, f"Error al guardar variante {index+1}: {str(e)}")
+            
             index += 1
 
-        messages.success(request, "Producto agregado correctamente.")
-        return redirect('listar_productos_inventario')
+        if variantes_guardadas > 0:
+            messages.success(request, f"Producto agregado correctamente con {variantes_guardadas} variante(s).")
+            return redirect('listar_productos_inventario')
+        else:
+            messages.error(request, "No se pudieron guardar las variantes del producto.")
+            producto.delete()  # Eliminar el producto si no hay variantes
 
     return render(request, 'admin/inventario/agregar_producto.html', context)
 
