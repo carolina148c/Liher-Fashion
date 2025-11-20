@@ -1,84 +1,85 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Producto</title>
-
-    <link rel="stylesheet" href="{% static 'css/producto.css' %}">
+    <link rel="stylesheet" href="{% static 'css/agregar_producto.css' %}">
 </head>
-
 <body>
-
-    <form method="post" action="{% url 'agregar_producto' %}" enctype="multipart/form-data">
+    <form method="post" action="{% url 'agregar_producto' %}" enctype="multipart/form-data" id="productoForm">
         {% csrf_token %}
-
         <div class="page-container">
-
             <div class="header-box">
                 <h2>Nuevo Producto</h2>
             </div>
-
+            
+            <!-- Mostrar mensajes -->
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
             <div class="content-box">
-
                 <div class="section-header">
                     <span class="section-icon">📋</span>
                     <span>Información General</span>
                 </div>
-
+                
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Nombre del producto:</label>
-                        <input type="text" class="form-input" name="nombre" required>
+                        <input type="text" class="form-input" name="nombre" value="{{ nombre|default:'' }}" required>
                     </div>
-
                     <div class="form-group">
                         <label class="form-label">Referencia:</label>
-                        <input type="text" class="form-input" name="referencia">
+                        <input type="text" class="form-input" name="referencia" value="{{ referencia|default:'' }}">
                     </div>
                 </div>
-
+                
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Categoría:</label>
                         <select name="categoria" class="form-input" required>
                             <option value="">Seleccione una categoría</option>
                             {% for c in categorias %}
-                                <option value="{{ c.id }}">{{ c.categoria }}</option>
+                            <option value="{{ c.id }}" {% if c.id|stringformat:"s" == categoria_id %}selected{% endif %}>
+                                {{ c.categoria }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label class="form-label">Precio:</label>
-                        <input type="number" class="form-input" name="precio" step="0.01" min="0" required>
+                        <input type="number" class="form-input" name="precio" step="0.01" min="0" 
+                               value="{{ precio|default:'0' }}" required>
                     </div>
                 </div>
-
+                
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label class="form-label">Descripción:</label>
-                        <textarea class="form-input form-textarea" name="descripcion" maxlength="500"></textarea>
+                        <textarea class="form-input form-textarea" name="descripcion" maxlength="500">{{ descripcion|default:'' }}</textarea>
                     </div>
                 </div>
-
+                
                 <div class="form-row">
-
                     <div class="form-group">
                         <label class="form-label">Imagen Principal</label>
-
                         <div class="image-upload-container">
                             <div class="image-preview"></div>
-
                             <label class="upload-btn">
                                 📎 Subir Imagen
                                 <input type="file" name="imagen" accept="image/*" hidden>
                             </label>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label class="form-label">Estado General:</label>
                         <input type="text" class="form-input" value="Activo" readonly>
@@ -88,45 +89,74 @@
 
                 <!-- Variantes -->
                 <div class="variants-section">
-
                     <div class="section-header">
                         <span class="section-icon">🎨</span>
                         <span>Variantes del Producto</span>
                     </div>
-
                     <div class="variants-header">
                         <div></div>
                         <button type="button" class="btn-add-variant" id="btnAbrirModal">
-                            Agregar Nueva Variante
+                            Agregar Variante
                         </button>
                     </div>
-
-                    <div class="empty-state">
+                    
+                    <div id="variantesContainer">
+                        <!-- Las variantes se renderizarán aquí -->
+                    </div>
+                    
+                    <div class="empty-state" id="emptyState">
                         <div class="empty-icon">📦</div>
                         <div class="empty-title">No hay variantes agregadas</div>
                         <div class="empty-subtitle">Haz clic en "Agregar variante" para comenzar</div>
                     </div>
-
                 </div>
-
             </div>
-
+            
             <div class="footer-box">
-                <div class="footer-info">0 Variantes</div>
-
+                <div class="footer-info" id="contadorVariantes">0 Variantes</div>
                 <div class="footer-actions">
                     <a href="{% url 'listar_productos_inventario' %}" class="btn btn-cancel">Cancelar</a>
-                    <button type="submit" class="btn btn-save">💾 Guardar Cambios</button>
+                    <button type="submit" class="btn btn-save">Guardar Cambios</button>
                 </div>
             </div>
-
         </div>
     </form>
 
     {% include 'admin/inventario/agregar_variante.html' %}
-
+    
+    <!-- Inputs hidden para mantener las variantes entre recargas -->
+    <div id="variantesHiddenContainer"></div>
+    
     <script src="{% static 'js/inventario.js' %}"></script>
-
+    
+    <script>
+        // Inicializar datos de variantes desde el servidor (si existen)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Recuperar variantes del sessionStorage si existen
+            const variantesGuardadas = sessionStorage.getItem('variantesProducto');
+            if (variantesGuardadas) {
+                try {
+                    variantesGeneradas = JSON.parse(variantesGuardadas);
+                    if (variantesGeneradas.length > 0) {
+                        renderVariantes();
+                        actualizarContadorVariantes();
+                        inyectarInputsHidden();
+                    }
+                } catch (e) {
+                    console.error('Error al cargar variantes guardadas:', e);
+                }
+            }
+            
+            // Guardar variantes antes de enviar el formulario
+            document.getElementById('productoForm').addEventListener('submit', function() {
+                sessionStorage.setItem('variantesProducto', JSON.stringify(variantesGeneradas));
+            });
+            
+            // Limpiar storage cuando se cancela
+            document.querySelector('.btn-cancel').addEventListener('click', function() {
+                sessionStorage.removeItem('variantesProducto');
+            });
+        });
+    </script>
 </body>
-
 </html>

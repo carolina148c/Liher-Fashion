@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Producto</title>
 
-    <link rel="stylesheet" href="{% static 'css/producto.css' %}">
+    <link rel="stylesheet" href="{% static 'css/agregar_producto.css' %}">
 </head>
 
 <body>
@@ -189,7 +189,7 @@
 
             <div class="footer-actions">
                 <a href="{% url 'listar_productos_inventario' %}" class="btn btn-cancel">Cancelar</a>
-                <button type="submit" class="btn btn-save">💾 Guardar Cambios</button>
+                <button type="submit" class="btn btn-save">Guardar Cambios</button>
             </div>
         </div>
 
@@ -200,7 +200,7 @@
 <!-- Modal agregar variante -->
 {% include 'admin/inventario/agregar_variante.html' %}
 
-<script src="{% static 'js/inventario_editar.js' %}"></script>
+<script src="{% static 'js/inventario.js' %}"></script>
 
 </body>
 </html>
