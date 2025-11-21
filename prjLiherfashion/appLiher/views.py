@@ -22,7 +22,7 @@ from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.db.models import F, Sum
-from django.http import JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import (
     render, redirect, get_object_or_404
 )
@@ -37,19 +37,18 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Sum, Q
 from django.views.decorators.csrf import csrf_exempt
 import json
-
+from decimal import Decimal, InvalidOperation
 
 # ==========================================================
-#                   IMPORTS LOCALES
+#                   IMPORTACIONES LOCALES
 # ==========================================================
 from .decorators import admin_required, permiso_requerido
 from .forms import (
-    CustomPasswordResetForm, InventarioForm, UsuarioRegistroForm,
-    UsuarioUpdateForm
+    CustomPasswordResetForm, UsuarioRegistroForm, CategoriaForm, ColorForm, TallaForm
 )
 from .models import (
-    Carrito, Catalogo, EntradaInventario, Inventario,
-    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Talla, Usuarios
+    Carrito, Producto, VarianteProducto,
+    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Producto,VarianteProducto, Talla, Usuarios
 )
 
 
@@ -131,21 +130,29 @@ def identificacion(request):
 
 
 def vista_productos(request):
-    productos = Inventario.objects.select_related('categoria', 'color', 'talla').all().order_by('categoria__categoria')
+    productos = VarianteProducto.objects.select_related(
+        'producto', 'talla', 'color'
+    ).all().order_by('producto__categoria__categoria')
+
     categorias = Categoria.objects.all().order_by('categoria')
     colores = Color.objects.all().order_by('color')
     tallas = Talla.objects.all().order_by('talla')
+
     # Obtener filtros
     categoria_filtrar = request.GET.get('categoria', '').strip()
     color_filtrar = request.GET.get('color', '').strip()
     talla_filtrar = request.GET.get('talla', '').strip()
+
     # Aplicar filtros
     if categoria_filtrar:
-        productos = productos.filter(categoria__categoria=categoria_filtrar)
+        productos = productos.filter(producto__categoria__categoria=categoria_filtrar)
+
     if color_filtrar:
         productos = productos.filter(color__color=color_filtrar)
+
     if talla_filtrar:
         productos = productos.filter(talla__talla=talla_filtrar)
+
     context = {
         'productos': productos,
         'categorias': categorias,
@@ -155,7 +162,9 @@ def vista_productos(request):
         'selected_color': color_filtrar,
         'selected_talla': talla_filtrar,
     }
+
     return render(request, 'tienda/principal/productos.html', context)
+
 
 
 
@@ -572,45 +581,50 @@ class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
 @require_POST
 def anadir_al_carrito(request, producto_id):
     try:
-        # Obtener el producto del inventario
-        producto = get_object_or_404(Inventario, pk=producto_id)
-        # Leer la cantidad enviada desde el frontend
+        variante = get_object_or_404(VarianteProducto, pk=producto_id)
+
         import json
         try:
             data = json.loads(request.body)
             cantidad = int(data.get('cantidad', 1))
         except (json.JSONDecodeError, ValueError):
             cantidad = 1
+
         if cantidad <= 0:
-            return JsonResponse({'success': False, 'message': 'La cantidad debe ser un número positivo.'})
-        if cantidad > producto.stock:
-            return JsonResponse({'success': False, 'message': f'Solo hay {producto.stock} unidades disponibles en stock.'})
-        # Obtener o crear carrito
+            return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
+
+        if cantidad > variante.stock:
+            return JsonResponse({'success': False, 'message': f'Solo hay {variante.stock} unidades.'})
+
         carrito = obtener_o_crear_carrito(request)
-        # Verificar si el producto ya existe en el carrito
-        item_existente = ItemCarrito.objects.filter(carrito=carrito, producto=producto).first()
+
+        item_existente = ItemCarrito.objects.filter(
+            carrito=carrito,
+            producto=variante
+        ).first()
+
         if item_existente:
             item_existente.cantidad += cantidad
             item_existente.save()
-            mensaje = f'Se han añadido {cantidad} unidades más de "{producto.catalogo.nombre}" al carrito.'
+            mensaje = f'Se añadieron {cantidad} unidades más de "{variante.producto.nombre}".'
         else:
             ItemCarrito.objects.create(
                 carrito=carrito,
-                producto=producto,
+                producto=variante,
                 cantidad=cantidad,
-                precio_unitario=producto.precio
+                precio_unitario=variante.producto.precio,
             )
-            mensaje = f'El producto "{producto.catalogo.nombre}" se ha añadido al carrito.'
+            mensaje = f'El producto "{variante.producto.nombre}" se añadió al carrito.'
+
         return JsonResponse({
             'success': True,
             'message': mensaje,
             'total_items': carrito.total_items_carrito
         })
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'El producto no existe o está agotado.'}, status=404)
-    except Exception as e:
-        print(f"Error al añadir al carrito: {e}")
-        return JsonResponse({'success': False, 'message': f'Ocurrió un error interno: {str(e)}'}, status=500)
+
+    except VarianteProducto.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Variante no existente.'}, status=404)
+
 
     
 
@@ -686,7 +700,6 @@ def panel_admin(request):
         permisos.update({
             "inicio": request.user.permisos.inicio,
             "inventario": request.user.permisos.inventario,
-            "catalogo": request.user.permisos.catalogo,
             "pedidos": request.user.permisos.pedidos,
             "usuarios": request.user.permisos.usuarios,
             "devoluciones": request.user.permisos.devoluciones,
@@ -709,141 +722,141 @@ def panel_admin(request):
 #                   INVENTARIO
 # ==========================================================
 
+def configuracion_inventario(request):
+    return render(request, 'admin/inventario/configuracion_inventario.html')
+
+
+
+def agregar_categoria(request):
+    form = CategoriaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_categoria')
+
+    elementos = Categoria.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Categoría',
+        'elementos': elementos,
+        'editar_url_name': 'editar_categoria',
+        'eliminar_url_name': 'eliminar_categoria'
+    })
+
+
+
+def editar_categoria(request, pk):
+    categoria = Categoria.objects.get(pk=pk)
+    form = CategoriaForm(request.POST or None, instance=categoria)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_categoria')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Categoría',
+        'elementos': Categoria.objects.all(),
+        'editar_url_name': 'editar_categoria',
+        'eliminar_url_name': 'eliminar_categoria'
+    })
+
+
+def eliminar_categoria(request, pk):
+    categoria = Categoria.objects.get(pk=pk)
+    categoria.delete()
+    return redirect('agregar_categoria')
+
+
+
+def agregar_color(request):
+    form = ColorForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_color')
+
+    elementos = Color.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Color',
+        'elementos': elementos,
+        'editar_url_name': 'editar_color',
+        'eliminar_url_name': 'eliminar_color'
+    })
+
+
+
+def editar_color(request, pk):
+    color = Color.objects.get(pk=pk)
+    form = ColorForm(request.POST or None, instance=color)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_color')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Color',
+        'elementos': Color.objects.all(),
+        'editar_url_name': 'editar_color',
+        'eliminar_url_name': 'eliminar_color'
+    })
+
+
+
+def eliminar_color(request, pk):
+    color = Color.objects.get(pk=pk)
+    color.delete()
+    return redirect('agregar_color')
+
+
+
+def agregar_talla(request):
+    form = TallaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_talla')
+
+    elementos = Talla.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Talla',
+        'elementos': elementos,
+        'editar_url_name': 'editar_talla',
+        'eliminar_url_name': 'eliminar_talla'
+    })
+
+
+
+def editar_talla(request, pk):
+    talla = Talla.objects.get(pk=pk)
+    form = TallaForm(request.POST or None, instance=talla)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_talla')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Talla',
+        'elementos': Talla.objects.all(),
+        'editar_url_name': 'editar_talla',
+        'eliminar_url_name': 'eliminar_talla'
+    })
+
+
+
+def eliminar_talla(request, pk):
+    talla = Talla.objects.get(pk=pk)
+    talla.delete()
+    return redirect('agregar_talla')
+
+
+
+
 @login_required
 @permiso_requerido('inventario')
-def listar_productos_tabla(request):
-    productos = Inventario.objects.select_related('categoria', 'color', 'talla', 'catalogo').all().order_by('catalogo__nombre')
-    total_productos = productos.count()
-    valor_inventario = productos.aggregate(total=Sum(F('precio') * F('stock')))['total'] or 0
-    productos_stock_bajo = productos.filter(stock__lt=10).count()
-    productos_agotados = productos.filter(stock=0).count()
-    stock_total_unidades = productos.aggregate(Sum('stock'))['stock__sum'] or 0
-    context = {
-        'productos': productos,
-        'total_productos': total_productos,
-        'valor_inventario': valor_inventario,
-        'productos_stock_bajo': productos_stock_bajo,
-        'productos_agotados': productos_agotados,
-        'stock_total_unidades': stock_total_unidades,
-        'active': 'inventario',
-    }
-    return render(request, 'admin/inventario/vista_inventario.html', context)
-
-
-
-@login_required
-def crear_producto(request):
-    if request.method == 'POST':
-        form = InventarioForm(request.POST, request.FILES)  #
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Producto añadido exitosamente al inventario.")
-            return redirect('listar_productos_tabla')
-        else:
-            messages.error(request, "Error al añadir el producto. Por favor, verifica los datos.")
-            return render(request, 'admin/inventario/crear_producto.html', {'form': form})
-    else:
-        form = InventarioForm()
-    return render(request, 'admin/inventario/crear_producto.html', {'form': form})
-
-
-
-@login_required
-def editar_producto(request, id):
-    producto = get_object_or_404(Inventario, idinventario=id)
-    
-    if request.method == 'POST':
-        form = InventarioForm(request.POST, request.FILES, instance=producto)
-        # Ocultamos stock antes de validar
-        form.fields.pop('stock', None)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Producto actualizado exitosamente.")
-            return redirect('listar_productos_tabla')
-        else:
-            messages.error(request, "Error al actualizar el producto. Por favor, verifica los datos.")
-    else:
-        form = InventarioForm(instance=producto)
-        form.fields.pop('stock', None)
-
-    return render(request, 'admin/inventario/editar_producto.html', {'form': form, 'producto': producto})
-
-
-
-@login_required
-def eliminar_producto(request, id):
-    producto = get_object_or_404(Inventario, idinventario=id)
-    if request.method == 'POST':
-        producto.delete()
-        messages.success(request, "Producto eliminado exitosamente.")
-        return redirect('listar_productos_tabla')
-    else:
-        return render(request, 'admin/inventario/eliminar_producto.html', {'producto': producto})
-    
-
-def mostrar_formulario_stock(request, id_catalogo):
-    # Obtener el producto principal del catálogo
-    producto_principal = get_object_or_404(Catalogo, idcatalogo=id_catalogo)
-    # Obtener todas las variantes (Inventario) relacionadas a este producto
-    variantes = Inventario.objects.filter(catalogo=producto_principal).order_by('color', 'talla')
-    if not variantes.exists():
-        messages.error(request, f"El producto '{producto_principal.nombre}' no tiene variantes de inventario.")
-        return redirect('listar_productos_catalogo')
-    context = {
-        'producto': producto_principal,
-        'variantes': variantes,
-    }
-    return render(request, 'admin/catalogo/formulario_stock.html', context)
-
-
-
-def procesar_entrada_stock(request):
-    if request.method == 'POST':
-        try:
-            id_variante = request.POST.get('id_variante') 
-            cantidad = int(request.POST.get('cantidad_ingreso'))
-        except (ValueError, TypeError):
-            messages.error(request, "Error: La cantidad de ingreso debe ser un número entero.")
-            return redirect('listar_productos_catalogo')
-        if cantidad <= 0:
-            messages.error(request, "Error: La cantidad debe ser mayor que cero.")
-            return redirect('listar_productos_catalogo')
-        variante_a_surtir = get_object_or_404(Inventario, idinventario=id_variante)
-        try:
-            with transaction.atomic():
-                EntradaInventario.objects.create(
-                    idinventario_fk=variante_a_surtir,
-                    cantidad_ingreso=cantidad,
-                )
-            messages.success(request, f"¡Entrada registrada! Se añadieron {cantidad} unidades a la variante {variante_a_surtir.color}/{variante_a_surtir.talla}. (Verifique el stock, el Trigger debe haberlo actualizado).")
-            return redirect('listar_movimientos_producto', id_catalogo=variante_a_surtir.producto.idcatalogo)
-        except Exception as e:
-            messages.error(request, f"Error al procesar la entrada: {e}")
-            return redirect('listar_productos_catalogo')
-    return redirect('listar_productos_catalogo')
-
-
-
-
-
-
-
-
-
-# ==========================================================
-#                   CATÁLOGO
-# ==========================================================
-
-@login_required
-@permiso_requerido('catalogo')
-def listar_productos_catalogo(request):
-    productos = Catalogo.objects.annotate(
-        n_variantes=Count('inventarios', distinct=True),
-        total_stock=Sum('inventarios__stock')
+def listar_productos_inventario(request):
+    productos = Producto.objects.annotate(
+        n_variantes=Count('variantes', distinct=True),
+        total_stock=Sum('variantes__stock')
     ).order_by('nombre')
 
     total_productos = productos.count()
-    total_variantes = Inventario.objects.count()
+    total_variantes = VarianteProducto.objects.count()
     productos_activos = productos.filter(total_stock__gt=0).count()
     productos_inactivos = total_productos - productos_activos
 
@@ -853,54 +866,224 @@ def listar_productos_catalogo(request):
         'total_variantes': total_variantes,
         'productos_activos': productos_activos,
         'productos_inactivos': productos_inactivos,
-        'active': 'catalogo', 
+        'active': 'inventario',
     }
-    return render(request, 'admin/catalogo/vista_catalogo.html', context)
+
+    return render(request, 'admin/inventario/vista_inventario.html', context)
+
 
 
 
 @login_required
 def agregar_producto(request):
+    categorias = Categoria.objects.all()
+    tallas = Talla.objects.all()
+    colores = Color.objects.all()
+    
+    context = {
+        "categorias": categorias,
+        "tallas": tallas,
+        "colores": colores,
+    }
+
     if request.method == 'POST':
+        # CAMPOS GENERALES
         nombre = request.POST.get('nombre', '').strip()
-        descripcion = request.POST.get('descripcion', '').strip()
-        # Validación: nombre obligatorio
+        referencia = request.POST.get('referencia', '').strip()
+        categoria_id = request.POST.get('categoria')
+        descripcion = request.POST.get('descripcion', '')
+        estado = request.POST.get('estado', 'Activo')
+        precio_str = request.POST.get('precio', '0')
+        imagen = request.FILES.get('imagen')
+
+        # Mantener los datos en el contexto para rellenar el formulario
+        context.update({
+            "nombre": nombre,
+            "referencia": referencia,
+            "categoria_id": categoria_id,
+            "descripcion": descripcion,
+            "precio": precio_str,
+        })
+
+        # VALIDAR NOMBRE
         if not nombre:
-            messages.error(request, "Error: El nombre del catálogo es obligatorio.")
-            return render(request, 'admin/catalogo/formulario_catalogo.html', {
-                'nombre': nombre,
-                'descripcion': descripcion
-            })
+            messages.error(request, "El nombre del producto es obligatorio.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # VALIDAR VARIANTES
+        if "variantes[0][talla]" not in request.POST:
+            messages.error(request, "Debe agregar mínimo una variante antes de guardar.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Buscar categoría
         try:
-            nuevo_catalogo = Catalogo.objects.create(
+            categoria = Categoria.objects.get(id=categoria_id)
+        except Categoria.DoesNotExist:
+            messages.error(request, "La categoría seleccionada no existe.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Procesar precio
+        try:
+            # Remover puntos y convertir a decimal
+            precio_limpio = precio_str.replace('.', '')
+            precio_decimal = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
+        except (ValueError, TypeError, InvalidOperation) as e:
+            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Crear producto
+        try:
+            producto = Producto.objects.create(
                 nombre=nombre,
-                descripcion=descripcion
+                referencia=referencia,
+                categoria=categoria,
+                descripcion=descripcion,
+                imagen=imagen,
+                estado=estado,
+                precio=precio_decimal
             )
-            messages.success(request, f"Catálogo '{nuevo_catalogo.nombre}' agregado con éxito.")
-            return redirect('listar_productos_catalogo')
         except Exception as e:
-            messages.error(request, f"Error al guardar el catálogo: {e}")
-            return render(request, 'admin/catalogo/formulario_catalogo.html', {
-                'nombre': nombre,
-                'descripcion': descripcion
-            })
-    return render(request, 'admin/catalogo/formulario_catalogo.html', {})
+            messages.error(request, f"Error al crear el producto: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Guardar variantes dinámicas
+        index = 0
+        variantes_guardadas = 0
+        while True:
+            talla_id = request.POST.get(f"variantes[{index}][talla]")
+            color_id = request.POST.get(f"variantes[{index}][color]")
+            stock = request.POST.get(f"variantes[{index}][stock]")
+            
+            if talla_id is None:
+                break
+                
+            try:
+                talla_obj = Talla.objects.get(pk=talla_id)
+                color_obj = Color.objects.get(pk=color_id)
+                
+                VarianteProducto.objects.create(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj,
+                    stock=int(stock) if stock else 0,
+                )
+                variantes_guardadas += 1
+            except (Talla.DoesNotExist, Color.DoesNotExist, ValueError) as e:
+                messages.warning(request, f"Error al guardar variante {index+1}: {str(e)}")
+            
+            index += 1
+
+        if variantes_guardadas > 0:
+            messages.success(request, f"Producto agregado correctamente con {variantes_guardadas} variante(s).")
+            return redirect('listar_productos_inventario')
+        else:
+            messages.error(request, "No se pudieron guardar las variantes del producto.")
+            producto.delete()  # Eliminar el producto si no hay variantes
+
+    return render(request, 'admin/inventario/agregar_producto.html', context)
 
 
 
 @login_required
-def listar_movimientos_producto(request, id_catalogo):
-    producto_principal = get_object_or_404(Catalogo, idcatalogo=id_catalogo)
-    ids_variantes = Inventario.objects.filter(catalogo=producto_principal).values_list('idinventario', flat=True)
-    movimientos = EntradaInventario.objects.filter(
-        idinventario_fk__in=ids_variantes
-    ).select_related('idinventario_fk').order_by('-fecha_entrada')
+def editar_producto(request, idproducto):
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+    variantes = VarianteProducto.objects.filter(producto=producto)
+
     context = {
-        'producto_principal': producto_principal,
-        'movimientos': movimientos,
-        'total_movimientos': movimientos.count()
+        "producto": producto,
+        "categorias": Categoria.objects.all(),
+        "tallas": Talla.objects.all(),
+        "colores": Color.objects.all(),
+        "variantes": variantes
     }
-    return render(request, 'admin/catalogo/vista_movimientos.html', context)
+
+    if request.method == 'POST':
+        # Obtener los datos del formulario
+        producto.nombre = request.POST.get("nombre", "").strip()
+        producto.referencia = request.POST.get("referencia", "").strip()
+        
+        # CORRECCIÓN: Obtener la categoría por ID
+        categoria_id = request.POST.get("categoria")
+        try:
+            if categoria_id:
+                producto.categoria = Categoria.objects.get(id=categoria_id)
+        except Categoria.DoesNotExist:
+            messages.error(request, "La categoría seleccionada no existe.")
+            return render(request, "admin/inventario/editar_producto.html", context)
+        
+        # MEJORA: Manejo del precio con formato de puntos
+        precio_str = request.POST.get("precio", "0").strip()
+        try:
+            # Remover puntos y convertir a decimal
+            precio_limpio = precio_str.replace('.', '')
+            producto.precio = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
+        except (ValueError, TypeError, InvalidOperation) as e:
+            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
+            return render(request, "admin/inventario/editar_producto.html", context)
+        
+        producto.descripcion = request.POST.get("descripcion", "")
+        producto.estado = request.POST.get("estado", "Activo")
+
+        # Manejar la imagen
+        imagen = request.FILES.get("imagen")
+        if imagen:
+            # Validar que sea una imagen
+            if not imagen.content_type.startswith('image/'):
+                messages.error(request, "El archivo debe ser una imagen válida.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+            
+            # Validar tamaño (opcional, máximo 5MB)
+            if imagen.size > 5 * 1024 * 1024:
+                messages.error(request, "La imagen no debe superar los 5MB.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+            
+            producto.imagen = imagen
+
+        try:
+            producto.save()
+            messages.success(request, "Producto actualizado correctamente.")
+            return redirect("editar_producto", idproducto=idproducto)
+        except Exception as e:
+            messages.error(request, f"Error al actualizar el producto: {str(e)}")
+            return render(request, "admin/inventario/editar_producto.html", context)
+
+    return render(request, "admin/inventario/editar_producto.html", context)
+
+
+
+
+@login_required
+def guardar_variantes(request, idproducto):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido")
+
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+
+    talla = request.POST.get("talla")
+    colores = request.POST.getlist("colores[]")
+    stocks = request.POST.getlist("stocks[]")
+
+    imagenes = request.FILES.getlist("imagenes[]")
+
+    if not talla:
+        return JsonResponse({"error": "Debes seleccionar una talla"}, status=400)
+
+    if not colores:
+        return JsonResponse({"error": "Debes seleccionar al menos un color"}, status=400)
+
+    for i, color in enumerate(colores):
+        talla_obj = Talla.objects.get(talla=talla)
+        color_obj = Color.objects.get(color=color)
+
+        VarianteProducto.objects.create(
+            producto=producto,
+            talla=talla_obj,
+            color=color_obj,
+            stock=int(stocks[i]),
+            imagen=imagenes[i] if i < len(imagenes) else None
+        )
+
+    return JsonResponse({"success": True, "message": "Variantes guardadas correctamente"})
 
 
 
@@ -971,8 +1154,6 @@ def editar_usuario(request, id):
                 mapa_permisos = {
                     "inicio": "inicio",
                     "inventario": "inventario",
-                    "catálogo": "catalogo", 
-                    "catalogo": "catalogo",
                     "pedidos": "pedidos",
                     "usuarios": "usuarios",
                     "devoluciones": "devoluciones",
@@ -1012,7 +1193,6 @@ def ver_usuario(request, user_id):
         permisos_dict = {
             "Inicio": permisos.inicio,
             "Inventario": permisos.inventario,
-            "Catálogo": permisos.catalogo,
             "Pedidos": permisos.pedidos,
             "Usuarios": permisos.usuarios,
             "Devoluciones": permisos.devoluciones,
@@ -1109,46 +1289,23 @@ def peticiones(request):
 @admin_required
 @permiso_requerido('peticiones')
 def listar_peticiones(request):
-    peticiones = PeticionProducto.objects.select_related('usuario', 'producto').order_by('-fecha_peticion')
-    return render(request, 'admin/peticiones/peticiones.html', {'active': 'peticiones', 'peticiones': peticiones})
+    peticiones = PeticionProducto.objects.select_related(
+        'usuario', 'producto'
+    ).order_by('-fecha_peticion')
 
+    # Contadores
+    stats = {
+        'pendientes': peticiones.filter(atendida=False).count(),
+        'revision': peticiones.filter(atendida=False).count(),  
+        'aceptadas': peticiones.filter(atendida=True).count(),
+        'rechazadas': peticiones.filter(atendida=False).count(),  
+        'total': peticiones.count(),
+    }
 
-
-@login_required
-@require_POST
-def crear_peticion(request, producto_id):
-    try:
-        producto = Inventario.objects.get(pk=producto_id)
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
-
-    try:
-        data = json.loads(request.body)
-        cantidad = int(data.get('cantidad', 1))
-    except (ValueError, json.JSONDecodeError):
-        cantidad = 1
-
-    if cantidad <= 0:
-        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
-
-    # 🔹 Aseguramos que se guarde correctamente el usuario autenticado
-    from django.contrib.auth import get_user_model
-    Usuario = get_user_model()
-
-    try:
-        usuario = Usuario.objects.get(pk=request.user.pk)
-    except Usuario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Usuario no válido.'}, status=400)
-
-    peticion = PeticionProducto.objects.create(
-        usuario=usuario,
-        producto=producto,
-        cantidad_solicitada=cantidad
-    )
-
-    return JsonResponse({
-        'success': True,
-        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
+    return render(request, 'admin/peticiones/peticiones.html', {
+        'active': 'peticiones',
+        'peticiones': peticiones,
+        'stats': stats
     })
 
 
@@ -1157,14 +1314,15 @@ def crear_peticion(request, producto_id):
 @require_POST
 def crear_peticion(request, producto_id):
     try:
-        producto = Inventario.objects.get(pk=producto_id)
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
+        variante = VarianteProducto.objects.get(pk=producto_id)
+    except VarianteProducto.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Variante no existe.'}, status=404)
 
+    import json
     try:
         data = json.loads(request.body)
         cantidad = int(data.get('cantidad', 1))
-    except (ValueError, json.JSONDecodeError):
+    except:
         cantidad = 1
 
     if cantidad <= 0:
@@ -1172,11 +1330,55 @@ def crear_peticion(request, producto_id):
 
     peticion = PeticionProducto.objects.create(
         usuario=request.user,
-        producto=producto,
+        producto=variante,
         cantidad_solicitada=cantidad
     )
 
     return JsonResponse({
         'success': True,
-        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
+        'message': f'Petición creada para {variante.producto.nombre}, cantidad {cantidad}.'
     })
+
+
+
+
+@login_required
+@require_POST
+def aprobar_peticion(request, id):
+    try:
+        peticion = PeticionProducto.objects.get(id=id)
+        peticion.atendida = True
+        peticion.save()
+        return JsonResponse({'success': True})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
+
+
+
+@login_required
+@require_POST
+def rechazar_peticion(request, id):
+    try:
+        peticion = PeticionProducto.objects.get(id=id)
+        peticion.delete()  # o marcar campo "rechazada"
+        return JsonResponse({'success': True})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
+
+
+
+def detalle_peticion(request, id):
+    try:
+        p = PeticionProducto.objects.select_related('usuario', 'producto').get(pk=id)
+        data = {
+            'id': p.id,
+            'producto': p.producto.inventario.nombre,
+            'usuario': f"{p.usuario.nombre} {p.usuario.apellido}",
+            'email': p.usuario.email,
+            'cantidad': p.cantidad_solicitada,
+            'fecha': p.fecha_peticion.strftime("%d/%m/%Y"),
+            'estado': "Aceptada" if p.atendida else "Pendiente"
+        }
+        return JsonResponse({'success': True, 'data': data})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
