@@ -362,10 +362,7 @@ class PeticionProducto(models.Model):
         verbose_name_plural = 'Peticiones de Productos'
 
     def __str__(self):
-
-
-        return f"{self.usuario.email} - {self.producto.catalogo.nombre} - Cant: {self.cantidad_solicitada}"
-
+        return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
 
 ##==========================================================
 #PEDIDOS
@@ -460,7 +457,4 @@ class DevolucionItem(models.Model):
 
     def __str__(self):
         return f"{self.producto.nombre} x {self.cantidad}"
-
-        return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
-
 
