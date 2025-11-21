@@ -352,4 +352,102 @@ class PeticionProducto(models.Model):
         verbose_name_plural = 'Peticiones de Productos'
 
     def __str__(self):
+<<<<<<< Updated upstream
         return f"{self.usuario.email} - {self.producto.catalogo.nombre} - Cant: {self.cantidad_solicitada}"
+=======
+        return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
+
+##==========================================================
+#PEDIDOS
+#===========================================================
+
+class Pedidos(models.Model):
+    idpedido = models.AutoField(primary_key=True)
+    cliente = models.CharField(max_length=100)
+    fecha = models.DateTimeField()
+    estado_pedido = models.CharField(max_length=50)
+    metodo_pago = models.CharField(max_length=50)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    estado_pago = models.CharField(max_length=50)
+
+    class Meta:
+        managed = False
+        db_table = 'pedidos'
+
+
+
+
+## ============================================================
+# DEVOLUCIONES
+# ============================================================
+
+class Devolucion(models.Model):
+    ESTADOS = [
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('proceso', 'En Proceso'),
+        ('rechazada', 'Rechazada'),
+    ]
+
+    iddevolucion = models.AutoField(primary_key=True)
+
+    pedido = models.ForeignKey(
+        Pedidos, on_delete=models.CASCADE,
+        db_column='idpedido',
+        related_name='devoluciones'
+    )
+
+    usuario = models.ForeignKey(
+        Usuarios, on_delete=models.CASCADE,
+        related_name='devoluciones'
+    )
+
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
+
+    monto_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    motivo = models.TextField(blank=True, null=True)
+    evidencia = models.ImageField(upload_to='devoluciones/', blank=True, null=True)
+
+    fecha_aprobacion = models.DateTimeField(blank=True, null=True)
+    fecha_rechazo = models.DateTimeField(blank=True, null=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'devoluciones'
+
+    def __str__(self):
+        return f"Devolución {self.iddevolucion} — Pedido {self.pedido.idpedido}"
+
+    @property
+    def total_items(self):
+        return self.items.count()
+
+class DevolucionItem(models.Model):
+    iditem = models.AutoField(primary_key=True)
+
+    devolucion = models.ForeignKey(
+        Devolucion, on_delete=models.CASCADE,
+        related_name='items'
+    )
+
+    producto = models.ForeignKey(
+        Producto, on_delete=models.CASCADE,
+        db_column='idproducto'
+    )
+
+    variante = models.ForeignKey(
+        VarianteProducto, on_delete=models.CASCADE,
+        db_column='idvariante'
+    )
+
+    cantidad = models.PositiveIntegerField(default=1)
+    monto_item = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        db_table = 'devoluciones_items'
+
+    def __str__(self):
+        return f"{self.producto.nombre} x {self.cantidad}"
+>>>>>>> Stashed changes
