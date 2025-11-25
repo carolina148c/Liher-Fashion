@@ -364,24 +364,6 @@ class PeticionProducto(models.Model):
     def __str__(self):
         return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
 
-##==========================================================
-#PEDIDOS
-#===========================================================
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'pedidos'
-
-
 
 
 ## ============================================================
