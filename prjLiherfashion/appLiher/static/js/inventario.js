@@ -9,6 +9,9 @@ let variantesEliminadas = [];
 let editIndex = null;
 let stockData = {};
 let imageData = {};
+let varianteEditando = null;
+let imagenCargadaVariante = null;
+let stockActualOriginal = 0;
 
 // Mapeos para convertir IDs a nombres
 let nombresTallas = {};
@@ -16,11 +19,58 @@ let nombresColores = {};
 
 // Elementos del DOM
 const modal = document.getElementById("modalVariante");
+const modalEditar = document.getElementById("modalEditarVariante");
 const stockGrid = document.getElementById("stockGrid");
 const previewGrid = document.getElementById("previewGrid");
 
 // Detectar modo (agregar o editar)
 const isEditMode = document.querySelector('form[action*="editar"]') !== null;
+
+// ===== DEBUG FUNCTIONS =====
+function debugVariantes() {
+    console.log('=== DEBUG VARIANTES ===');
+    console.log('isEditMode:', isEditMode);
+    console.log('variantesEditadas:', Array.from(variantesEditadas.entries()));
+    console.log('variantesEliminadas:', variantesEliminadas);
+    console.log('variantesGeneradas:', variantesGeneradas);
+    console.log('variantesExistentes:', variantesExistentes);
+    
+    // Verificar inputs hidden
+    const hiddenContainer = document.getElementById('hiddenVariantes');
+    if (hiddenContainer) {
+        console.log('Inputs hidden:', hiddenContainer.innerHTML);
+    } else {
+        console.log('❌ NO hay container de inputs hidden');
+    }
+}
+
+function debugVariantesExistentes() {
+    console.log('=== DEBUG VARIANTES EXISTENTES ===');
+    const cards = document.querySelectorAll('.variant-card[data-id]');
+    cards.forEach((card, i) => {
+        console.log(`Card ${i}:`, {
+            id: card.dataset.id,
+            talla: card.dataset.talla,
+            color: card.dataset.color,
+            stock: card.dataset.stock,
+            imagen: card.dataset.imagen
+        });
+    });
+}
+
+function verificarEstadoAntesDeEnviar() {
+    console.log('🔍 VERIFICANDO ESTADO ANTES DE ENVIAR:');
+    console.log('variantesEditadas size:', variantesEditadas.size);
+    console.log('variantesEditadas entries:', Array.from(variantesEditadas.entries()));
+    console.log('variantesEliminadas:', variantesEliminadas);
+    
+    // Verificar si los inputs hidden están presentes
+    const hiddenInputs = document.querySelectorAll('input[name*="variantes_editadas"]');
+    console.log('Inputs hidden de variantes editadas encontrados:', hiddenInputs.length);
+    hiddenInputs.forEach(input => {
+        console.log(`Input: ${input.name} = ${input.value}`);
+    });
+}
 
 // ===== INICIALIZACIÓN =====
 
@@ -43,7 +93,284 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     setupFormHandlers();
+    
+    // DEBUG: Agregar listener para el submit
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('🚀 FORMULARIO ENVIÁNDOSE');
+            verificarEstadoAntesDeEnviar();
+            debugVariantes();
+            
+            // Forzar inyección de inputs
+            inyectarInputsHidden();
+            
+            // Pequeño delay para asegurar que se inyecten los inputs
+            setTimeout(() => {
+                console.log('📤 Enviando formulario con datos:');
+                const formData = new FormData(this);
+                for (let [key, value] of formData.entries()) {
+                    if (key.includes('variantes')) {
+                        console.log(`${key}: ${value}`);
+                    }
+                }
+            }, 100);
+        });
+    }
 });
+
+// ===== FUNCIONES DEL MODAL DE EDICIÓN DE VARIANTES =====
+
+function abrirModalEdicionVariante(varianteData) {
+    varianteEditando = varianteData;
+    
+    console.log('🔍 Abriendo modal de edición para:', varianteData);
+    console.log('Tipo de variante:', varianteData.esNueva ? 'NUEVA' : 'EXISTENTE');
+    console.log('ID de variante:', varianteData.id);
+    
+    // Cargar datos en el modal
+    document.getElementById('variantColor').textContent = getNombreColor(varianteData.color) || 'Color no disponible';
+    document.getElementById('variantSize').textContent = `Talla: ${getNombreTalla(varianteData.talla) || 'Talla no disponible'}`;
+    document.getElementById('stockActual').textContent = `${varianteData.stock || 0} unidades`;
+    
+    // Guardar valores originales
+    stockActualOriginal = parseInt(varianteData.stock) || 0;
+    
+    // Resetear stock agregado a 0
+    document.getElementById('stockAgregado').value = '0';
+    
+    // Calcular y mostrar el total
+    calcularYMostrarTotal();
+    
+    // Establecer IDs
+    document.getElementById('varianteId').value = varianteData.id || '';
+    document.getElementById('varianteTallaId').value = varianteData.talla;
+    document.getElementById('varianteColorId').value = varianteData.color;
+    document.getElementById('esVarianteNueva').value = varianteData.esNueva ? 'true' : 'false';
+    
+    console.log('📋 Datos cargados en modal:', {
+        id: varianteData.id,
+        talla: varianteData.talla,
+        color: varianteData.color,
+        esNueva: varianteData.esNueva,
+        stockOriginal: stockActualOriginal
+    });
+    
+    // Cargar imagen
+    const img = document.getElementById('variantImage');
+    const noImg = document.getElementById('noImageText');
+    const imagenSrc = varianteData.imagenBase64 || varianteData.imagen;
+    
+    if (imagenSrc) {
+        img.src = imagenSrc;
+        img.style.display = 'block';
+        noImg.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        noImg.style.display = 'block';
+    }
+    
+    // Resetear imagen cargada
+    imagenCargadaVariante = null;
+    document.getElementById('fileInputVariante').value = '';
+    
+    // Mostrar modal
+    if (modalEditar) {
+        modalEditar.classList.remove('hidden');
+    }
+}
+
+function calcularYMostrarTotal() {
+    const stockAgregado = parseInt(document.getElementById('stockAgregado').value) || 0;
+    const total = stockActualOriginal + stockAgregado;
+    document.getElementById('stockTotal').textContent = total;
+}
+
+function incrementarStock() {
+    const input = document.getElementById('stockAgregado');
+    input.value = parseInt(input.value || 0) + 1;
+    calcularYMostrarTotal();
+}
+
+function decrementarStock() {
+    const input = document.getElementById('stockAgregado');
+    const nuevoValor = parseInt(input.value || 0) - 1;
+    if (nuevoValor >= 0) {
+        input.value = nuevoValor;
+        calcularYMostrarTotal();
+    }
+}
+
+function validarStock() {
+    const input = document.getElementById('stockAgregado');
+    if (input.value < 0) {
+        input.value = 0;
+    }
+    calcularYMostrarTotal();
+}
+
+function handleImageUploadVariante(event) {
+    const file = event.target.files[0];
+    
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona un archivo de imagen válido (JPG, PNG o GIF)');
+        event.target.value = '';
+        return;
+    }
+    
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+        alert('La imagen no debe superar los 5MB. Tamaño actual: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB');
+        event.target.value = '';
+        return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        imagenCargadaVariante = e.target.result;
+        const img = document.getElementById('variantImage');
+        const noImg = document.getElementById('noImageText');
+        
+        img.src = e.target.result;
+        img.style.display = 'block';
+        noImg.style.display = 'none';
+        
+        // Mostrar mensaje de éxito
+        mostrarMensajeTemporal('Imagen cargada correctamente', 'success');
+    };
+    
+    reader.onerror = function() {
+        alert('Error al cargar la imagen. Por favor intenta de nuevo.');
+        event.target.value = '';
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function guardarCambiosVariante() {
+    const stockAgregado = parseInt(document.getElementById('stockAgregado').value) || 0;
+    const varianteId = document.getElementById('varianteId').value;
+    const tallaId = document.getElementById('varianteTallaId').value;
+    const colorId = document.getElementById('varianteColorId').value;
+    const esVarianteNueva = document.getElementById('esVarianteNueva').value === 'true';
+    
+    if (isNaN(stockAgregado) || stockAgregado < 0) {
+        alert('Por favor ingresa una cantidad válida a agregar');
+        return;
+    }
+    
+    // Calcular el nuevo stock total
+    const nuevoStockTotal = stockActualOriginal + stockAgregado;
+    
+    console.log('💾 Guardando cambios para variante:', {
+        varianteId,
+        tallaId,
+        colorId,
+        esVarianteNueva,
+        stockActualOriginal,
+        stockAgregado,
+        nuevoStockTotal,
+        tieneImagen: !!imagenCargadaVariante
+    });
+    
+    // Validación adicional para evitar guardar sin cambios
+    if (stockAgregado === 0 && !imagenCargadaVariante) {
+        if (!confirm('No has realizado cambios. ¿Deseas guardar de todas formas?')) {
+            return;
+        }
+    }
+    
+    // Actualizar la variante según el tipo
+    if (esVarianteNueva) {
+        // Buscar y actualizar variante nueva
+        const index = variantesGeneradas.findIndex(v => 
+            v.talla === tallaId && v.color === colorId
+        );
+        
+        if (index !== -1) {
+            variantesGeneradas[index].stock = nuevoStockTotal;
+            if (imagenCargadaVariante) {
+                variantesGeneradas[index].imagenBase64 = imagenCargadaVariante;
+            }
+            console.log(`✅ Variante nueva actualizada en índice ${index}`);
+        }
+    } else {
+        // Para variantes existentes, guardar datos completos
+        variantesEditadas.set(varianteId, { 
+            stock: nuevoStockTotal,
+            talla: tallaId,
+            color: colorId,
+            imagen: imagenCargadaVariante 
+        });
+        
+        console.log('📝 Variante editada guardada en mapa:', {
+            id: varianteId,
+            datos: variantesEditadas.get(varianteId)
+        });
+        
+        // Actualizar también en el array de existentes para mostrar cambios inmediatos
+        const variante = variantesExistentes.find(v => v.id === varianteId);
+        if (variante) {
+            variante.stock = nuevoStockTotal;
+            if (imagenCargadaVariante) {
+                variante.imagen = imagenCargadaVariante;
+            }
+        }
+    }
+    
+    // Guardar en storage si es modo agregar
+    if (!isEditMode) {
+        guardarEnStorage();
+    }
+    
+    // Actualizar la interfaz
+    renderVariantes();
+    actualizarContadorVariantes();
+    inyectarInputsHidden();
+    
+    // Debug para verificar que todo se guardó
+    debugVariantes();
+    
+    // Mostrar mensaje de éxito
+    if (stockAgregado > 0) {
+        mostrarMensajeTemporal(`Stock actualizado: ${stockActualOriginal} + ${stockAgregado} = ${nuevoStockTotal} unidades`, 'success');
+    } else if (imagenCargadaVariante) {
+        mostrarMensajeTemporal('Imagen actualizada correctamente', 'success');
+    } else {
+        mostrarMensajeTemporal('Cambios guardados', 'info');
+    }
+    
+    // ✅ CORRECCIÓN: Usar la nueva función para cerrar sin confirmación
+    cerrarModalEdicionExitoso();
+}
+
+function cerrarModalEdicion() {
+    if (confirm('¿Estás seguro de que deseas cerrar sin guardar?')) {
+        if (modalEditar) {
+            modalEditar.classList.add('hidden');
+        }
+        limpiarModalEdicion();
+    }
+}
+
+function cerrarModalEdicionExitoso() {
+    if (modalEditar) {
+        modalEditar.classList.add('hidden');
+    }
+    limpiarModalEdicion();
+}
+
+function limpiarModalEdicion() {
+    varianteEditando = null;
+    imagenCargadaVariante = null;
+    stockActualOriginal = 0;
+    document.getElementById('stockAgregado').value = '0';
+    document.getElementById('stockTotal').textContent = '0';
+    document.getElementById('fileInputVariante').value = '';
+}
 
 // ===== FUNCIONES DE INICIALIZACIÓN =====
 
@@ -166,12 +493,17 @@ function getNombreColorFromSelect(idColor) {
 function cargarVariantesExistentes() {
     const variantCards = document.querySelectorAll('.variant-card[data-id]');
     
-    variantCards.forEach((card) => {
+    console.log('🔄 Cargando variantes existentes...');
+    console.log('Cards encontradas:', variantCards.length);
+    
+    variantCards.forEach((card, index) => {
         const id = card.dataset.id;
         const talla = card.dataset.talla;
         const color = card.dataset.color;
         const stock = card.dataset.stock;
         const imagen = card.dataset.imagen || null;
+        
+        console.log(`Variante ${index}:`, { id, talla, color, stock, imagen });
         
         variantesExistentes.push({
             id: id,
@@ -183,6 +515,7 @@ function cargarVariantesExistentes() {
         });
     });
     
+    console.log('✅ Variantes existentes cargadas:', variantesExistentes);
     renderVariantes();
     actualizarContadorVariantes();
 }
@@ -264,25 +597,33 @@ function initImagePreview() {
     });
 }
 
-// ===== FUNCIONES DEL MODAL =====
+// ===== FUNCIONES DEL MODAL DE AGREGAR VARIANTES =====
 
 function initModalVariantes() {
     const btnAbrir = document.getElementById("btnAbrirModal");
-    const modal = document.getElementById("modalVariante");
     
-    if (!btnAbrir || !modal) return;
+    if (!btnAbrir) return;
     
     btnAbrir.addEventListener("click", () => {
-        modal.classList.remove("hidden");
+        if (modal) {
+            modal.classList.remove("hidden");
+        }
         editIndex = null;
     });
 }
 
 function cerrarModal() {
     if (confirm('¿Estás seguro de que deseas cerrar sin guardar?')) {
-        modal.classList.add("hidden");
+        if (modal) {
+            modal.classList.add("hidden");
+        }
         limpiarModal();
     }
+}
+
+function cerrarModalExitoso() {
+    if (modal) modal.classList.add("hidden");
+    limpiarModal();
 }
 
 function limpiarModal() {
@@ -297,11 +638,6 @@ function limpiarModal() {
         previewGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #999; padding: 20px;">Seleccione una talla y colores para ver la vista previa</div>';
     }
     editIndex = null;
-}
-
-function cerrarModalExitoso() {
-    if (modal) modal.classList.add("hidden");
-    limpiarModal();
 }
 
 // ===== GESTIÓN DE COLORES =====
@@ -552,6 +888,8 @@ function guardarVariantes() {
     inyectarInputsHidden();
 }
 
+// ===== RENDERIZADO DE VARIANTES =====
+
 function renderVariantes() {
     const variantsSection = document.querySelector(".variants-section");
     if (!variantsSection) return;
@@ -572,7 +910,11 @@ function renderVariantes() {
 
     const todasVariantes = [
         ...variantesExistentes.filter(v => !v.eliminada),
-        ...variantesGeneradas.map(v => ({ ...v, esNueva: true }))
+        ...variantesGeneradas.map((v, index) => ({ 
+            ...v, 
+            esNueva: true,
+            index: index 
+        }))
     ];
 
     if (todasVariantes.length === 0) {
@@ -591,9 +933,9 @@ function renderVariantes() {
         return;
     }
 
-    lista.innerHTML = todasVariantes.map((v, i) => {
+    lista.innerHTML = todasVariantes.map((v) => {
         const esNueva = v.esNueva;
-        const editada = variantesEditadas.has(v.id);
+        const editada = !esNueva && variantesEditadas.has(v.id);
         const imagenSrc = v.imagenBase64 || v.imagen;
         
         const nombreTalla = getNombreTalla(v.talla);
@@ -631,23 +973,29 @@ function renderVariantes() {
                     ${isEditMode ? `
                         <button 
                             type="button"
-                            onclick="${esNueva ? `eliminarVarianteNueva(${i - variantesExistentes.filter(v => !v.eliminada).length})` : `editarVarianteExistente('${v.id}')`}"
-                            class="btn-action-variant"
-                        >
-                            ${esNueva ? '🗑️ Eliminar' : '✏️ Editar'}
-                        </button>
-                        ${!esNueva ? `<button type="button" onclick="marcarComoEliminada('${v.id}')" class="btn-delete-variant">🗑️ Eliminar</button>` : ''}
-                    ` : `
-                        <button 
-                            type="button"
-                            onclick="editarVariante(${i})"
+                            onclick="${esNueva ? `editarVarianteNueva(${v.index})` : `editarVarianteExistente('${v.id}')`}"
                             class="btn-action-variant"
                         >
                             ✏️ Editar
                         </button>
                         <button 
                             type="button"
-                            onclick="eliminarVariante(${i})"
+                            onclick="${esNueva ? `eliminarVarianteNueva(${v.index})` : `marcarComoEliminada('${v.id}')`}"
+                            class="btn-delete-variant"
+                        >
+                            🗑️ Eliminar
+                        </button>
+                    ` : `
+                        <button 
+                            type="button"
+                            onclick="editarVarianteNueva(${v.index})"
+                            class="btn-action-variant"
+                        >
+                            ✏️ Editar
+                        </button>
+                        <button 
+                            type="button"
+                            onclick="eliminarVarianteNueva(${v.index})"
                             class="btn-delete-variant"
                         >
                             🗑️ Eliminar
@@ -659,63 +1007,71 @@ function renderVariantes() {
     }).join('');
 }
 
-// ===== FUNCIONES PARA MODO AGREGAR =====
+// ===== FUNCIONES DE EDICIÓN =====
 
-function editarVariante(i) {
-    const v = variantesGeneradas[i];
-    editIndex = i;
-
-    limpiarModal();
+function editarVarianteExistente(id) {
+    console.log('✏️ Editando variante existente con ID:', id);
     
-    if (modal) modal.classList.remove("hidden");
-
-    document.getElementById("tallaSelect").value = v.talla;
-    selectedColors = [v.color];
-    stockData[v.color] = v.stock;
-    if (v.imagenBase64) {
-        imageData[v.color] = v.imagenBase64;
+    let variante = variantesExistentes.find(v => v.id === id);
+    
+    // Si no se encuentra en variantesExistentes, buscar en el DOM
+    if (!variante) {
+        console.log('❌ Variante no encontrada en variantesExistentes, buscando en DOM...');
+        const card = document.querySelector(`.variant-card[data-id="${id}"]`);
+        if (card) {
+            variante = {
+                id: card.dataset.id,
+                talla: card.dataset.talla,
+                color: card.dataset.color,
+                stock: card.dataset.stock,
+                imagen: card.dataset.imagen || null,
+                eliminada: false
+            };
+            // Agregar a variantesExistentes para futuras referencias
+            variantesExistentes.push(variante);
+            console.log('✅ Variante cargada desde DOM:', variante);
+        }
     }
-
-    actualizarColorTags();
-    generarStockInputs();
-    generarPreview();
+    
+    if (!variante) {
+        console.log('❌ Variante no encontrada en ningún lugar');
+        alert('No se pudo encontrar la variante para editar');
+        return;
+    }
+    
+    console.log('✅ Variante encontrada para editar:', variante);
+    
+    abrirModalEdicionVariante({
+        id: variante.id,
+        talla: variante.talla,
+        color: variante.color,
+        stock: variante.stock,
+        imagen: variante.imagen,
+        esNueva: false  // ← IMPORTANTE: Esto debe ser false para variantes existentes
+    });
 }
 
-function eliminarVariante(i) {
+function editarVarianteNueva(index) {
+    const variante = variantesGeneradas[index];
+    if (!variante) return;
+    
+    abrirModalEdicionVariante({
+        id: `nueva_${index}`,
+        talla: variante.talla,
+        color: variante.color,
+        stock: variante.stock,
+        imagenBase64: variante.imagenBase64,
+        esNueva: true
+    });
+}
+
+function eliminarVarianteNueva(index) {
     if (confirm('¿Estás seguro de eliminar esta variante?')) {
-        variantesGeneradas.splice(i, 1);
-        if (!isEditMode) {
-            guardarEnStorage();
-        }
+        variantesGeneradas.splice(index, 1);
         renderVariantes();
         actualizarContadorVariantes();
         inyectarInputsHidden();
     }
-}
-
-// ===== FUNCIONES PARA MODO EDITAR =====
-
-function editarVarianteExistente(id) {
-    const variante = variantesExistentes.find(v => v.id === id);
-    if (!variante) return;
-
-    const nombreTalla = getNombreTalla(variante.talla);
-    const nombreColor = getNombreColor(variante.color);
-    
-    const nuevoStock = prompt(`Editar stock para ${nombreTalla} - ${nombreColor}:`, variante.stock);
-    
-    if (nuevoStock === null) return;
-    
-    if (nuevoStock === '' || isNaN(nuevoStock) || parseInt(nuevoStock) < 0) {
-        alert('Por favor ingresa un stock válido');
-        return;
-    }
-
-    variante.stock = parseInt(nuevoStock);
-    variantesEditadas.set(id, { stock: nuevoStock });
-    
-    renderVariantes();
-    inyectarInputsHidden();
 }
 
 function marcarComoEliminada(id) {
@@ -732,13 +1088,29 @@ function marcarComoEliminada(id) {
     inyectarInputsHidden();
 }
 
-function eliminarVarianteNueva(index) {
-    if (confirm('¿Estás seguro de eliminar esta variante?')) {
-        variantesGeneradas.splice(index, 1);
-        renderVariantes();
-        actualizarContadorVariantes();
-        inyectarInputsHidden();
-    }
+// ===== FUNCIÓN AUXILIAR PARA MENSAJES =====
+
+function mostrarMensajeTemporal(mensaje, tipo = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${tipo === 'success' ? '#4caf50' : '#f44336'};
+        color: white;
+        border-radius: 6px;
+        z-index: 1000;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    alertDiv.textContent = mensaje;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
 }
 
 // ===== FUNCIONES DE PRECIO =====
@@ -775,51 +1147,107 @@ function actualizarContadorVariantes() {
     }
 }
 
+// Función para inyectar inputs hidden
 function inyectarInputsHidden() {
-    const form = document.querySelector("form");
-    if (!form) return;
-
-    const old = document.getElementById("hiddenVariantes");
-    if (old) old.remove();
-
-    const container = document.createElement("div");
-    container.id = "hiddenVariantes";
-
-    if (isEditMode) {
-        // Variantes editadas
-        variantesEditadas.forEach((datos, id) => {
-            container.innerHTML += `
-                <input type="hidden" name="variantes_editadas[${id}][stock]" value="${datos.stock}">
-            `;
-        });
-
-        // Variantes eliminadas
-        variantesEliminadas.forEach(id => {
-            container.innerHTML += `<input type="hidden" name="variantes_eliminadas[]" value="${id}">`;
-        });
-
-        // Variantes nuevas
-        variantesGeneradas.forEach((v, i) => {
-            container.innerHTML += `
-                <input type="hidden" name="variantes_nuevas[${i}][talla]" value="${v.talla}">
-                <input type="hidden" name="variantes_nuevas[${i}][color]" value="${v.color}">
-                <input type="hidden" name="variantes_nuevas[${i}][stock]" value="${v.stock}">
-                ${v.imagenBase64 ? `<input type="hidden" name="variantes_nuevas[${i}][imagen]" value="${v.imagenBase64}">` : ''}
-            `;
-        });
-    } else {
-        // Modo agregar
-        variantesGeneradas.forEach((v, i) => {
-            container.innerHTML += `
-                <input type="hidden" name="variantes[${i}][talla]" value="${v.talla}">
-                <input type="hidden" name="variantes[${i}][color]" value="${v.color}">
-                <input type="hidden" name="variantes[${i}][stock]" value="${v.stock}">
-                ${v.imagenBase64 ? `<input type="hidden" name="variantes[${i}][imagen]" value="${v.imagenBase64}">` : ''}
-            `;
-        });
+    console.log('🔄 Inyectando inputs hidden...');
+    
+    const container = document.getElementById('hiddenInputsContainer');
+    if (!container) {
+        console.error('❌ No se encontró el contenedor para inputs hidden');
+        return;
     }
+    
+    // Limpiar contenedor
+    container.innerHTML = '';
+    
+    // Inyectar variantes eliminadas
+    variantesEliminadas.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'variantes_eliminadas[]';
+        input.value = id;
+        container.appendChild(input);
+    });
+    
+    // Inyectar variantes editadas
+    let editIndex = 0;
+    variantesEditadas.forEach((datos, id) => {
+        // Solo procesar variantes existentes (no nuevas)
+        if (!datos.esNueva) {
+            const prefix = `variantes_editadas[${id}]`;
+            
+            // Stock
+            const inputStock = document.createElement('input');
+            inputStock.type = 'hidden';
+            inputStock.name = `${prefix}[stock]`;
+            inputStock.value = datos.stock || 0;
+            container.appendChild(inputStock);
+            
+            // Imagen (si hay cambios)
+            if (datos.imagenBase64) {
+                const inputImagen = document.createElement('input');
+                inputImagen.type = 'hidden';
+                inputImagen.name = `${prefix}[imagen]`;
+                inputImagen.value = datos.imagenBase64;
+                container.appendChild(inputImagen);
+            }
+            
+            editIndex++;
+        }
+    });
+    
+    // Inyectar variantes nuevas
+    let newIndex = 0;
+    variantesEditadas.forEach((datos, id) => {
+        if (datos.esNueva) {
+            const prefix = `variantes_nuevas[${newIndex}]`;
+            
+            // Talla
+            const inputTalla = document.createElement('input');
+            inputTalla.type = 'hidden';
+            inputTalla.name = `${prefix}[talla]`;
+            inputTalla.value = datos.tallaId;
+            container.appendChild(inputTalla);
+            
+            // Color
+            const inputColor = document.createElement('input');
+            inputColor.type = 'hidden';
+            inputColor.name = `${prefix}[color]`;
+            inputColor.value = datos.colorId;
+            container.appendChild(inputColor);
+            
+            // Stock
+            const inputStock = document.createElement('input');
+            inputStock.type = 'hidden';
+            inputStock.name = `${prefix}[stock]`;
+            inputStock.value = datos.stock || 0;
+            container.appendChild(inputStock);
+            
+            // Imagen
+            if (datos.imagenBase64) {
+                const inputImagen = document.createElement('input');
+                inputImagen.type = 'hidden';
+                inputImagen.name = `${prefix}[imagen]`;
+                inputImagen.value = datos.imagenBase64;
+                container.appendChild(inputImagen);
+            }
+            
+            newIndex++;
+        }
+    });
+    
+    console.log(`✅ Inputs hidden inyectados: ${container.children.length} elementos`);
+    console.log(`📦 Variantes eliminadas: ${variantesEliminadas.length}`);
+    console.log(`✏️ Variantes editadas: ${editIndex}`);
+    console.log(`🆕 Variantes nuevas: ${newIndex}`);
+}
 
-    form.appendChild(container);
+// Función para agregar variante eliminada
+function agregarVarianteEliminada(varianteId) {
+    if (!variantesEliminadas.includes(varianteId)) {
+        variantesEliminadas.push(varianteId);
+        console.log(`🗑️ Variante marcada para eliminar: ${varianteId}`);
+    }
 }
 
 // ===== EXPANSIÓN DE IMÁGENES =====
@@ -859,3 +1287,48 @@ function cerrarImagenExpandida() {
 }
 
 console.log(`✅ Inventario JS cargado correctamente (Modo: ${isEditMode ? 'Editar' : 'Agregar'})`);
+
+
+function debugCompleto() {
+    console.log('=== DEBUG COMPLETO ===');
+    
+    // 1. Verificar variantes existentes en el DOM
+    console.log('1. VARIANTES EN EL DOM:');
+    const cards = document.querySelectorAll('.variant-card[data-id]');
+    cards.forEach((card, i) => {
+        console.log(`   Variante ${i}:`, {
+            id: card.dataset.id,
+            talla: card.dataset.talla,
+            color: card.dataset.color,
+            stock: card.dataset.stock
+        });
+    });
+    
+    // 2. Verificar arrays JavaScript
+    console.log('2. ARRAYS JAVASCRIPT:');
+    console.log('   variantesExistentes:', variantesExistentes);
+    console.log('   variantesEditadas:', Array.from(variantesEditadas.entries()));
+    console.log('   variantesGeneradas:', variantesGeneradas);
+    
+    // 3. Verificar inputs hidden
+    console.log('3. INPUTS HIDDEN:');
+    const hiddenContainer = document.getElementById('hiddenVariantes');
+    if (hiddenContainer) {
+        console.log('   Contenido:', hiddenContainer.innerHTML);
+    } else {
+        console.log('   ❌ NO existe hiddenVariantes');
+    }
+    
+    // 4. Verificar formulario
+    console.log('4. FORMULARIO:');
+    const form = document.querySelector('form');
+    if (form) {
+        const formData = new FormData(form);
+        console.log('   Campos del formulario:');
+        for (let [key, value] of formData.entries()) {
+            if (key.includes('variantes')) {
+                console.log(`   ${key}: ${value}`);
+            }
+        }
+    }
+}

@@ -1,4 +1,6 @@
+from decimal import Decimal
 from django.db import models
+from django.core.validators import MinValueValidator
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -214,12 +216,21 @@ class Producto(models.Model):
     nombre = models.CharField(max_length=100)
     referencia = models.CharField(max_length=10, unique=True)  
     categoria = models.ForeignKey(
-        Categoria, on_delete=models.SET_NULL,
+        'Categoria', on_delete=models.SET_NULL,
         null=True, blank=True
     )
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    precio = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))]
+    )
     descripcion = models.CharField(max_length=200, null=True, blank=True)
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
+    imagen = models.ImageField(
+        upload_to='productos/', 
+        null=True, 
+        blank=True,
+        max_length=255
+    )
     estado = models.CharField(max_length=20, choices=[
         ('Activo', 'Activo'),
         ('Inactivo', 'Inactivo'),
@@ -232,23 +243,25 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
-    
-
 class VarianteProducto(models.Model):
     idvariante = models.AutoField(primary_key=True)
     producto = models.ForeignKey(
         Producto, on_delete=models.CASCADE,
         related_name='variantes'
     )
-    talla = models.ForeignKey(Talla, on_delete=models.PROTECT)
-    color = models.ForeignKey(Color, on_delete=models.PROTECT)
-    imagen = models.ImageField(upload_to='productos/variantes/', null=True, blank=True)
+    talla = models.ForeignKey('Talla', on_delete=models.PROTECT)
+    color = models.ForeignKey('Color', on_delete=models.PROTECT)
+    imagen = models.ImageField(
+        upload_to='productos/variantes/', 
+        null=True, 
+        blank=True,
+        max_length=255
+    )
     stock = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'variante_producto'
-        unique_together = ('producto', 'talla', 'color')  
-        # Evita crear dos variantes repetidas del mismo producto
+        unique_together = ('producto', 'talla', 'color')
 
     def __str__(self):
         return f"{self.producto.nombre} - {self.talla} - {self.color}"
