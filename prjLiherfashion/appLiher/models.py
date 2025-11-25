@@ -6,6 +6,59 @@ from django.contrib.auth.models import (
 )
 from django.utils import timezone
 
+class UsuariosManager(BaseUserManager):
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('El usuario debe tener un correo electrónico')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+class Usuarios(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+    last_login = models.DateTimeField(blank=True, null=True)
+
+    objects = UsuariosManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    class Meta:
+        managed = True
+        db_table = 'usuarios'
+
+    def __str__(self):
+        return self.email
+
+class Pedidos(models.Model): 
+    idpedido = models.AutoField(primary_key=True) 
+    cliente = models.CharField(max_length=100) 
+    fecha = models.DateTimeField() 
+    estado_pedido = models.CharField(max_length=50) 
+    metodo_pago = models.CharField(max_length=50) 
+    total = models.DecimalField(max_digits=10, decimal_places=2) 
+    estado_pago = models.CharField(max_length=50)
+
+    class Meta: 
+        managed = True 
+        db_table = 'pedidos' 
+
+
 # ============================================================
 # MODELOS DJANGO
 # ============================================================
@@ -92,47 +145,6 @@ class DjangoSession(models.Model):
 # MODELOS DE USUARIO PERSONALIZADO
 # ============================================================
 
-class UsuariosManager(BaseUserManager):
-
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError('El usuario debe tener un correo electrónico')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, password, **extra_fields)
-
-
-class Usuarios(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=50, blank=True)
-    last_name = models.CharField(max_length=50, blank=True)
-    phone = models.CharField(max_length=20, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
-    last_login = models.DateTimeField(blank=True, null=True)
-
-    objects = UsuariosManager()
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-
-    class Meta:
-        managed = True
-        db_table = 'usuarios'
-
-    def __str__(self):
-        return self.email
-    
-
 class Identificacion(models.Model):
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=100, unique=True)
@@ -145,7 +157,6 @@ class Identificacion(models.Model):
     class Meta:
         managed = False
         db_table = 'identificacion'
-
 
 class Permiso(models.Model):
     usuario = models.OneToOneField(
@@ -253,22 +264,6 @@ class VarianteProducto(models.Model):
     def __str__(self):
         return f"{self.producto.nombre} - {self.talla} - {self.color}"
 
-
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'pedidos'
-
-
 class Envios(models.Model):
     idenvios = models.AutoField(primary_key=True)
     departamentos = models.CharField(max_length=50)
@@ -363,8 +358,6 @@ class PeticionProducto(models.Model):
 
     def __str__(self):
         return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
-
-
 
 ## ============================================================
 # DEVOLUCIONES
