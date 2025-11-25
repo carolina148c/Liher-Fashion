@@ -1,14 +1,19 @@
 # ==========================================================
 #                   IMPORTS ESTÁNDAR
 # ==========================================================
+
+
 import json
-
-
+import re
+import mercadopago
 
 
 # ==========================================================
 #                   IMPORTS DJANGO
 # ==========================================================
+
+from django.http import HttpResponse
+from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
@@ -36,28 +41,63 @@ from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Sum, Q
 from django.views.decorators.csrf import csrf_exempt
-import json
 
 
 # ==========================================================
 #                   IMPORTS LOCALES
 # ==========================================================
+
+
 from .decorators import admin_required, permiso_requerido
 from .forms import (
     CustomPasswordResetForm, InventarioForm, UsuarioRegistroForm,
-    UsuarioUpdateForm
+    UsuarioUpdateForm, IdentificacionForm, EnvioForm
 )
 from .models import (
-    Carrito, Catalogo, EntradaInventario, Inventario,
-    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Talla, Usuarios
+    Carrito, Catalogo, EntradaInventario, Identificacion, Inventario,
+    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Talla, Usuarios, Envio
 )
 
 
 
+# ==========================================================
+#                   FUNCIÓN AUXILIAR (Agregar al inicio)
+# ==========================================================
+
+def decimal_from_session(request, key, default='0'):
+    """
+    Obtiene un valor Decimal de la sesión de forma segura.
+    Maneja conversión desde float, string o Decimal.
+    """
+    from decimal import Decimal, InvalidOperation
+    
+    valor = request.session.get(key, default)
+    
+    try:
+        # Si ya es Decimal, retornarlo
+        if isinstance(valor, Decimal):
+            return valor
+        
+        # Si es None, retornar default
+        if valor is None:
+            return Decimal(str(default))
+        
+        # Convertir a string primero para evitar problemas de precisión
+        return Decimal(str(valor))
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal(str(default))
 
 
+# ========== CONFIGURACIÓN MERCADOPAGO ==========
+# Agregar después de los imports existentes
 
-
+def obtener_sdk_mercadopago():
+    """
+    Obtiene el SDK de MercadoPago con las credenciales de prueba.
+    Reemplaza con tus credenciales reales en producción.
+    """
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    return sdk
 
 
 
@@ -65,21 +105,15 @@ from .models import (
 #                   PÁGINA PRINCIPAL
 # ==========================================================
 
+
 def pagina_principal(request):
     return render(request, 'tienda/principal/pagina_principal.html')
-
-
-
-
-
-
-
-
 
 
 # ==========================================================
 #                   USUARIO / TIENDA
 # ==========================================================
+
 
 def carrito(request):
     """
@@ -120,10 +154,6 @@ def envio(request):
 
 
 
-def pago(request):
-    return render(request, 'tienda/carrito/pago.html')
-
-
 
 def identificacion(request):
     return render(request, 'tienda/carrito/identificacion.html')
@@ -156,12 +186,6 @@ def vista_productos(request):
         'selected_talla': talla_filtrar,
     }
     return render(request, 'tienda/principal/productos.html', context)
-
-
-
-
-
-
 
 
 
@@ -667,9 +691,101 @@ def eliminar_del_carrito(request, item_id):
         return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
     
 
+# ==========================================================
+#                   IDENTIFICACIÓN
+# ==========================================================
 
 
+@login_required
+def identificacion(request):
+    """
+    Vista para gestionar los datos de identificación del cliente.
+    """
+    # ✅ VERIFICAR que el carrito no esté vacío
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__catalogo',
+        'producto__categoria',
+        'producto__color',
+        'producto__talla'
+    )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío. Agrega productos antes de continuar.')
+        return redirect('vista_productos')
+    
+    # ✅ BUSCAR identificación existente
+    identificacion_existente = None
+    if request.user.is_authenticated:
+        try:
+            identificacion_existente = Identificacion.objects.get(usuario=request.user)
+        except Identificacion.DoesNotExist:
+            try:
+                identificacion_existente = Identificacion.objects.get(email=request.user.email)
+                identificacion_existente.usuario = request.user
+                identificacion_existente.save(update_fields=['usuario'])
+            except Identificacion.DoesNotExist:
+                pass
 
+    # ✅ PROCESAR formulario
+    if request.method == 'POST':
+        form = IdentificacionForm(request.POST, instance=identificacion_existente)
+        
+        if form.is_valid():
+            identificacion = form.save(commit=False)
+            
+            if request.user.is_authenticated:
+                identificacion.usuario = request.user
+                identificacion.email = request.user.email
+            
+            try:
+                identificacion.save()
+                messages.success(request, 'Tus datos de identificación han sido guardados correctamente.')
+                
+                # ✅ Guardar en sesión
+                request.session['identificacion_id'] = identificacion.id
+                
+                # ✅ CALCULAR Y GUARDAR SUBTOTAL COMO STRING
+                subtotal = sum(item.total_precio for item in items_carrito)
+                request.session['subtotal'] = str(subtotal)
+                
+                return redirect('envio')
+                
+            except Exception as e:
+                messages.error(request, f'Error al guardar los datos: {str(e)}')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    field_label = form.fields[field].label if field in form.fields else field
+                    messages.error(request, f"{field_label}: {error}")
+    else:
+        # ✅ PRE-LLENAR con datos del usuario
+        initial_data = {}
+        if request.user.is_authenticated and not identificacion_existente:
+            initial_data = {
+                'email': request.user.email,
+                'nombre': request.user.first_name,
+                'apellido': request.user.last_name,
+                'celular': request.user.phone if hasattr(request.user, 'phone') else ''
+            }
+        
+        form = IdentificacionForm(
+            instance=identificacion_existente,
+            initial=initial_data if initial_data else None
+        )
+
+    # ✅ CALCULAR subtotal
+    subtotal = sum(item.total_precio for item in items_carrito)
+    
+    contexto = {
+        'form': form,
+        'identificacion_existente': identificacion_existente,
+        'carrito': carrito,
+        'items_carrito': items_carrito,
+        'subtotal': subtotal,
+    }
+    
+    return render(request, 'tienda/carrito/identificacion.html', contexto)
 
 
 
@@ -696,9 +812,6 @@ def panel_admin(request):
     return render(request, "admin/panel_admin.html", {
         "permisos_json": json.dumps(permisos)
     })
-
-
-
 
 
 
@@ -798,6 +911,9 @@ def mostrar_formulario_stock(request, id_catalogo):
 
 
 def procesar_entrada_stock(request):
+    """
+    Procesa la entrada de stock para una variante específica del inventario.
+    """
     if request.method == 'POST':
         try:
             id_variante = request.POST.get('id_variante') 
@@ -805,21 +921,37 @@ def procesar_entrada_stock(request):
         except (ValueError, TypeError):
             messages.error(request, "Error: La cantidad de ingreso debe ser un número entero.")
             return redirect('listar_productos_catalogo')
+        
         if cantidad <= 0:
             messages.error(request, "Error: La cantidad debe ser mayor que cero.")
             return redirect('listar_productos_catalogo')
+        
         variante_a_surtir = get_object_or_404(Inventario, idinventario=id_variante)
+        
         try:
             with transaction.atomic():
                 EntradaInventario.objects.create(
                     idinventario_fk=variante_a_surtir,
                     cantidad_ingreso=cantidad,
                 )
-            messages.success(request, f"¡Entrada registrada! Se añadieron {cantidad} unidades a la variante {variante_a_surtir.color}/{variante_a_surtir.talla}. (Verifique el stock, el Trigger debe haberlo actualizado).")
-            return redirect('listar_movimientos_producto', id_catalogo=variante_a_surtir.producto.idcatalogo)
+            
+            messages.success(
+                request, 
+                f"¡Entrada registrada! Se añadieron {cantidad} unidades a la variante "
+                f"{variante_a_surtir.color}/{variante_a_surtir.talla}. "
+                f"(Verifique el stock actualizado)."
+            )
+            
+            # ✅ CORRECCIÓN: Usar catalogo en lugar de producto
+            return redirect(
+                'listar_movimientos_producto', 
+                id_catalogo=variante_a_surtir.catalogo.idcatalogo
+            )
+            
         except Exception as e:
             messages.error(request, f"Error al procesar la entrada: {e}")
             return redirect('listar_productos_catalogo')
+    
     return redirect('listar_productos_catalogo')
 
 
@@ -1117,10 +1249,16 @@ def listar_peticiones(request):
 @login_required
 @require_POST
 def crear_peticion(request, producto_id):
+    """
+    Crea una petición de producto cuando no hay stock disponible.
+    """
     try:
         producto = Inventario.objects.get(pk=producto_id)
     except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
+        return JsonResponse({
+            'success': False, 
+            'message': 'Producto no existe.'
+        }, status=404)
 
     try:
         data = json.loads(request.body)
@@ -1129,54 +1267,680 @@ def crear_peticion(request, producto_id):
         cantidad = 1
 
     if cantidad <= 0:
-        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
+        return JsonResponse({
+            'success': False, 
+            'message': 'Cantidad inválida.'
+        })
 
-    # 🔹 Aseguramos que se guarde correctamente el usuario autenticado
-    from django.contrib.auth import get_user_model
-    Usuario = get_user_model()
-
+    # Crear la petición
     try:
-        usuario = Usuario.objects.get(pk=request.user.pk)
-    except Usuario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Usuario no válido.'}, status=400)
+        peticion = PeticionProducto.objects.create(
+            usuario=request.user,
+            producto=producto,
+            cantidad_solicitada=cantidad
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.',
+            'peticion_id': peticion.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error al crear la petición: {str(e)}'
+        }, status=500)
 
-    peticion = PeticionProducto.objects.create(
-        usuario=usuario,
-        producto=producto,
-        cantidad_solicitada=cantidad
+
+    # ==========================================================
+    #                   ENVÍO
+    # ==========================================================
+
+@login_required
+def envio(request):
+    """
+    Vista para gestionar la información de envío del pedido.
+    """
+    # PASO 1: Verificar que el usuario tenga identificación
+    identificacion_existente = None
+    if request.user.is_authenticated:
+        try:
+            identificacion_existente = Identificacion.objects.get(usuario=request.user)
+        except Identificacion.DoesNotExist:
+            messages.warning(request, 'Por favor completa tu identificación primero.')
+            return redirect('identificacion')
+    
+    # PASO 2: Verificar que el carrito no esté vacío
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__catalogo'
     )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío.')
+        return redirect('carrito')
+    
+    # PASO 3: Buscar envío existente o crear uno nuevo
+    envio_existente = None
+    if request.user.is_authenticated:
+        envio_existente = Envio.objects.filter(
+            usuario=request.user,
+            activo=True
+        ).order_by('-fecha_actualizacion').first()
+    
+    # PASO 4: Calcular subtotal
+    subtotal = sum(item.total_precio for item in items_carrito)
+    
+    # Costos de envío según empresa
+    COSTOS_ENVIO = {
+        'coordinadora': Decimal('12000'),
+        'interrapidisimo': Decimal('15000'),
+        'envia': Decimal('15000'),
+    }
+    
+    # PASO 5: Procesar formulario
+    if request.method == 'POST':
+        form = EnvioForm(request.POST, instance=envio_existente)
+        
+        if form.is_valid():
+            envio_obj = form.save(commit=False)
+            
+            # Asociar con usuario e identificación
+            if request.user.is_authenticated:
+                envio_obj.usuario = request.user
+                envio_obj.identificacion = identificacion_existente
+            
+            # Calcular costo de envío según empresa seleccionada
+            empresa = envio_obj.empresa_envio
+            envio_obj.costo_envio = COSTOS_ENVIO.get(empresa, Decimal('12000'))
+            
+            # Si el teléfono del receptor no se proporciona, usar el de identificación
+            if not envio_obj.telefono_receptor and identificacion_existente:
+                envio_obj.telefono_receptor = identificacion_existente.celular
+            
+            # Marcar como activo
+            envio_obj.activo = True
+            
+            try:
+                with transaction.atomic():
+                    # Desactivar todos los envíos anteriores del usuario
+                    Envio.objects.filter(
+                        usuario=request.user,
+                        activo=True
+                    ).update(activo=False)
+                    
+                    # Guardar el nuevo envío
+                    envio_obj.save()
+                    
+                    # ✅ GUARDAR EN SESIÓN COMO STRING (NO FLOAT)
+                    request.session['envio_id'] = envio_obj.id
+                    request.session['costo_envio'] = str(envio_obj.costo_envio)
+                    request.session['subtotal'] = str(subtotal)
+                    
+                    messages.success(request, f'Información de envío guardada correctamente.')
+                    return redirect('pago')
+                    
+            except Exception as e:
+                messages.error(request, f'Error al guardar el envío: {str(e)}')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    field_label = form.fields[field].label if field in form.fields else field
+                    messages.error(request, f"{field_label}: {error}")
+    else:
+        # Pre-llenar datos si existen
+        initial_data = {}
+        if envio_existente:
+            form = EnvioForm(instance=envio_existente)
+        else:
+            if identificacion_existente:
+                initial_data['nombre_receptor'] = f"{identificacion_existente.nombre} {identificacion_existente.apellido}"
+                initial_data['telefono_receptor'] = identificacion_existente.celular
+            form = EnvioForm(initial=initial_data)
+    
+    # Calcular costo de envío actual
+    costo_envio = Decimal('12000')  # Por defecto Coordinadora
+    if envio_existente:
+        costo_envio = envio_existente.costo_envio
+    
+    total = subtotal + costo_envio
+    
+    contexto = {
+        'form': form,
+        'identificacion': identificacion_existente,
+        'envio': envio_existente,
+        'carrito': carrito,
+        'items_carrito': items_carrito,
+        'subtotal': subtotal,
+        'costo_envio': costo_envio,
+        'total': total,
+        'costos_envio': COSTOS_ENVIO,
+    }
+    
+    return render(request, 'tienda/carrito/datos_envio.html', contexto)
 
-    return JsonResponse({
-        'success': True,
-        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
-    })
 
+# ==========================================================
+#                   CONFIGURACIÓN
+# ==========================================================
+
+@login_required
+def pago(request):
+    """
+    Vista para procesar el pago del pedido con MercadoPago.
+    """
+    # PASO 1: Verificar identificación
+    try:
+        identificacion = Identificacion.objects.get(usuario=request.user)
+    except Identificacion.DoesNotExist:
+        messages.warning(request, 'Debes completar tu identificación primero.')
+        return redirect('identificacion')
+    
+    # PASO 2: Verificar envío activo
+    try:
+        envio = Envio.objects.filter(
+            usuario=request.user, 
+            activo=True
+        ).order_by('-fecha_actualizacion').first()
+        
+        if not envio:
+            messages.warning(request, 'Debes completar los datos de envío primero.')
+            return redirect('envio')
+            
+    except Exception as e:
+        messages.error(request, f'Error al cargar datos de envío: {str(e)}')
+        return redirect('envio')
+    
+    # PASO 3: Obtener carrito
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__catalogo',
+        'producto__categoria',
+        'producto__color',
+        'producto__talla'
+    )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío.')
+        return redirect('carrito')
+    
+    # PASO 4: Calcular totales usando Decimal
+    subtotal = sum(item.total_precio for item in items_carrito)
+    costo_envio = envio.costo_envio
+    
+    # Obtener descuento de sesión de forma segura
+    descuento = decimal_from_session(request, 'descuento', '0')
+    cupon_aplicado = request.session.get('cupon_aplicado', None)
+    
+    # Calcular total
+    total = subtotal + costo_envio - descuento
+    
+    # PASO 5: Guardar en sesión como STRING
+    request.session['subtotal'] = str(subtotal)
+    request.session['costo_envio'] = str(costo_envio)
+    request.session['descuento'] = str(descuento)
+    request.session['total'] = str(total)
+    request.session['identificacion_id'] = identificacion.id
+    request.session['envio_id'] = envio.id
+    
+    # PASO 6: Métodos de pago
+    payment_methods = [
+        {
+            'id': 'mercadopago', 
+            'name': 'MercadoPago', 
+            'icon': 'fas fa-credit-card', 
+            'color': 'text-primary',
+            'description': 'Tarjetas, PSE, Efectivo y más'
+        }
+    ]
+    
+    # PASO 7: Generar preferencia de MercadoPago
+    preference_id = None
+    error_message = None
+    
+    try:
+        print("=" * 60)
+        print("🔍 DEBUG - Creando preferencia de pago")
+        print("=" * 60)
+        
+        # Verificar credenciales
+        if not hasattr(settings, 'MERCADO_PAGO_ACCESS_TOKEN'):
+            error_message = "❌ MERCADO_PAGO_ACCESS_TOKEN no configurado"
+            print(error_message)
+            raise ValueError(error_message)
+        
+        if not hasattr(settings, 'MERCADO_PAGO_PUBLIC_KEY'):
+            error_message = "❌ MERCADO_PAGO_PUBLIC_KEY no configurado"
+            print(error_message)
+            raise ValueError(error_message)
+        
+        print(f"✅ ACCESS_TOKEN: {settings.MERCADO_PAGO_ACCESS_TOKEN[:20]}...")
+        print(f"✅ PUBLIC_KEY: {settings.MERCADO_PAGO_PUBLIC_KEY[:20]}...")
+        
+        # Inicializar SDK
+        sdk = obtener_sdk_mercadopago()
+        print("✅ SDK inicializado")
+        
+        # Construir items para MercadoPago
+        items_mp = []
+        for item in items_carrito:
+            item_data = {
+                "title": f"{item.producto.catalogo.nombre} - {item.producto.color}/{item.producto.talla}",
+                "quantity": item.cantidad,
+                "unit_price": float(item.precio_unitario),
+                "currency_id": "COP"
+            }
+            items_mp.append(item_data)
+            print(f"   📦 Item: {item_data['title']} - ${item_data['unit_price']}")
+        
+        # Agregar costo de envío
+        if costo_envio > 0:
+            envio_item = {
+                "title": f"Envío - {envio.get_empresa_envio_display()}",
+                "quantity": 1,
+                "unit_price": float(costo_envio),
+                "currency_id": "COP"
+            }
+            items_mp.append(envio_item)
+            print(f"   🚚 Envío: ${envio_item['unit_price']}")
+        
+        # Agregar descuento si existe
+        if descuento > 0:
+            descuento_item = {
+                "title": f"Descuento cupón - {cupon_aplicado}",
+                "quantity": 1,
+                "unit_price": -float(descuento),
+                "currency_id": "COP"
+            }
+            items_mp.append(descuento_item)
+            print(f"   🎟️ Descuento: -${abs(descuento_item['unit_price'])}")
+        
+        print(f"💰 Total a pagar: ${float(total)}")
+        
+        # ✅ CREAR PREFERENCIA SIN notification_url
+        preference_data = {
+            "items": items_mp,
+            "payer": {
+                "name": identificacion.nombre,
+                "surname": identificacion.apellido,
+                "email": identificacion.email,
+                "phone": {
+                    "number": identificacion.celular
+                },
+                "identification": {
+                    "type": identificacion.tipo_documento,
+                    "number": identificacion.numero_documento
+                },
+                "address": {
+                    "street_name": envio.direccion_completa,
+                    "city_name": envio.municipio,
+                    "state_name": envio.departamento
+                }
+            },
+            "back_urls": {
+                "success": request.build_absolute_uri(reverse('pago_exitoso')),
+                "failure": request.build_absolute_uri(reverse('pago_fallido')),
+                "pending": request.build_absolute_uri(reverse('pago_pendiente'))
+            },
+            "payment_methods": {
+                "excluded_payment_methods": [],
+                "excluded_payment_types": [],
+                "installments": 12
+            },
+            "statement_descriptor": "LIHER FASHION",
+            "external_reference": f"PEDIDO-{request.user.id}-{timezone.now().timestamp()}",
+            "expires": False,
+        }
+        
+        # ⚠️ NO incluir notification_url en desarrollo local
+        print("⚠️ Modo DEBUG: notification_url omitida (requiere URL pública)")
+        
+        print("\n🔄 Enviando preferencia a MercadoPago...")
+        preference_response = sdk.preference().create(preference_data)
+        
+        print(f"📊 Status de respuesta: {preference_response['status']}")
+        
+        if preference_response["status"] == 201:
+            preference = preference_response["response"]
+            preference_id = preference["id"]
+            
+            # Guardar en sesión
+            request.session['preference_id'] = preference_id
+            
+            print(f"✅ Preferencia creada exitosamente!")
+            print(f"   ID: {preference_id}")
+            print(f"   Init Point: {preference.get('init_point', 'N/A')}")
+            print("=" * 60)
+        else:
+            error_message = f"Error al crear preferencia - Status: {preference_response['status']}"
+            print(f"❌ {error_message}")
+            print(f"📄 Respuesta completa: {preference_response}")
+            messages.error(request, 'Error al crear preferencia de pago. Intenta nuevamente.')
+            
+    except Exception as e:
+        error_message = str(e)
+        print(f"\n❌ EXCEPCIÓN al crear preferencia:")
+        print(f"   Error: {error_message}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60)
+        messages.error(request, f'Error al inicializar el sistema de pagos: {error_message}')
+    
+    # PASO 8: Contexto
+    contexto = {
+        'identificacion': identificacion,
+        'envio': envio,
+        'carrito': carrito,
+        'items_carrito': items_carrito,
+        'total_items': carrito.total_items_carrito,
+        'subtotal': float(subtotal),
+        'costo_envio': float(costo_envio),
+        'descuento': float(descuento),
+        'total': float(total),
+        'cupon_aplicado': cupon_aplicado,
+        'payment_methods': payment_methods,
+        'mostrar_productos': True,
+        'puede_editar': True,
+        'preference_id': preference_id,
+        'mercado_pago_public_key': getattr(settings, 'MERCADO_PAGO_PUBLIC_KEY', ''),
+        'error_message': error_message,
+    }
+    
+    return render(request, 'tienda/carrito/pago.html', contexto)
 
 
 @login_required
 @require_POST
-def crear_peticion(request, producto_id):
-    try:
-        producto = Inventario.objects.get(pk=producto_id)
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Producto no existe.'}, status=404)
-
+def aplicar_cupon(request):
+    """
+    Valida y aplica un cupón de descuento.
+    """
     try:
         data = json.loads(request.body)
-        cantidad = int(data.get('cantidad', 1))
-    except (ValueError, json.JSONDecodeError):
-        cantidad = 1
+        codigo_cupon = data.get('cupon', '').strip().upper()
+        
+        if not codigo_cupon:
+            return JsonResponse({'success': False, 'message': 'Código de cupón inválido'})
+        
+        # Cupones válidos
+        cupones_validos = {
+            'DESCUENTO10': {'porcentaje': Decimal('0.10'), 'nombre': '10% de descuento'},
+            'DESCUENTO20': {'porcentaje': Decimal('0.20'), 'nombre': '20% de descuento'},
+            'PRIMERACOMPRA': {'porcentaje': Decimal('0.15'), 'nombre': '15% primera compra'},
+            'BIENVENIDA': {'porcentaje': Decimal('0.05'), 'nombre': '5% bienvenida'},
+            'NAVIDAD2024': {'porcentaje': Decimal('0.25'), 'nombre': '25% Navidad'},
+        }
+        
+        if codigo_cupon in cupones_validos:
+            cupon = cupones_validos[codigo_cupon]
+            
+            # ✅ Usar función auxiliar para obtener valores
+            subtotal = decimal_from_session(request, 'subtotal', '0')
+            costo_envio = decimal_from_session(request, 'costo_envio', '0')
+            
+            # Calcular descuento
+            descuento = subtotal * cupon['porcentaje']
+            nuevo_total = subtotal + costo_envio - descuento
+            
+            # ✅ Guardar COMO STRING
+            request.session['descuento'] = str(descuento)
+            request.session['total'] = str(nuevo_total)
+            request.session['cupon_aplicado'] = codigo_cupon
+            request.session['cupon_nombre'] = cupon['nombre']
+            
+            return JsonResponse({
+                'success': True,
+                'descuento': float(descuento),
+                'descuento_formatted': f'${float(descuento):,.0f}',
+                'nuevo_total': float(nuevo_total),
+                'nuevo_total_formatted': f'${float(nuevo_total):,.0f}',
+                'message': f'✓ Cupón aplicado: {cupon["nombre"]}',
+                'cupon_nombre': cupon['nombre']
+            })
+        else:
+            return JsonResponse({'success': False, 'message': 'Cupón inválido o expirado'})
+            
+    except Exception as e:
+        print(f"❌ Error aplicar_cupon: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
-    if cantidad <= 0:
-        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
 
-    peticion = PeticionProducto.objects.create(
-        usuario=request.user,
-        producto=producto,
-        cantidad_solicitada=cantidad
-    )
+# ==========================================================
+#  5. REMOVER CUPÓN (CORREGIDA)
+# ==========================================================
 
-    return JsonResponse({
-        'success': True,
-        'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.'
-    })
+@login_required
+@require_POST
+def remover_cupon(request):
+    """
+    Elimina el cupón aplicado.
+    """
+    try:
+        # ✅ Usar función auxiliar
+        subtotal = decimal_from_session(request, 'subtotal', '0')
+        costo_envio = decimal_from_session(request, 'costo_envio', '0')
+        
+        nuevo_total = subtotal + costo_envio
+        
+        # Resetear
+        request.session['descuento'] = '0'
+        request.session['total'] = str(nuevo_total)
+        request.session.pop('cupon_aplicado', None)
+        request.session.pop('cupon_nombre', None)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cupón removido correctamente',
+            'nuevo_total': float(nuevo_total),
+            'nuevo_total_formatted': f'${float(nuevo_total):,.0f}'
+        })
+    except Exception as e:
+        print(f"❌ Error remover_cupon: {e}")
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
+
+
+@login_required
+def pago_exitoso(request):
+    """
+    Maneja el retorno exitoso de MercadoPago.
+    """
+    payment_id = request.GET.get('payment_id')
+    status = request.GET.get('status')
+    external_reference = request.GET.get('external_reference')
+    preference_id = request.GET.get('preference_id')
+    
+    # Verificar el pago con MercadoPago
+    try:
+        sdk = obtener_sdk_mercadopago()
+        payment_info = sdk.payment().get(payment_id)
+        
+        if payment_info["status"] == 200:
+            payment_data = payment_info["response"]
+            
+            # Validar que el pago esté aprobado
+            if payment_data["status"] == "approved":
+                # Procesar el pedido
+                carrito = obtener_o_crear_carrito(request)
+                
+                with transaction.atomic():
+                    # Reducir stock
+                    for item in carrito.items_carrito.all():
+                        producto = item.producto
+                        if producto.stock >= item.cantidad:
+                            producto.stock -= item.cantidad
+                            producto.save()
+                        else:
+                            messages.error(request, f'Stock insuficiente para {producto.catalogo.nombre}')
+                            return redirect('carrito')
+                    
+                    # Marcar carrito como completado
+                    carrito.completado = True
+                    carrito.save()
+                    
+                    # Limpiar sesión
+                    request.session.pop('carrito_id', None)
+                    request.session.pop('preference_id', None)
+                    request.session.pop('descuento', None)
+                    request.session.pop('cupon_aplicado', None)
+                
+                contexto = {
+                    'payment_id': payment_id,
+                    'status': payment_data["status"],
+                    'status_detail': payment_data.get("status_detail", ""),
+                    'transaction_amount': payment_data.get("transaction_amount", 0),
+                    'payment_method': payment_data.get("payment_method_id", ""),
+                }
+                
+                messages.success(request, '¡Pago exitoso! Tu pedido ha sido procesado.')
+                return render(request, 'tienda/carrito/pago_exitoso.html', contexto)
+            else:
+                return redirect('pago_pendiente')
+        else:
+            messages.error(request, 'No se pudo verificar el pago.')
+            return redirect('pago_fallido')
+            
+    except Exception as e:
+        print(f"❌ Error verificando pago: {e}")
+        messages.error(request, 'Error al verificar el pago.')
+        return redirect('pago_fallido')
+
+
+
+@login_required
+def pago_fallido(request):
+    """
+    Maneja el retorno fallido de MercadoPago.
+    """
+    payment_id = request.GET.get('payment_id')
+    status = request.GET.get('status')
+    
+    contexto = {
+        'payment_id': payment_id,
+        'status': status,
+    }
+    
+    messages.error(request, 'El pago no pudo ser procesado.')
+    return render(request, 'tienda/carrito/pago_fallido.html', contexto)
+
+
+@login_required
+def pago_pendiente(request):
+    """
+    Maneja el retorno pendiente de MercadoPago.
+    """
+    payment_id = request.GET.get('payment_id')
+    status = request.GET.get('status')
+    
+    contexto = {
+        'payment_id': payment_id,
+        'status': status,
+    }
+    
+    messages.warning(request, 'Tu pago está pendiente de confirmación.')
+    return render(request, 'tienda/carrito/pago_pendiente.html', contexto)
+
+
+# ========== WEBHOOK DE MERCADOPAGO ==========
+
+@csrf_exempt
+@require_POST
+def webhook_mercadopago(request):
+    """
+    Recibe notificaciones de MercadoPago sobre cambios en el estado del pago.
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # MercadoPago envía el tipo de notificación
+        topic = data.get('topic') or data.get('type')
+        
+        if topic == 'payment':
+            payment_id = data.get('data', {}).get('id') or data.get('id')
+            
+            # Consultar información del pago
+            sdk = obtener_sdk_mercadopago()
+            payment_info = sdk.payment().get(payment_id)
+            
+            if payment_info["status"] == 200:
+                payment_data = payment_info["response"]
+                
+                # Aquí puedes actualizar el estado del pedido en tu base de datos
+                # según el estado del pago: approved, pending, rejected, etc.
+                
+                print(f"✅ Webhook recibido - Payment ID: {payment_id}, Status: {payment_data['status']}")
+                
+                # Guardar log del webhook (opcional, puedes crear un modelo para esto)
+                
+        return HttpResponse(status=200)
+        
+    except Exception as e:
+        print(f"❌ Error procesando webhook: {e}")
+        return HttpResponse(status=500)
+
+        from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+# Asegúrate de importar todas las dependencias necesarias (settings, obtener_sdk_mercadopago, etc.)
+
+@require_POST
+@login_required
+def crear_preferencia_mp(request):
+    """
+    Crea la preferencia de Mercado Pago y devuelve el ID.
+    """
+    try:
+        # Recuperar datos de sesión (o rehacer los cálculos si es más seguro)
+        total = request.session.get('total')
+        identificacion_id = request.session.get('identificacion_id')
+        envio_id = request.session.get('envio_id')
+        # ... otros datos de sesión necesarios ...
+        
+        if not total:
+            return JsonResponse({'status': 'error', 'message': 'Total no encontrado en sesión.'}, status=400)
+        
+        # Recalcular items para la preferencia (lógica idéntica al PASO 7 de tu vista 'pago')
+        carrito = obtener_o_crear_carrito(request)
+        items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(...)
+        identificacion = Identificacion.objects.get(pk=identificacion_id)
+        envio = Envio.objects.get(pk=envio_id)
+        
+        # Lógica de construcción de items (igual a tu PASO 7)
+        # ... items_mp, descuento, costo_envio ...
+
+        sdk = obtener_sdk_mercadopago()
+        
+        preference_data = {
+            "items": items_mp,
+            "payer": { 
+                # ... datos del pagador (identificacion) ... 
+                "email": identificacion.email,
+                # ...
+            },
+            "back_urls": {
+                "success": request.build_absolute_uri(reverse('pago_exitoso')),
+                "failure": request.build_absolute_uri(reverse('pago_fallido')),
+                "pending": request.build_absolute_uri(reverse('pago_pendiente'))
+            },
+            "auto_return": "approved",
+            "notification_url": request.build_absolute_uri(reverse('webhook_mercadopago')),
+            "external_reference": f"PEDIDO-{request.user.id}-{timezone.now().timestamp()}",
+            # ... otros campos ...
+        }
+        
+        preference_response = sdk.preference().create(preference_data)
+
+        if preference_response["status"] == 201:
+            preference_id = preference_response["response"]["id"]
+            # En lugar de guardar en sesión aquí, la devolvemos al frontend
+            return JsonResponse({'status': 'success', 'preference_id': preference_id})
+        else:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Error de MP al crear preferencia',
+                'details': preference_response['response']
+            }, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

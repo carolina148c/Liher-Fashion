@@ -47,8 +47,7 @@ urlpatterns = [
     path('carrito/', views.carrito, name='carrito'),
     path('carrito/actualizar/<int:item_id>/', views.actualizar_carrito, name='actualizar_carrito'),
     path('carrito/eliminar/<int:item_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),
-
-
+    path('carrito/anadir/<int:producto_id>/', views.anadir_al_carrito, name='anadir_al_carrito'),
 
 
 
@@ -89,4 +88,23 @@ urlpatterns = [
     # PETICIONES
     path('peticiones/crear/<int:producto_id>/', views.crear_peticion, name='crear_peticion'),
     path('admin/peticiones/', views.listar_peticiones, name='listar_peticiones'),
+
+    # Procesamiento de pago
+    path('aplicar-cupon/', views.aplicar_cupon, name='aplicar_cupon'),
+    path('pago/aplicar-cupon/', views.aplicar_cupon, name='aplicar_cupon'),
+    path('pago/remover-cupon/', views.remover_cupon, name='remover_cupon'),
+
+    # Pagos
+    path('pago/exitoso/', views.pago_exitoso, name='pago_exitoso'),
+    path('pago/fallido/', views.pago_fallido, name='pago_fallido'),
+    path('pago/pendiente/', views.pago_pendiente, name='pago_pendiente'),
+    path('pago/crear-preferencia/', views.crear_preferencia_mp, name='crear_preferencia_mp'),
+    
+    # Webhook
+    path('webhook/mercadopago/', views.webhook_mercadopago, name='webhook_mercadopago'),
+    
+    # Cupones
+    path('aplicar-cupon/', views.aplicar_cupon, name='aplicar_cupon'),
+    path('remover-cupon/', views.remover_cupon, name='remover_cupon'),
+
 ]

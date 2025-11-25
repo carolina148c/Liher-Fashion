@@ -1,0 +1,262 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #f5f5f5;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: white;
+}
+
+.logo {
+    font-size: 24px;
+    font-family: 'Brush Script MT', cursive;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    width: 50px;
+    margin-right: 10px;
+}
+
+.checkout-progress {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-grow: 1;
+}
+
+.checkout-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 15px;
+    font-size: 12px;
+}
+
+.step-icon {
+    width: 24px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.active .step-icon {
+    background-color: #f5a3a3;
+}
+
+.progress-line {
+    height: 2px;
+    width: 60px;
+    background-color: #ccc;
+}
+
+.pink-banner {
+    background-color: #f5a3a3;
+    height: 50px;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.main-container {
+    max-width: 10000px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+.identification-container {
+    flex: 2;
+    background-color: rgb(255, 255, 255);
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 300px;
+}
+
+.summary-container {
+    flex: 1;
+    min-width: 250px;
+}
+
+.form-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+.required:before {
+    content: "*";
+    color: #f5a3a3;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.checkbox-input {
+    margin-right: 10px;
+    margin-top: 3px;
+}
+
+.checkbox-label {
+    font-size: 13px;
+    color: #333;
+}
+
+.terms-link {
+    color: #f5a3a3;
+    text-decoration: none;
+}
+
+.cart-summary-box {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-title {
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+
+.coupon-input {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.coupon-input input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.coupon-input button {
+    padding: 8px 15px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.summary-total {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-weight: bold;
+}
+
+.continue-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #f5a3a3;
+    border: none;
+    border-radius: 3px;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.back-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.footer-banner {
+    background-color: #f5a3a3;
+    padding: 10px 20px;
+    margin-top: 40px;
+    text-align: right;
+}
+
+.footer-link {
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+    .form-row {
+        gap: 10px;
+    }
+}

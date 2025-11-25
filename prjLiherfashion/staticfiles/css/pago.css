@@ -1,0 +1,252 @@
+/* Estilos personalizados para la página de pago */
+
+:root {
+    --pink-color: #f5a3a3;
+    --dark-text: #333;
+    --light-bg: #f5f5f5;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: Arial, sans-serif;
+}
+
+/* Header */
+.header {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logo img {
+    width: 50px;
+    height: auto;
+}
+
+/* Progress bar */
+.checkout-progress {
+    font-size: 12px;
+}
+
+.checkout-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.step-icon {
+    width: 32px;
+    height: 32px;
+    background-color: #ccc;
+    color: white;
+    font-size: 14px;
+}
+
+.checkout-step.active .step-icon,
+.checkout-step.completed .step-icon {
+    background-color: var(--pink-color);
+}
+
+.progress-line {
+    height: 2px;
+    width: 50px;
+    background-color: #ccc;
+    margin: 0 10px;
+}
+
+/* Banner rosa */
+.pink-banner {
+    background-color: var(--pink-color);
+    height: 40px;
+    width: 100%;
+}
+
+/* Secciones de información */
+.info-section {
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.info-section h5 {
+    color: var(--dark-text);
+    font-weight: 600;
+}
+
+/* Sección de pago */
+.payment-section {
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.payment-methods .form-check {
+    transition: all 0.3s ease;
+}
+
+.payment-methods .form-check:hover {
+    background-color: #f8f9fa;
+}
+
+.payment-methods .form-check-input:checked + .form-check-label {
+    color: var(--pink-color);
+    font-weight: 500;
+}
+
+/* Iconos de métodos de pago */
+.payment-option .fas,
+.payment-option .fab {
+    font-size: 18px;
+}
+
+/* Icono personalizado de Nequi */
+.nequi-icon {
+    width: 18px;
+    height: 18px;
+    background-color: #9b59b6;
+    border-radius: 50%;
+    position: relative;
+}
+
+.nequi-icon::after {
+    content: 'N';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Resumen de compra */
+.cart-summary-box {
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.summary-details hr {
+    border-color: #e0e0e0;
+    margin: 15px 0;
+}
+
+/* Botones */
+.btn-pink {
+    background-color: var(--pink-color);
+    border-color: var(--pink-color);
+    color: var(--dark-text);
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+
+
+.btn-outline-secondary {
+    color: var(--dark-text);
+    border-color: #ccc;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: var(--dark-text);
+}
+
+/* Footer banner */
+.footer-banner {
+    background-color: var(--pink-color);
+    padding: 15px 0;
+    margin-top: 40px;
+}
+
+.footer-link {
+    color: var(--dark-text);
+    font-size: 14px;
+}
+
+.footer-link:hover {
+    color: #222;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .checkout-progress {
+        justify-content: center !important;
+    }
+    
+    .checkout-step {
+        margin: 0 5px;
+    }
+    
+    .progress-line {
+        width: 30px;
+        margin: 0 5px;
+    }
+    
+    .logo span {
+        font-size: 1.2rem;
+    }
+    
+    .info-section {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header .container {
+        padding: 0 10px;
+    }
+    
+    .checkout-progress {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .progress-line {
+        display: none;
+    }
+    
+    .checkout-step {
+        margin: 5px;
+    }
+    
+    .container {
+        padding: 0 15px;
+    }
+}
+
+/* Animaciones */
+.payment-option {
+    transition: transform 0.2s ease;
+}
+
+.payment-option:hover {
+    transform: translateY(-2px);
+}
+
+.form-check-input:checked + .form-check-label .payment-option {
+    background-color: rgba(245, 163, 163, 0.1);
+}
+
+/* Estados de formulario */
+.form-control:focus {
+    border-color: var(--pink-color);
+    box-shadow: 0 0 0 0.2rem rgba(245, 163, 163, 0.25);
+}
+
+.btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(245, 163, 163, 0.25);
+}
+
+#cardPaymentBrick_container {
+    width: 100%;
+    min-height: 400px;  /* Altura mínima para evitar saltos */
+    margin: 20px 0;
+}
+
+/* Ajustes para dispositivos móviles */
+@media (max-width: 768px) {
+    #cardPaymentBrick_container {
+        min-height: 300px;
+    }
+}

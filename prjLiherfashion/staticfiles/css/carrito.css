@@ -1,0 +1,334 @@
+   /* Estilos generales - Reset básico */
+   * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Color de fondo para toda la página */
+body {
+    background-color: #f5f5f5;
+}
+
+/* Estilo para la cabecera principal */
+.cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+   
+}
+
+/* Estilo del logo de la tienda */
+.logo {
+    font-size: 30px;
+    font-family: 'Brush Script MT', cursive;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+/* Tamaño de la imagen del logo */
+.logo img {
+    width: 50px;
+    margin-right: 10px;
+}
+
+/* Barra de progreso del proceso de compra */
+.progreso-compra {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-grow: 1;
+}
+
+/* Estilo para cada paso del proceso de compra */
+.paso-compra {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 15px;
+    font-size: 12px;
+}
+
+/* Icono circular para cada paso */
+.icono-paso {
+    width: 24px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+/* Estilo para el paso activo actual */
+.activo .icono-paso {
+    background-color: #f5a3a3;
+}
+
+/* Línea de progreso entre los pasos */
+.linea-progreso {
+    height: 2px;
+    width: 60px;
+    background-color: #ccc;
+}
+
+/* Banner  rosa */
+.banner-rosa {
+    background-color: #e696a4;
+    height: 50px;
+    width: 100%;
+}
+
+/* Botón para volver atrás */
+.boton-volver {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    font-size: 20px;
+    color: #000000;
+    text-decoration: none;
+}
+
+/* Flecha para el botón de volver */
+.boton-volver:before {
+    content: '< ';
+    margin-right: 5px;
+}
+
+/* Contenedor principal del carrito */
+.contenedor-carrito {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Sección de productos del carrito */
+.productos-carrito {
+    flex: 2;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 300px;
+}
+
+/* Sección de resumen del carrito */
+.resumen-carrito {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* Tabla de productos */
+.tabla-productos {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Encabezados de la tabla */
+.tabla-productos th {
+    text-align: left;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Cada item/producto en el carrito */
+.item-producto {
+    border-bottom: 1px solid #eee;
+}
+
+/* Contenedor de la imagen del producto */
+.imagen-producto {
+    width: 80px;
+    padding: 10px 0;
+}
+
+/* Imagen del producto */
+.imagen-producto img {
+    width: 100%;
+    height: auto;
+}
+
+/* Información del producto */
+.info-producto {
+    padding: 10px 0;
+}
+
+/* Nombre del producto */
+.nombre-producto {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Opciones del producto (talla, color, etc.) */
+.opciones-producto {
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* Opciones de talla disponibles */
+.opciones-talla {
+    display: flex;
+    gap: 5px;
+    margin-top: 3px;
+}
+
+/* Cada opción de talla individual */
+.opcion-talla {
+    border: 1px solid #ccc;
+    padding: 2px 5px;
+    font-size: 12px;
+}
+
+/* Talla seleccionada actualmente */
+.seleccionada {
+    background-color: #eee;
+}
+
+/* Controles de cantidad */
+.controles-cantidad {
+    display: flex;
+    align-items: center;
+}
+
+/* Botones para aumentar/disminuir cantidad */
+.boton-cantidad {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ccc;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Campo de entrada para la cantidad */
+.entrada-cantidad {
+    width: 40px;
+    height: 24px;
+    border: 1px solid #ccc;
+    border-right: none;
+    border-left: none;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Precio del producto */
+.precio-producto {
+    font-weight: bold;
+    text-align: right;
+}
+
+/* Botón para eliminar productos */
+.boton-eliminar {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Caja de resumen del carrito */
+.caja-resumen-carrito {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Título del resumen */
+.titulo-resumen {
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+
+/* Entrada para cupón de descuento */
+.entrada-cupon {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+/* Campo de texto para el cupón */
+.entrada-cupon input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Botón para aplicar el cupón */
+.entrada-cupon button {
+    padding: 8px 15px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+/* Filas del resumen (subtotal, descuentos, etc.) */
+.fila-resumen {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+/* Total final del carrito */
+.total-resumen {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-weight: bold;
+}
+
+/* Botón para continuar al checkout */
+.boton-continuar {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #f5a3a3;
+    border: none;
+    border-radius: 3px;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+/* Botón para seguir comprando */
+.boton-seguir-comprando {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+/* Enlace para vaciar el carrito */
+.vaciar-carrito {
+    color: #666;
+    text-align: right;
+    font-size: 14px;
+    text-decoration: none;
+    display: block;
+    margin-top: 10px;
+}
+
+/* Media query para dispositivos móviles */
+@media (max-width: 768px) {
+    .contenedor-carrito {
+        flex-direction: column;
+    }
+}

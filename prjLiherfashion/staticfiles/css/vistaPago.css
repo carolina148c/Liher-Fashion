@@ -1,0 +1,78 @@
+/* vistaPago.css */
+
+/* Estilos generales para la vista de pago */
+.payment-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.payment-method {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-method:hover {
+    border-color: #ff69b4;
+    background-color: #fff5f8;
+}
+
+.payment-method.selected {
+    border-color: #ff69b4;
+    background-color: #fff5f8;
+}
+
+.payment-info {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.card-input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-pay {
+    width: 100%;
+    padding: 15px;
+    background-color: #ff69b4;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-pay:hover {
+    background-color: #ff1493;
+}
+
+.security-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.security-icon {
+    color: #4caf50;
+}

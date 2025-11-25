@@ -124,8 +124,23 @@ class Talla(models.Model):
         return self.talla
 
 
+class Catalogo(models.Model):
+    idcatalogo = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'catalogo'
+
+    def __str__(self):
+        return self.nombre
+
+
 class Inventario(models.Model):
     idinventario = models.AutoField(primary_key=True)
+    catalogo = models.ForeignKey('Catalogo', on_delete=models.CASCADE, related_name='inventarios')
     categoria = models.ForeignKey('Categoria', on_delete=models.DO_NOTHING)
     color = models.ForeignKey('Color', on_delete=models.DO_NOTHING)
     talla = models.ForeignKey('Talla', on_delete=models.DO_NOTHING)
@@ -133,16 +148,18 @@ class Inventario(models.Model):
     estado = models.CharField(max_length=20)
     stock = models.PositiveIntegerField(default=0)
     imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
-    catalogo = models.ForeignKey('Catalogo', on_delete=models.CASCADE, related_name='inventarios')
 
     class Meta:
         managed = True
         db_table = 'inventario'
 
     def __str__(self):
-        return f"{self.categoria} - {self.color} - {self.talla} - ${self.precio}"
+        return f"{self.catalogo.nombre} - {self.categoria} - {self.color} - {self.talla} - ${self.precio}"
 
 
+# ==========================
+# USUARIOS Y AUTENTICACIÓN
+# ==========================
 
 class UsuariosManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -195,24 +212,16 @@ class Permiso(models.Model):
     peticiones = models.BooleanField(default=False)
 
     class Meta:
+        managed = True
         db_table = 'permisos_usuarios_admin'
 
     def __str__(self):
         return f"Permisos de {self.usuario.email}"
 
 
-
-
-class EntradaInventario(models.Model):
-    identrada = models.AutoField(primary_key=True)
-    idinventario_fk = models.ForeignKey(Inventario, on_delete=models.DO_NOTHING, db_column='idInventario_fk', verbose_name='Variante a Surtir')
-    cantidad_ingreso = models.PositiveIntegerField(verbose_name='Cantidad a Ingresar')
-    fecha_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Entrada')
-
-    class Meta:
-        managed = True
-        db_table = 'entradas_inventario'
-
+# ==========================
+# CARRITO DE COMPRAS
+# ==========================
 
 class Carrito(models.Model):
     usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Usuario del Carrito')
@@ -249,94 +258,40 @@ class ItemCarrito(models.Model):
     )
     cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
     class Meta:
         managed = True
         db_table = 'item_carrito'
         verbose_name = 'Ítem del Carrito'
         verbose_name_plural = 'Ítems del Carrito'
+    
     def __str__(self):
         nombre_producto = getattr(self.producto.catalogo, 'nombre', 'Producto sin nombre')
         return f"{self.cantidad} x {nombre_producto}"
-
 
     @property
     def total_precio(self):
         return self.cantidad * self.precio_unitario
 
 
+# ==========================
+# INVENTARIO Y ENTRADAS
+# ==========================
+
+class EntradaInventario(models.Model):
+    identrada = models.AutoField(primary_key=True)
+    idinventario_fk = models.ForeignKey(Inventario, on_delete=models.DO_NOTHING, db_column='idInventario_fk', verbose_name='Variante a Surtir')
+    cantidad_ingreso = models.PositiveIntegerField(verbose_name='Cantidad a Ingresar')
+    fecha_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Entrada')
+
+    class Meta:
+        managed = True
+        db_table = 'entradas_inventario'
 
 
 # ==========================
-# MODELOS EXISTENTES (NO MANAGED)
+# PETICIONES DE PRODUCTOS
 # ==========================
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'pedidos'
-
-
-
-class Catalogo(models.Model):
-    idcatalogo = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(null=True, blank=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'catalogo'
-
-    def __str__(self):
-        return self.nombre
-
-
-
-class Envios(models.Model):
-    idenvios = models.AutoField(primary_key=True)
-    departamentos = models.CharField(max_length=50)
-    municipio = models.CharField(max_length=50)
-    tipo_direccion = models.CharField(max_length=50)
-    calle = models.CharField(max_length=50)
-    letra = models.CharField(max_length=50)
-    numero = models.BigIntegerField()
-    barrio = models.CharField(max_length=50)
-    piso = models.CharField(max_length=50)
-    nombre_receptor = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'envios'
-
-
-class Identificacion(models.Model):
-    id = models.AutoField(primary_key=True)
-    email = models.EmailField(max_length=100, unique=True)
-    nombre = models.CharField(max_length=50)
-    apellido = models.CharField(max_length=50)
-    tipo_documento = models.CharField(max_length=50)
-    field_documento = models.BigIntegerField()
-    celular = models.BigIntegerField()
-
-    class Meta:
-        managed = False
-        db_table = 'identificacion'
-
-
-
-
-
-    # ==========================
-    # PETICIONES A ADMIN
-    # ==========================
-
 
 class PeticionProducto(models.Model):
     usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
@@ -353,3 +308,151 @@ class PeticionProducto(models.Model):
 
     def __str__(self):
         return f"{self.usuario.email} - {self.producto.catalogo.nombre} - Cant: {self.cantidad_solicitada}"
+
+
+# ==========================
+# IDENTIFICACIÓN DEL CLIENTE
+# ==========================
+
+class Identificacion(models.Model):
+    TIPO_DOCUMENTO_CHOICES = [
+        ('DNI', 'DNI'),
+        ('Pasaporte', 'Pasaporte'),
+        ('Tarjeta de identidad', 'Tarjeta de identidad'),
+        ('Cedula de ciudadania', 'Cédula de ciudadanía'),
+        ('Cedula de extranjeria', 'Cédula de extranjería'),
+    ]
+    
+    usuario = models.OneToOneField(Usuarios, on_delete=models.CASCADE, null=True, blank=True)
+    email = models.EmailField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=50)
+    apellido = models.CharField(max_length=50)
+    tipo_documento = models.CharField(max_length=50, choices=TIPO_DOCUMENTO_CHOICES)
+    numero_documento = models.CharField(max_length=20, unique=True)
+    celular = models.CharField(max_length=15)
+    acepta_terminos = models.BooleanField(default=False)
+    autoriza_datos = models.BooleanField(default=False)
+    autoriza_publicidad = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = True
+        db_table = 'identificacion'
+        verbose_name = 'Datos de Identificación'
+        verbose_name_plural = 'Datos de Identificación'
+
+    def __str__(self):
+        return f"{self.nombre} {self.apellido} - {self.email}"
+
+
+# ==========================
+# PEDIDOS (NO MANAGED)
+# ==========================
+
+class Pedidos(models.Model):
+    idpedido = models.AutoField(primary_key=True)
+    cliente = models.CharField(max_length=100)
+    fecha = models.DateTimeField()
+    estado_pedido = models.CharField(max_length=50)
+    metodo_pago = models.CharField(max_length=50)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    estado_pago = models.CharField(max_length=50)
+
+    class Meta:
+        managed = False
+        db_table = 'pedidos'
+
+
+# ==========================
+# ENVÍOS (NO MANAGED)
+# ==========================
+
+class Envio(models.Model):
+    TIPO_DIRECCION_CHOICES = [
+        ('Calle', 'Calle'),
+        ('Carrera', 'Carrera'),
+        ('Avenida', 'Avenida'),
+        ('Transversal', 'Transversal'),
+        ('Diagonal', 'Diagonal'),
+        ('Circular', 'Circular'),
+    ]
+    
+    EMPRESA_ENVIO_CHOICES = [
+        ('coordinadora', 'Coordinadora'),
+        ('interrapidisimo', 'Interrapidísimo'),
+        ('envia', 'Transportadora Envia'),
+    ]
+    
+    # Relaciones
+    usuario = models.ForeignKey(
+        Usuarios, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='envios'
+    )
+    identificacion = models.ForeignKey(
+        'Identificacion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='envios'
+    )
+    
+    # Ubicación
+    departamento = models.CharField(max_length=50)
+    municipio = models.CharField(max_length=50)
+    
+    # Dirección
+    tipo_direccion = models.CharField(max_length=50, choices=TIPO_DIRECCION_CHOICES)
+    calle = models.CharField(max_length=10)  # Ej: 65
+    letra = models.CharField(max_length=5, blank=True)  # Ej: C
+    numero = models.CharField(max_length=10)  # Ej: 113
+    adicional = models.CharField(max_length=10, blank=True)  # Ej: 50
+    barrio = models.CharField(max_length=100)
+    piso_apartamento = models.CharField(max_length=100, blank=True)
+    
+    # Dirección completa generada
+    direccion_completa = models.CharField(max_length=255, blank=True)
+    
+    # Receptor
+    nombre_receptor = models.CharField(max_length=100)
+    telefono_receptor = models.CharField(max_length=20, blank=True)
+    
+    # Empresa de envío
+    empresa_envio = models.CharField(max_length=50, choices=EMPRESA_ENVIO_CHOICES)
+    costo_envio = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # Metadatos
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    activo = models.BooleanField(default=True)
+    
+    class Meta:
+        managed = True
+        db_table = 'envios_detallados'
+        verbose_name = 'Envío'
+        verbose_name_plural = 'Envíos'
+    
+    def save(self, *args, **kwargs):
+        # Generar dirección completa automáticamente
+        self.direccion_completa = self.generar_direccion_completa()
+        super().save(*args, **kwargs)
+    
+    def generar_direccion_completa(self):
+        """Genera la dirección en formato colombiano"""
+        partes = [
+            self.tipo_direccion,
+            self.calle,
+            self.letra if self.letra else '',
+            '#',
+            self.numero,
+            f'-{self.adicional}' if self.adicional else '',
+            f', {self.barrio}',
+            f', {self.piso_apartamento}' if self.piso_apartamento else ''
+        ]
+        return ' '.join(filter(None, partes))
+    
+    def __str__(self):
+        return f"Envío - {self.direccion_completa}"

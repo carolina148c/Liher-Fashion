@@ -8,7 +8,7 @@
     <title>Liher Fashion - Identificación</title>
     <link rel="stylesheet" href="{% static 'css/identificacion.css' %}">
     <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
-    <link rel="stylesheet" href="{% static 'css/vistaPago.css' %}">
+    <!-- <link rel="stylesheet" href="{% static 'css/vistaPago.css' %}"> -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -60,64 +60,96 @@
             <form method="POST">
                 {% csrf_token %}
 
+                <!-- Mostrar mensajes -->
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label required">Correo electrónico</label>
-                        <input type="email" name="email" class="form-control" placeholder="Correo electrónico" required>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="error-message">{{ form.email.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label required">Nombre</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="error-message">{{ form.nombre.errors }}</div>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Apellido</label>
-                        <input type="text" name="apellido" class="form-control" placeholder="Apellido" required>
+                        {{ form.apellido }}
+                        {% if form.apellido.errors %}
+                            <div class="error-message">{{ form.apellido.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label required">Tipo de documento</label>
-                        <select name="tipo_documento" class="form-control form-select" required>
-                            <option selected disabled>Seleccionar</option>
-                            <option>DNI</option>
-                            <option>Pasaporte</option>
-                            <option>Tarjeta de identidad</option>
-                        </select>
+                        {{ form.tipo_documento }}
+                        {% if form.tipo_documento.errors %}
+                            <div class="error-message">{{ form.tipo_documento.errors }}</div>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Número de documento</label>
-                        <input type="text" name="numero_documento" class="form-control" placeholder="Número documento" required>
+                        {{ form.numero_documento }}
+                        {% if form.numero_documento.errors %}
+                            <div class="error-message">{{ form.numero_documento.errors }}</div>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Celular</label>
-                        <input type="tel" name="celular" class="form-control" placeholder="Celular" required>
+                        {{ form.celular }}
+                        {% if form.celular.errors %}
+                            <div class="error-message">{{ form.celular.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="checkbox-container">
-                    <input type="checkbox" id="terms" class="checkbox-input" required>
-                    <label for="terms" class="checkbox-label">
+                    {{ form.acepta_terminos }}
+                    <label for="{{ form.acepta_terminos.id_for_label }}" class="checkbox-label">
                         Acepto <a href="#" class="terms-link">términos y condiciones</a> y <a href="#" class="terms-link">términos y condiciones marketplace</a>.
                     </label>
+                    {% if form.acepta_terminos.errors %}
+                        <div class="error-message">{{ form.acepta_terminos.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="checkbox-container">
-                    <input type="checkbox" id="data-processing" class="checkbox-input" required>
-                    <label for="data-processing" class="checkbox-label">
+                    {{ form.autoriza_datos }}
+                    <label for="{{ form.autoriza_datos.id_for_label }}" class="checkbox-label">
                         Autorizo tratamiento de mis datos personales
                     </label>
+                    {% if form.autoriza_datos.errors %}
+                        <div class="error-message">{{ form.autoriza_datos.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="checkbox-container">
-                    <input type="checkbox" id="marketing" class="checkbox-input">
-                    <label for="marketing" class="checkbox-label">
+                    {{ form.autoriza_publicidad }}
+                    <label for="{{ form.autoriza_publicidad.id_for_label }}" class="checkbox-label">
                         Autorizo tratamiento de mis datos para el envío de publicidad
                     </label>
                 </div>
+
+                <button type="submit" class="boton-continuar">CONTINUAR CON LOS DETALLES DE ENVÍO</button>
             </form>
         </div>
 
@@ -132,7 +164,7 @@
 
                 <div class="summary-row">
                     <span>Subtotal:</span>
-                    <span>$175.000</span>
+                    <span>${{ subtotal }}</span>
                 </div>
                 <div class="summary-row">
                     <span>Descuento en productos:</span>
@@ -140,7 +172,7 @@
                 </div>
                 <div class="summary-row summary-total">
                     <span>Total</span>
-                    <span>$170.000</span>
+                    <span>${{ subtotal }}</span>
                 </div>
             </div>
             <a href="{% url 'envio' %}" class="boton-continuar">CONTINUAR CON LOS DETALLES DE ENVÍO</a>

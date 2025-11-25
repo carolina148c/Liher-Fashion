@@ -1,0 +1,517 @@
+/* ============================================
+   RESET Y CONFIGURACIÓN GENERAL
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.encabezado {
+    background-color: white;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo img {
+    width: 50px;
+    height: 50px;
+}
+
+.logo span {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+}
+
+/* ============================================
+   BARRA DE PROGRESO
+   ============================================ */
+.progreso-compra {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.paso-compra {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.5;
+}
+
+.paso-compra.activo {
+    opacity: 1;
+}
+
+.icono-paso {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #666;
+}
+
+.paso-compra.activo .icono-paso {
+    background-color: #ff69b4;
+    color: white;
+}
+
+.paso-compra span {
+    font-size: 12px;
+    color: #666;
+}
+
+.linea-progreso {
+    width: 50px;
+    height: 2px;
+    background-color: #e0e0e0;
+}
+
+/* ============================================
+   BARRA ROSA DECORATIVA
+   ============================================ */
+.pink-banner {
+    width: 100%;
+    height: 10px;
+    background-color: #ffb6d9;
+}
+
+/* ============================================
+   CONTENEDOR PRINCIPAL
+   ============================================ */
+.contenedor-principal {
+    max-width: 1400px;
+    margin: 30px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+/* ============================================
+   COLUMNA IZQUIERDA
+   ============================================ */
+.columna-izquierda {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ============================================
+   TARJETA DE IDENTIFICACIÓN
+   ============================================ */
+.tarjeta-identificacion {
+    background-color: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.identificacion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.identificacion-header h3 {
+    font-size: 1.2rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.identificacion-header h3 i {
+    color: #666;
+}
+
+.boton-editar-perfil {
+    padding: 8px 20px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.boton-editar-perfil:hover {
+    background-color: #f5f5f5;
+    border-color: #999;
+}
+
+.identificacion-info p {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.identificacion-info strong {
+    color: #333;
+    margin-right: 5px;
+}
+
+/* ============================================
+   TARJETA DE ENVÍO
+   ============================================ */
+.tarjeta-envio {
+    background-color: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tarjeta-envio h3 {
+    font-size: 1.3rem;
+    color: #333;
+    margin-bottom: 25px;
+}
+
+/* ============================================
+   MENSAJES DE ALERTA
+   ============================================ */
+.messages {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 12px 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* ============================================
+   FORMULARIO
+   ============================================ */
+.fila-form {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.campo-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.campo-form label {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.campo-form input,
+.campo-form select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+    transition: border-color 0.3s;
+}
+
+.campo-form input:focus,
+.campo-form select:focus {
+    outline: none;
+    border-color: #ff69b4;
+}
+
+/* Anchos de campos */
+.mitad {
+    flex: 1;
+}
+
+.tercio {
+    flex: 1;
+}
+
+.quinta-parte {
+    flex: 1;
+}
+
+.error-texto {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* ============================================
+   EMPRESA DE ENVÍO
+   ============================================ */
+.seccion-empresa-envio {
+    margin: 25px 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.label-empresa {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.opciones-radio {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.radio-opcion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.radio-opcion:hover {
+    background-color: #fff;
+}
+
+.radio-opcion input[type="radio"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.radio-texto {
+    font-size: 14px;
+    color: #333;
+}
+
+/* ============================================
+   NOTA INFORMATIVA
+   ============================================ */
+.nota-informativa {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 5px;
+    font-size: 13px;
+    color: #856404;
+    text-align: center;
+}
+
+/* ============================================
+   COLUMNA DERECHA (RESUMEN)
+   ============================================ */
+.columna-derecha {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ============================================
+   SECCIÓN CUPÓN
+   ============================================ */
+.seccion-cupon {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.titulo-cupon {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.input-cupon-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-cupon {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.input-cupon:focus {
+    outline: none;
+    border-color: #ff69b4;
+}
+
+.boton-aplicar-cupon {
+    padding: 10px 20px;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.boton-aplicar-cupon:hover {
+    background-color: #555;
+}
+
+/* ============================================
+   SECCIÓN RESUMEN
+   ============================================ */
+.seccion-resumen {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.linea-resumen {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #555;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.linea-total {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 0;
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    border-top: 2px solid #ff69b4;
+}
+
+/* ============================================
+   BOTONES DE ACCIÓN
+   ============================================ */
+.boton-ir-pagar {
+    width: 100%;
+    padding: 15px;
+    background-color: #ffb6d9;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 10px;
+}
+
+.boton-ir-pagar:hover {
+    background-color: #ff69b4;
+    color: white;
+}
+
+.boton-volver-carrito {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background-color: white;
+    color: #333;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.boton-volver-carrito:hover {
+    border-color: #999;
+    background-color: #f5f5f5;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+    .contenedor-principal {
+        grid-template-columns: 1fr;
+    }
+
+    .columna-derecha {
+        order: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .encabezado {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .progreso-compra {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .fila-form {
+        flex-direction: column;
+    }
+
+    .identificacion-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}

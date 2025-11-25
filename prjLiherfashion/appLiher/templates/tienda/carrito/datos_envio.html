@@ -7,10 +7,11 @@
 <title>Liher Fashion - Envío</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/vistaDatosEnvio.css' %}">
+<link rel="stylesheet" href="{% static 'css/datosEnvio.css' %}">
 <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
 </head>
 <body>
+    <!-- Header -->
     <header class="encabezado">
         <div class="logo">
             <img src="{% static 'Img/1.png' %}" alt="Logo de Liher Fashion">
@@ -18,28 +19,24 @@
         </div>
 
         <div class="progreso-compra">
-            <!-- Paso 1: Carrito -->
             <div class="paso-compra">
                 <div class="icono-paso"><i class="fas fa-shopping-cart"></i></div>
                 <span>Carrito</span>
             </div>
             <div class="linea-progreso"></div>
 
-            <!-- Paso 2: Identificación -->
             <div class="paso-compra">
                 <div class="icono-paso"><i class="fas fa-user"></i></div>
                 <span>Identificación</span>
             </div>
             <div class="linea-progreso"></div>
 
-            <!-- Paso 3: Entrega (activo) -->
             <div class="paso-compra activo">
                 <div class="icono-paso"><i class="fas fa-truck"></i></div>
                 <span>Entrega</span>
             </div>
             <div class="linea-progreso"></div>
 
-            <!-- Paso 4: Pago -->
             <div class="paso-compra">
                 <div class="icono-paso"><i class="fas fa-credit-card"></i></div>
                 <span>Pago</span>
@@ -47,105 +44,217 @@
         </div>
     </header>
 
-    <main class="contenido">
-        <!-- Información de usuario -->
-        <section class="identificacion">
+    <!-- Barra rosa decorativa -->
+    <div class="pink-banner"></div>
+
+    <!-- Contenedor principal -->
+    <div class="contenedor-principal">
+        <!-- Columna izquierda: Identificación y Envío -->
+        <div class="columna-izquierda">
+            <!-- Tarjeta de Identificación -->
             <div class="tarjeta-identificacion">
-                <h3><i class="fas fa-id-card"></i> Identificación</h3>
-                <p><strong>Correo:</strong> {{ user.email }}</p>
-                <p><strong>Nombre:</strong> {{ user.get_full_name }}</p>
-                <p><strong>Contacto:</strong> {{ user.telefono }}</p>
-                <a href="{% url 'editar_perfil' %}" class="boton-editar">Editar Perfil</a>
+                <div class="identificacion-header">
+                    <h3><i class="fas fa-id-card"></i> Identificación</h3>
+                    <a href="{% url 'identificacion' %}" class="boton-editar-perfil">Editar Perfil</a>
+                </div>
+                {% if identificacion %}
+                    <div class="identificacion-info">
+                        <p><strong>Correo:</strong> {{ identificacion.email }}</p>
+                        <p><strong>Nombre:</strong> {{ identificacion.nombre }} {{ identificacion.apellido }}</p>
+                        <p><strong>Contacto:</strong> {{ identificacion.celular }}</p>
+                    </div>
+                {% else %}
+                    <p>No hay información de identificación disponible.</p>
+                    <a href="{% url 'identificacion' %}" class="boton-editar">Completar Identificación</a>
+                {% endif %}
             </div>
-        </section>
 
-        <!-- Formulario de envío -->
-        <section class="formulario-envio">
-            <h3>Envío</h3>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Departamento</label>
-                        <select name="departamento">
-                            <option>Seleccione una opción</option>
-                        </select>
+            <!-- Formulario de Envío -->
+            <div class="tarjeta-envio">
+                <h3>Envío</h3>
+                
+                <!-- Mostrar mensajes -->
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
                     </div>
-                    <div class="campo">
-                        <label>*Municipio o ciudad capital</label>
-                        <select name="ciudad">
-                            <option>Seleccione una opción</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Tipo de dirección</label>
-                        <select name="tipo_direccion">
-                            <option>Seleccione una opción</option>
-                        </select>
-                    </div>
-                    <div class="campo">
-                        <label>*Calle</label>
-                        <input type="text" name="calle" placeholder="Ej: 65">
-                    </div>
-                    <div class="campo">
-                        <label>*Letra</label>
-                        <input type="text" name="letra" placeholder="Ej: C">
-                    </div>
-                    <div class="campo">
-                        <label>*Número</label>
-                        <input type="text" name="numero" placeholder="113">
-                    </div>
-                    <div class="campo">
-                        <label>-</label>
-                        <input type="text" name="adicional" placeholder="50">
-                    </div>
-                </div>
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Barrio</label>
-                        <input type="text" name="barrio" placeholder="Ej: Laureles">
-                    </div>
-                    <div class="campo">
-                        <label>Piso/Apartamento/Torre/Edificio</label>
-                        <input type="text" name="apartamento" placeholder="Ej: Edificio 3 Apto 103">
-                    </div>
-                    <div class="campo">
-                        <label>*Nombre de la persona que recibe</label>
-                        <input type="text" name="nombre_recibe" placeholder="Ej: Juliana">
-                    </div>
-                </div>
+                {% endif %}
 
-                <div class="empresa-envio">
-                    <label>Seleccione empresa de envío</label>
-                    <div class="opciones-envio">
-                        <label><input type="radio" name="empresa" value="coordinadora" checked> Coordinadora: $12,000</label>
-                        <label><input type="radio" name="empresa" value="interrapidisimo"> Interrapidísimo: $15,000</label>
-                        <label><input type="radio" name="empresa" value="envia"> Transportadora Envia: $15,000</label>
+                <form method="POST" id="form-envio">
+                    {% csrf_token %}
+                    
+                    <!-- Fila 1: Departamento y Municipio -->
+                    <div class="fila-form">
+                        <div class="campo-form mitad">
+                            <label>*Departamento</label>
+                            {{ form.departamento }}
+                            {% if form.departamento.errors %}
+                                <span class="error-texto">{{ form.departamento.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="campo-form mitad">
+                            <label>*Municipio o ciudad capital</label>
+                            {{ form.municipio }}
+                            {% if form.municipio.errors %}
+                                <span class="error-texto">{{ form.municipio.errors.0 }}</span>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
 
-                <p class="nota">Una vez realizado el pago no será posible modificar la dirección o punto de envío.</p>
-            </form>
-        </section>
+                    <!-- Fila 2: Dirección completa -->
+                    <div class="fila-form">
+                        <div class="campo-form quinta-parte">
+                            <label>*Tipo de dirección</label>
+                            {{ form.tipo_direccion }}
+                            {% if form.tipo_direccion.errors %}
+                                <span class="error-texto">{{ form.tipo_direccion.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="campo-form quinta-parte">
+                            <label>*Calle</label>
+                            {{ form.calle }}
+                            {% if form.calle.errors %}
+                                <span class="error-texto">{{ form.calle.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="campo-form quinta-parte">
+                            <label>*Letra</label>
+                            {{ form.letra }}
+                        </div>
+                        <div class="campo-form quinta-parte">
+                            <label>*Número</label>
+                            {{ form.numero }}
+                            {% if form.numero.errors %}
+                                <span class="error-texto">{{ form.numero.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="campo-form quinta-parte">
+                            <label>-</label>
+                            {{ form.adicional }}
+                        </div>
+                    </div>
 
-        <!-- Resumen de pago -->
-        <aside class="resumen-pago">
-            <div class="cupon">
-                <label>Ingresar cupón de descuento</label>
-                <input type="text" placeholder="Cupón de descuento">
-                <button>Aplicar</button>
+                    <!-- Fila 3: Barrio, Piso/Apto y Nombre Receptor -->
+                    <div class="fila-form">
+                        <div class="campo-form tercio">
+                            <label>*Barrio</label>
+                            {{ form.barrio }}
+                            {% if form.barrio.errors %}
+                                <span class="error-texto">{{ form.barrio.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="campo-form tercio">
+                            <label>Piso/Apartamento/Torre/Edificio</label>
+                            {{ form.piso_apartamento }}
+                        </div>
+                        <div class="campo-form tercio">
+                            <label>*Nombre de la persona que recibe</label>
+                            {{ form.nombre_receptor }}
+                            {% if form.nombre_receptor.errors %}
+                                <span class="error-texto">{{ form.nombre_receptor.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Empresa de envío -->
+                    <div class="seccion-empresa-envio">
+                        <label class="label-empresa">Seleccione empresa de envío</label>
+                        <div class="opciones-radio">
+                            {% for radio in form.empresa_envio %}
+                                <label class="radio-opcion">
+                                    {{ radio.tag }}
+                                    <span class="radio-texto">
+                                        {{ radio.choice_label }}:
+                                        {% if radio.data.value == 'coordinadora' %}
+                                            $12,000
+                                        {% elif radio.data.value == 'interrapidisimo' %}
+                                            $15,000
+                                        {% elif radio.data.value == 'envia' %}
+                                            $15,000
+                                        {% endif %}
+                                    </span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.empresa_envio.errors %}
+                            <span class="error-texto">{{ form.empresa_envio.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nota informativa -->
+                    <p class="nota-informativa">
+                        Una vez realizado el pago no será posible modificar la dirección o punto de envío.
+                    </p>
+                </form>
             </div>
-            <div class="detalles">
-                <p>Subtotal: <span>$175.000</span></p>
-                <p>Descuento en productos: <span>0</span></p>
-                <p>Costo de envío: <span>$12.000</span></p>
-                <p class="total">Total: <span>$187.000</span></p>
+        </div>
+
+        <!-- Columna derecha: Resumen de compra -->
+        <aside class="columna-derecha">
+            <!-- Cupón de descuento -->
+            <div class="seccion-cupon">
+                <label class="titulo-cupon">Ingresar cupón de descuento</label>
+                <div class="input-cupon-group">
+                    <input type="text" placeholder="Cupón de descuento" class="input-cupon">
+                    <button class="boton-aplicar-cupon">Aplicar</button>
+                </div>
             </div>
-            <a href="{% url 'pago' %}" class="boton-continuar">IR A PAGAR</a>
-            <a href="{% url 'carrito' %}" class="boton-continuar">VOLVER AL CARRITO</a>
+
+            <!-- Resumen de precios -->
+            <div class="seccion-resumen">
+                <div class="linea-resumen">
+                    <span>Subtotal:</span>
+                    <span id="subtotal-valor">${{ subtotal|floatformat:0 }}</span>
+                </div>
+                <div class="linea-resumen">
+                    <span>Descuento en productos:</span>
+                    <span>0</span>
+                </div>
+                <div class="linea-resumen">
+                    <span>Costo de envío:</span>
+                    <span id="costo-envio-valor">${{ costo_envio|floatformat:0 }}</span>
+                </div>
+                <div class="linea-total">
+                    <span>Total</span>
+                    <span id="total-valor">${{ total|floatformat:0 }}</span>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <button type="submit" form="form-envio" class="boton-ir-pagar">IR A PAGAR</button>
+            <a href="{% url 'carrito' %}" class="boton-volver-carrito">VOLVER AL CARRITO</a>
         </aside>
-    </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('form-envio');
+            const radios = document.querySelectorAll('input[name="empresa_envio"]');
+            const costoEnvioElement = document.getElementById('costo-envio-valor');
+            const totalElement = document.getElementById('total-valor');
+            const subtotal = {{ subtotal|default:0 }};
+
+            // Actualizar costo de envío
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const costos = {
+                        'coordinadora': 12000,
+                        'interrapidisimo': 15000,
+                        'envia': 15000
+                    };
+                    
+                    const costo = costos[this.value] || 12000;
+                    const total = subtotal + costo;
+                    
+                    costoEnvioElement.textContent = '$' + costo.toLocaleString('es-CO');
+                    totalElement.textContent = '$' + total.toLocaleString('es-CO');
+                });
+            });
+        });
+    </script>
 </body>
 </html>

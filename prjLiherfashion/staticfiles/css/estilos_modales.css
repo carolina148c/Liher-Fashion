@@ -1,0 +1,677 @@
+/* === RESETEO GENERAL === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* =====================================================
+  ESTRUCTURA BASE DEL MODAL
+===================================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Modal específico para Ver Usuario (más compacto) */
+.ver-usuario-container .modal {
+  background: #f5f5f5;
+  max-width: 480px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal específico para Editar Usuario */
+.editar-usuario-container .modal {
+  background: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================
+  HEADER DEL MODAL 
+===================================================== */
+
+.modal-header {
+  background-color: #ff4081;
+  color: white;
+  padding: 20px 24px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.modal-close,
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.modal-close:hover,
+.close-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* =====================================================
+  CUERPO DEL MODAL 
+===================================================== */
+
+.modal-body {
+  padding: 22px;
+}
+
+/* Body específico para Ver y Editar Usuario */
+.ver-usuario-container .modal-body,
+.editar-usuario-container .modal-body {
+  padding: 30px 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 160px);
+}
+
+/* =====================================================
+  FORMULARIOS (Crear y Editar Usuario)
+===================================================== */
+
+#createUserForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-group label .required {
+  color: #ff4081;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #ff4081;
+  box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
+  outline: none;
+}
+
+/* === Grid de campos para Editar Usuario === */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.2rem 1.5rem;
+}
+
+.form-grid .form-group input,
+.form-grid .form-group select {
+  padding: 8px 10px;
+}
+
+/* =====================================================
+  CAMPOS BLOQUEADOS (Solo-lectura)
+===================================================== */
+
+.readonly {
+  background-color: #d1d5da !important;
+  color: #62686d !important;
+  border: 1px solid #ccc !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.readonly-wrapper {
+  position: relative;
+}
+
+.lock-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.readonly-wrapper:hover .lock-icon {
+  opacity: 1;
+}
+
+/* =====================================================
+  CAMPOS ADICIONALES (Crear Usuario)
+===================================================== */
+
+.additional-fields {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.additional-fields.show {
+  display: grid;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================
+  VALIDACIÓN DE FORMULARIOS
+===================================================== */
+
+input.error,
+select.error {
+  border-color: #d63031 !important;
+  background-color: #fff6f6;
+  box-shadow: 0 0 0 3px rgba(214, 48, 49, 0.1);
+}
+
+.input-alert {
+  color: #d63031;
+  font-size: 12px;
+  margin-top: 2px;
+  min-height: 14px;
+}
+
+/* =====================================================
+  VALIDACIÓN DE CONTRASEÑA
+===================================================== */
+
+.password-input-container {
+  position: relative;
+}
+
+.password-requisitos {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 5px;
+  font-size: 0.8rem;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+}
+
+.password-requisitos.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.password-requisitos li {
+  color: #999;
+  margin-bottom: 3px;
+}
+
+.password-requisitos li.valid {
+  color: #0ca828;
+}
+
+.password-requisitos li.invalid {
+  color: #d63031;
+}
+
+/* =====================================================
+  PERMISOS Y ACCESOS
+===================================================== */
+
+.permisos-container,
+#editPermisosSection {
+  grid-column: 1 / -1;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #fafafa;
+}
+
+.permisos-container label,
+#editPermisosSection .section-title {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #333;
+}
+
+.permisos-descripcion {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.8rem;
+}
+
+.icono-bloqueo {
+  font-size: 1rem;
+}
+
+/* Grid de permisos - Compartido */
+.permisos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 14px;
+}
+
+/* Permisos en modo edición */
+.permisos-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.permisos-grid label:hover {
+  background: #ffe6ef;
+  border-color: #ff4081;
+  transform: translateY(-1px);
+}
+
+.permisos-grid input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #ff4081;
+}
+
+/* Variante para editar usuario */
+.permiso-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.permiso-item:hover {
+  background-color: #ffe6ef;
+  border-color: #ff4081;
+  transform: translateY(-1px);
+}
+
+.permiso-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #ff4081;
+}
+
+.permiso-item input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: #000000;
+}
+
+/* =====================================================
+  SECCIONES (Común)
+===================================================== */
+
+.section {
+  margin-bottom: 30px;
+}
+
+.ver-usuario-container .section {
+  margin-top: 30px;
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =====================================================
+  PERFIL DE USUARIO (Ver Usuario)
+===================================================== */
+
+.profile-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  background: #ff4081;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.profile-role {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.status-badge {
+  background: #4caf50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+}
+
+.status-badge.inactive {
+  background: #f44336;
+}
+
+/* =====================================================
+  INFORMACIÓN DEL USUARIO (Ver Usuario)
+===================================================== */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.info-item {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border-left: 3px solid #ff4081;
+}
+
+.info-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* =====================================================
+   🔐 PERMISOS (Ver Usuario)
+===================================================== */
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  font-family: inherit; 
+}
+
+.permission-badge {
+  background: white;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-family: inherit; 
+}
+
+.permission-badge.granted::before {
+  content: '✓';
+  color: #4caf50;
+  font-weight: 700;
+  font-family: inherit; 
+}
+
+.permission-badge.denied::before {
+  content: '✕';
+  color: #f44336;
+  font-weight: 700;
+  font-family: inherit; 
+}
+
+/* =====================================================
+   🔘 BOTONES (Compartidos)
+===================================================== */
+
+.modal-footer {
+  grid-column: 1 / -1;
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  background: white;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn,
+.btn-secondary,
+.btn-primary,
+.btn-cancel {
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.btn-secondary,
+.btn-cancel {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover,
+.btn-cancel:hover {
+  background-color: #e0e0e0;
+}
+
+.btn-primary {
+  background-color: #ff4081;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #e91e63;
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.4);
+}
+
+/* Específicos para ver usuario */
+.ver-usuario-container .btn-cancel {
+  background: #e0e0e0;
+}
+
+.ver-usuario-container .btn-cancel:hover {
+  background: #d0d0d0;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 16px;
+}
+.toggle-password:hover {
+  color: #000;
+}
+
+
+/* =====================================================
+   🔔 TOAST DE NOTIFICACIONES
+===================================================== */
+
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #ff4081;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  z-index: 9999;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* =====================================================
+   DISEÑO RESPONSIVO
+===================================================== */
+
+@media (max-width: 768px) {
+  #createUserForm,
+  .additional-fields,
+  .permisos-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .info-grid,
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .permisos-grid {
+    grid-template-columns: 1fr;
+  }
+}

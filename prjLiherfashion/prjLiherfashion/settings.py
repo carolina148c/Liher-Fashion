@@ -2,6 +2,7 @@
 Django settings for prjLiherfashion project.
 """
 
+from decimal import Decimal
 from pathlib import Path
 import os
 from decouple import config 
@@ -89,7 +90,7 @@ WSGI_APPLICATION = 'prjLiherfashion.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'liherfashion',
+        'NAME': 'liherfashion2',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
@@ -121,6 +122,13 @@ USE_TZ = True
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'appLiher' / 'static',
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -197,3 +205,13 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+# ==========================================================
+#           CONFIGURACIÓN MERCADO PAGO
+# ==========================================================
+
+# Credenciales de prueba (reemplazar con tus credenciales reales en producción)
+MERCADO_PAGO_PUBLIC_KEY = config('MP_PUBLIC_KEY')
+MERCADO_PAGO_ACCESS_TOKEN = config('MP_ACCESS_TOKEN')
+MERCADO_PAGO_SANDBOX = config('MP_SANDBOX', default=True, cast=bool)
