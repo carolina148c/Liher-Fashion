@@ -1332,3 +1332,406 @@ function debugCompleto() {
         }
     }
 }
+
+
+
+
+//Validaciones 
+
+// Nombre 
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const inputNombre = document.querySelector('input[name="nombre"]');
+    const errorNombre = document.getElementById("errorNombre");
+
+    errorNombre.style.fontSize = "13px";
+    errorNombre.style.marginTop = "3px";
+
+    const regexLimpieza = /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g;
+    const regexCompleto = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+( [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$/;
+
+    function validarNombre() {
+    let valor = inputNombre.value;
+
+    let limpio = valor
+        .replace(regexLimpieza, "")
+        .replace(/\s{2,}/g, " ")
+        .replace(/^\s+/g, "");
+
+    if (valor !== limpio) {
+        inputNombre.value = limpio;
+    }
+
+    if (limpio.length === 0) {
+        errorNombre.textContent = "Solo letras, tildes y un espacio entre palabras.";
+        errorNombre.style.color = "black";
+        return false;
+    }
+
+    if (limpio.length < 3) {
+        errorNombre.textContent = " Mínimo 3 caracteres.";
+        errorNombre.style.color = "red";
+        return false;
+    }
+
+    if (limpio.length > 150) {
+        errorNombre.textContent = " Máximo 150 caracteres.";
+        errorNombre.style.color = "red";
+        return false;
+    }
+
+    if (!regexCompleto.test(limpio)) {
+        errorNombre.textContent = " Formato inválido.";
+        errorNombre.style.color = "red";
+        return false;
+    }
+
+    // 🚫 REGLA ANTI "ssssss", "aaaaaa", etc.
+    let palabras = limpio.split(" ");
+    for (let p of palabras) {
+        if (/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}$/.test(p)) {
+            errorNombre.textContent = " El nombre parece ser valido .";
+            errorNombre.style.color = "red";
+            return false;
+        }
+    }
+
+    errorNombre.textContent = "✓ Nombre válido.";
+    errorNombre.style.color = "green";
+    return true;
+}
+
+    inputNombre.addEventListener("input", validarNombre);
+
+    // Evitar enviar si no es válido
+    document.getElementById("productoForm").addEventListener("submit", function (e) {
+        if (!validarNombre()) {
+            e.preventDefault();
+            errorNombre.style.color = "red";
+        }
+    });
+
+});
+
+
+
+
+// REFERENCIA
+document.addEventListener("DOMContentLoaded", function () {
+
+    const inputReferencia = document.querySelector('input[name="referencia"]');
+    const errorRef = document.createElement("div");
+
+    // insertar debajo del input
+    inputReferencia.insertAdjacentElement("afterend", errorRef);
+
+    errorRef.style.fontSize = "13px";
+    errorRef.style.marginTop = "3px";
+
+    // Limpieza: solo letras y números
+    const regexLimpieza = /[^A-Za-z0-9]/g;
+    const regexCompleto = /^[A-Za-z0-9]+$/;
+
+    function validarReferencia() {
+        let valor = inputReferencia.value;
+
+        // limpiar caracteres no permitidos
+        let limpio = valor.replace(regexLimpieza, "");
+
+        // quitar espacios manualmente si vuelan
+        limpio = limpio.replace(/\s+/g, "");
+
+        if (valor !== limpio) {
+            inputReferencia.value = limpio;
+        }
+
+        // Reglas
+        if (limpio.length === 0) {
+            errorRef.textContent = "Solo letras y números (sin espacios).";
+            errorRef.style.color = "black";
+            return false;
+        }
+
+        if (limpio.length < 3) {
+            errorRef.textContent = "Mínimo 3 caracteres.";
+            errorRef.style.color = "red";
+            return false;
+        }
+
+        if (limpio.length > 10) {
+            errorRef.textContent = "Máximo 10 caracteres.";
+            errorRef.style.color = "red";
+            return false;
+        }
+
+        if (!regexCompleto.test(limpio)) {
+            errorRef.textContent = "Formato inválido.";
+            errorRef.style.color = "red";
+            return false;
+        }
+
+        // ❌ EVITAR “aaaaaa”, “bbbbbb”, “111111”, etc.
+        if (/^([A-Za-z0-9])\1{2,}$/.test(limpio)) {
+            errorRef.textContent = "La referencia no puede ser una secuencia repetitiva.";
+            errorRef.style.color = "red";
+            return false;
+        }
+
+        // Todo bien
+        errorRef.textContent = "✓ Referencia válida.";
+        errorRef.style.color = "green";
+        return true;
+    }
+
+    inputReferencia.addEventListener("input", validarReferencia);
+
+    // Evitar submit si hay error
+    document.getElementById("productoForm").addEventListener("submit", function (e) {
+        if (!validarReferencia()) {
+            e.preventDefault();
+            errorRef.style.color = "red";
+        }
+    });
+
+});
+
+
+// =====================
+// PRECIO con decimal y mensaje de especificación
+// =====================
+(function () {
+  const precioInput = document.querySelector('input[name="precio"]');
+  if (!precioInput) return;
+
+  // Crear/usar el mensaje de especificación (gris) y el mensaje de estado debajo
+  let spec = precioInput.parentNode.querySelector('.precio-spec');
+  if (!spec) {
+    spec = document.createElement('div');
+    spec.className = 'precio-spec';
+    spec.style.color = '#555';
+    spec.style.fontSize = '12px';
+    spec.style.marginTop = '4px';
+    spec.textContent = 'Formato: 3–8 caracteres. Solo números, opcional punto decimal (máx 2 decimales).';
+    precioInput.insertAdjacentElement('afterend', spec);
+  }
+
+  let estado = document.getElementById('precio-error');
+  if (!estado) {
+    estado = document.createElement('div');
+    estado.id = 'precio-error';
+    estado.className = 'validacion-texto';
+    estado.style.fontSize = '13px';
+    estado.style.marginTop = '3px';
+    spec.insertAdjacentElement('afterend', estado);
+  }
+
+  // util: limpia y formatea manteniendo un solo punto decimal y max 2 decimales
+  function limpiarPrecioConDecimal(v) {
+    // eliminar caracteres distintos a dígitos y punto
+    v = v.replace(/[^0-9.]/g, '');
+
+    // si hay más de un punto, dejar solo el primero
+    const parts = v.split('.');
+    if (parts.length > 1) {
+      v = parts.shift() + '.' + parts.join(''); // junta el resto sin puntos
+    }
+
+    // limitar a 2 decimales
+    if (v.indexOf('.') !== -1) {
+      const [intPart, decPart] = v.split('.');
+      v = intPart + '.' + decPart.slice(0, 2);
+    }
+
+    // Limitar longitud total a 8 caracteres (incluyendo el punto)
+    if (v.length > 8) {
+      v = v.slice(0, 8);
+      // si el corte deja un punto final, quitarlo
+      if (v.endsWith('.')) v = v.slice(0, -1);
+    }
+
+    return v;
+  }
+
+  function validarPrecio() {
+    let raw = precioInput.value || '';
+    const limpio = limpiarPrecioConDecimal(raw);
+
+    // si cambió, reasignar
+    if (raw !== limpio) precioInput.value = limpio;
+
+    // validaciones
+    if (limpio.length === 0) {
+      setError(precioInput, estado, 'El precio es obligatorio.');
+      return false;
+    }
+
+    // quitar punto para contar solo caracteres mínimos? seguiremos la regla: mínimo 3 caracteres totales
+    if (limpio.length < 3) {
+      setError(precioInput, estado, 'Mínimo 3 caracteres.');
+      return false;
+    }
+
+    // si contiene punto, validar decimales
+    if (limpio.includes('.')) {
+      const parts = limpio.split('.');
+      const intPart = parts[0] || '';
+      const decPart = parts[1] || '';
+      // no permitir enteros vacíos: ".12" -> invalid
+      if (intPart.length === 0) {
+        setError(precioInput, estado, 'Formato inválido.');
+        return false;
+      }
+      if (decPart.length > 2) {
+        setError(precioInput, estado, 'Máx 2 decimales.');
+        return false;
+      }
+    }
+
+    // todo ok
+    setSuccess(precioInput, estado, '✓ Precio válido.');
+    return true;
+  }
+
+  // pegar: limpiar lo pegado
+  precioInput.addEventListener('paste', function (e) {
+    const texto = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const limpio = limpiarPrecioConDecimal(texto);
+    e.preventDefault();
+    // insertar en cursor
+    const before = precioInput.value;
+    const start = precioInput.selectionStart || before.length;
+    const end = precioInput.selectionEnd || before.length;
+    const newValue = (before.slice(0, start) + limpio + before.slice(end)).slice(0, 8);
+    precioInput.value = newValue;
+    validarPrecio();
+  });
+
+  precioInput.addEventListener('input', validarPrecio);
+
+  // validación inicial (si hay valor precargado)
+  validarPrecio();
+})();
+
+// =====================
+// DESCRIPCIÓN (solo letras, 1 espacio entre palabras, 5-500 chars)
+// =====================
+(function () {
+  const descInput = document.querySelector('textarea[name="descripcion"]');
+  if (!descInput) return;
+
+  // crear/usar mensaje de especificación y estado (gris + estado)
+  let spec = descInput.parentNode.querySelector('.desc-spec');
+  if (!spec) {
+    spec = document.createElement('div');
+    spec.className = 'desc-spec';
+    spec.style.color = '#555';
+    spec.style.fontSize = '12px';
+    spec.style.marginTop = '4px';
+    spec.textContent = 'Solo letras y un espacio entre palabras. 5–500 caracteres.';
+    descInput.insertAdjacentElement('afterend', spec);
+  }
+
+  let estado = document.getElementById('descripcion-error');
+  if (!estado) {
+    estado = document.createElement('div');
+    estado.id = 'descripcion-error';
+    estado.className = 'validacion-texto';
+    estado.style.fontSize = '13px';
+    estado.style.marginTop = '3px';
+    spec.insertAdjacentElement('afterend', estado);
+  }
+
+  function limpiarDescripcion(v) {
+    // mantener solo letras y espacios
+    v = v.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, '');
+    // dobles espacios -> uno
+    v = v.replace(/\s{2,}/g, ' ');
+    // quitar espacio al inicio
+    v = v.replace(/^\s+/g, '');
+    // limitar 500
+    return v.slice(0, 500);
+  }
+
+  function validarDescripcion() {
+    let raw = descInput.value || '';
+    let limpio = limpiarDescripcion(raw);
+
+    if (raw !== limpio) descInput.value = limpio;
+
+    const len = limpio.trim().length;
+
+    if (len === 0) {
+      setError(descInput, estado, 'La descripción es obligatoria.');
+      return false;
+    }
+    if (len < 5) {
+      setError(descInput, estado, 'Mínimo 5 caracteres.');
+      return false;
+    }
+    if (limpio.length > 500) {
+      setError(descInput, estado, 'Máximo 500 caracteres.');
+      return false;
+    }
+
+    const patron = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$/;
+    if (!patron.test(limpio)) {
+      setError(descInput, estado, 'Solo letras y un espacio entre palabras.');
+      return false;
+    }
+
+    // evitar palabras repetitivas
+    const palabras = limpio.split(' ');
+    for (let p of palabras) {
+      if (/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}$/.test(p)) {
+        setError(descInput, estado, 'La descripción contiene palabras inválidas.');
+        return false;
+      }
+    }
+
+    setSuccess(descInput, estado, '✓ Descripción válida.');
+    return true;
+  }
+
+  // manejar pegado
+  descInput.addEventListener('paste', function (e) {
+    const texto = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const limpio = limpiarDescripcion(texto);
+    e.preventDefault();
+    // insertar limpio en cursor
+    const before = descInput.value;
+    const start = descInput.selectionStart || before.length;
+    const end = descInput.selectionEnd || before.length;
+    const newValue = (before.slice(0, start) + limpio + before.slice(end)).slice(0, 500);
+    descInput.value = newValue;
+    validarDescripcion();
+  });
+
+  descInput.addEventListener('input', validarDescripcion);
+  validarDescripcion();
+})();
+
+// ------------------
+// helper visual functions (si ya las tienes, no las dupliques)
+// ------------------
+function setError(input, messageElement, message) {
+  if (input) {
+    input.classList.add('input-error');
+    input.classList.remove('input-success');
+  }
+  if (messageElement) {
+    messageElement.style.color = 'red';
+    messageElement.textContent = message;
+  }
+}
+
+function setSuccess(input, messageElement, message) {
+  if (input) {
+    input.classList.remove('input-error');
+    input.classList.add('input-success');
+  }
+  if (messageElement) {
+    messageElement.style.color = 'green';
+    messageElement.textContent = message;
+  }
+}

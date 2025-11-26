@@ -149,6 +149,131 @@ class ProductoForm(forms.ModelForm):
             'estado': forms.Select(attrs={'class': 'form-control'}),
         }
 
+# --------------------------------------
+    # VALIDACIÓN NOMBRE
+    # --------------------------------------
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
+
+        # Longitud
+        if len(nombre) < 3 or len(nombre) > 150:
+            raise forms.ValidationError("El nombre debe tener entre 3 y 150 caracteres.")
+
+        if "  " in nombre:
+            raise forms.ValidationError("No se permiten dobles espacios.")
+
+        patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+( [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+        if not re.match(patron, nombre):
+            raise forms.ValidationError("El nombre solo puede contener letras y un espacio entre palabras.")
+
+        # evitar "aaaaaa", "bbbbbb", etc
+        for palabra in nombre.split(" "):
+            if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+                raise forms.ValidationError("El nombre no puede ser una secuencia repetida.")
+
+        return nombre
+
+    # --------------------------------------
+    # VALIDACIÓN REFERENCIA
+    # --------------------------------------
+    def clean_referencia(self):
+        referencia = self.cleaned_data.get('referencia', '').strip()
+
+        if len(referencia) < 3 or len(referencia) > 10:
+            raise forms.ValidationError("La referencia debe tener entre 3 y 10 caracteres.")
+
+        if not re.match(r'^[A-Za-z0-9]+$', referencia):
+            raise forms.ValidationError("La referencia solo permite letras y números (sin espacios).")
+
+        if " " in referencia:
+            raise forms.ValidationError("La referencia no puede contener espacios.")
+
+        # referencia ÚNICA
+        qs = Producto.objects.filter(referencia=referencia)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError("Ya existe un producto con esta referencia.")
+
+        return referencia
+
+    # --------------------------------------
+    # VALIDACIÓN PRECIO
+    # --------------------------------------
+def clean_precio(self):
+    precio_raw = self.cleaned_data.get('precio')
+
+    if precio_raw in (None, ''):
+        raise forms.ValidationError("El precio es obligatorio.")
+
+    # Lo convertimos a string (por si viene como int/Decimal)
+    precio_str = str(precio_raw).strip()
+
+    # No permitir espacios internos o externos
+    if " " in precio_str:
+        raise forms.ValidationError("El precio no puede contener espacios.")
+
+    # Debe ser solo dígitos
+    if not re.fullmatch(r'^[0-9]+$', precio_str):
+        raise forms.ValidationError("El precio solo puede contener números.")
+
+    # Longitud: 3 a 8 caracteres/dígitos
+    if len(precio_str) < 3 or len(precio_str) > 8:
+        raise forms.ValidationError("El precio debe tener entre 3 y 8 dígitos.")
+
+    # Si quieres guardar como entero:
+    try:
+        return int(precio_str)
+    except ValueError:
+        raise forms.ValidationError("Precio inválido.")
+
+
+   # --------------------------------------
+    # VALIDACIÓN descripcion
+    # --------------------------------------
+
+def clean_descripcion(self):
+    descripcion = self.cleaned_data.get('descripcion', '')
+    descripcion = descripcion.strip()
+
+    if descripcion == '':
+        raise forms.ValidationError("La descripción es obligatoria.")
+
+    if len(descripcion) < 5 or len(descripcion) > 500:
+        raise forms.ValidationError("La descripción debe tener entre 5 y 500 caracteres.")
+
+    # Solo letras (incluye tildes y ñ) y solo un espacio entre palabras
+    patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+    if not re.match(patron, descripcion):
+        raise forms.ValidationError("La descripción solo puede contener letras y un solo espacio entre palabras.")
+
+    # (Opcional) evitar palabras formadas por una misma letra repetida
+    for palabra in descripcion.split(' '):
+        if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+            raise forms.ValidationError("La descripción contiene palabras inválidas (letra repetida).")
+
+    return descripcion
+
+    # --------------------------------------
+    # VALIDACIÓN IMAGEN
+    # --------------------------------------
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get('imagen')
+
+        if not imagen:
+            raise forms.ValidationError("Debe subir una imagen principal.")
+
+        if not imagen.content_type.startswith("image/"):
+            raise forms.ValidationError("El archivo debe ser una imagen.")
+
+        if imagen.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("La imagen no debe superar los 5MB.")
+
+        return imagen
+    
+
+
 
 class VarianteProductoForm(forms.ModelForm):
     class Meta:
