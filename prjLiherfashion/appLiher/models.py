@@ -149,6 +149,20 @@ class Identificacion(models.Model):
         db_table = 'identificacion'
 
 
+class Pedidos(models.Model):
+    idpedido = models.AutoField(primary_key=True)
+    cliente = models.CharField(max_length=100)
+    fecha = models.DateTimeField()
+    estado_pedido = models.CharField(max_length=50)
+    metodo_pago = models.CharField(max_length=50)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    estado_pago = models.CharField(max_length=50)
+
+    class Meta:
+        managed = True
+        db_table = 'pedidos'
+        
+
 class Permiso(models.Model):
     usuario = models.OneToOneField(
         Usuarios, on_delete=models.CASCADE, related_name='permisos'
@@ -270,20 +284,6 @@ class VarianteProducto(models.Model):
     def __str__(self):
         return f"{self.producto.nombre} - {self.talla} - {self.color}"
 
-
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = True
-        db_table = 'pedidos'
 
 
 class Envios(models.Model):
