@@ -275,7 +275,7 @@ class ItemCarrito(models.Model):
         verbose_name_plural = 'Ítems del Carrito'
     
     def __str__(self):
-        nombre_producto = getattr(self.producto.catalogo, 'nombre', 'Producto sin nombre')
+        nombre_producto = getattr(self.producto.producto, 'nombre', 'Producto sin nombre')
         return f"{self.cantidad} x {nombre_producto}"
 
     @property
@@ -316,7 +316,8 @@ class PeticionProducto(models.Model):
         verbose_name_plural = 'Peticiones de Productos'
 
     def __str__(self):
-        return f"{self.usuario.email} - {self.producto.catalogo.nombre} - Cant: {self.cantidad_solicitada}"
+        nombre_producto = getattr(self.producto.producto, 'nombre', 'Producto sin nombre')
+        return f"{self.usuario.email} - {nombre_producto} - Cant: {self.cantidad_solicitada}"
 
 
 # ==========================
