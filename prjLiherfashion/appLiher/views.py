@@ -55,6 +55,7 @@ from .models import (
     Permiso,
     PeticionProducto,
     Talla,
+    EntradaInventario,
     Usuarios,
 )
 
@@ -846,6 +847,24 @@ def eliminar_talla(request, pk):
     talla = Talla.objects.get(pk=pk)
     talla.delete()
     return redirect('agregar_talla')
+
+
+# Alias/backwards-compatible endpoints expected by urls.py
+def listar_productos_tabla(request):
+    return listar_productos_inventario(request)
+
+
+def listar_productos_catalogo(request):
+    # Para compatibilidad con rutas antiguas, reutilizamos la vista de inventario.
+    return listar_productos_inventario(request)
+
+
+def listar_movimientos_producto(request, id_catalogo):
+    entradas = EntradaInventario.objects.select_related('idinventario_fk').filter(idinventario_fk__producto__idproducto=id_catalogo).order_by('-fecha_entrada')
+    return render(request, 'admin/inventario/movimientos.html', {
+        'entradas': entradas,
+        'active': 'inventario'
+    })
 
 
 
