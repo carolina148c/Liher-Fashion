@@ -1,0 +1,111 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="addresses-header">
+    <h1>Libreta de Direcciones</h1>
+    <p>Gestiona tus direcciones de envío</p>
+    <a href="{% url 'agregar_direccion' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Agregar Nueva Dirección
+    </a>
+</div>
+
+<div class="addresses-content">
+    {% if direcciones %}
+    <div class="addresses-grid">
+        {% for direccion in direcciones %}
+        <div class="address-card {% if direccion.es_principal %}primary-address{% endif %}">
+            {% if direccion.es_principal %}
+            <div class="address-badge">
+                <i class="bi bi-star-fill"></i> Dirección Principal
+            </div>
+            {% endif %}
+            
+            <div class="address-header">
+                <h3>{{ direccion.nombre_direccion }}</h3>
+                <span class="address-type">{{ direccion.get_tipo_direccion_display }}</span>
+            </div>
+
+            <div class="address-details">
+                <p><strong>{{ direccion.nombre_completo }}</strong></p>
+                <p>{{ direccion.direccion }}</p>
+                <p>{{ direccion.barrio }}</p>
+                <p>{{ direccion.municipio }}, {{ direccion.departamento }}</p>
+                <p>{{ direccion.codigo_postal }}</p>
+                <p><i class="bi bi-telephone"></i> {{ direccion.telefono }}</p>
+                {% if direccion.piso_apartamento %}
+                <p>Piso/Apartamento: {{ direccion.piso_apartamento }}</p>
+                {% endif %}
+            </div>
+
+            <div class="address-actions">
+                {% if not direccion.es_principal %}
+                <form method="post" action="{% url 'establecer_direccion_principal' direccion.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-star"></i> Principal
+                    </button>
+                </form>
+                {% endif %}
+                
+                <a href="{% url 'editar_direccion' direccion.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+                
+                <button type="button" class="btn btn-sm btn-outline-danger" 
+                        onclick="confirmDelete({{ direccion.pk }}, '{{ direccion.nombre_direccion }}')">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-geo-alt"></i>
+        </div>
+        <h3>No tienes direcciones guardadas</h3>
+        <p>Agrega tu primera dirección para realizar compras más rápido.</p>
+        <a href="{% url 'agregar_direccion' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Agregar Primera Dirección
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Estás seguro de que quieres eliminar la dirección "<span id="addressName"></span>"?</p>
+        <div class="modal-actions">
+            <form id="deleteForm" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(addressId, addressName) {
+    document.getElementById('addressName').textContent = addressName;
+    document.getElementById('deleteForm').action = "{% url 'eliminar_direccion' 0 %}".replace('0', addressId);
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

@@ -37,7 +37,7 @@
                     {% if user.is_authenticated %}
                         <ul class="user-dropdown">
                             <li class="user-welcome">¡Hola, {{ user.first_name|default:user.email }}!</li>
-                            <li><a href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                            <li><a href="{% url 'mi_cuenta' %}"><i class="bi bi-person"></i> Mi Perfil</a></li>
                             <li><a href="#"><i class="bi bi-bag"></i> Mis Pedidos</a></li>
                             <li class="dropdown-divider"></li>
                             <li>

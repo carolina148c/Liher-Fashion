@@ -1,0 +1,98 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="orders-header">
+    <h1>Mis Pedidos</h1>
+    <p>Revisa tu historial de compras y el estado de tus pedidos</p>
+</div>
+
+<div class="orders-content">
+    {% if pedidos %}
+    <div class="orders-list">
+        {% for pedido in pedidos %}
+        <div class="order-card">
+            <div class="order-header">
+                <div class="order-info">
+                    <h3>Pedido #{{ pedido.idpedido }}</h3>
+                    <span class="order-date">{{ pedido.fecha|date:"d M Y - H:i" }}</span>
+                </div>
+                <div class="order-status">
+                    <span class="status-badge status-{{ pedido.estado_pedido|lower }}">
+                        {{ pedido.estado_pedido }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="order-details">
+                <div class="order-meta">
+                    <div class="meta-item">
+                        <label>Total</label>
+                        <span class="order-total">${{ pedido.total|floatformat:0 }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Método de Pago</label>
+                        <span>{{ pedido.metodo_pago }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <label>Estado de Pago</label>
+                        <span class="payment-status {{ pedido.estado_pago|lower }}">
+                            {{ pedido.estado_pago }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-actions">
+                <a href="{% url 'detalle_pedido' pedido.idpedido %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye"></i> Ver Detalle
+                </a>
+                {% if pedido.estado_pedido == 'Entregado' %}
+                <button class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-download"></i> Descargar Factura
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    {% if pedidos.has_other_pages %}
+    <div class="pagination">
+        {% if pedidos.has_previous %}
+        <a href="?page={{ pedidos.previous_page_number }}" class="page-link">
+            <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+        {% endif %}
+
+        {% for num in pedidos.paginator.page_range %}
+            {% if pedidos.number == num %}
+            <span class="page-link current">{{ num }}</span>
+            {% else %}
+            <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if pedidos.has_next %}
+        <a href="?page={{ pedidos.next_page_number }}" class="page-link">
+            Siguiente <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-bag"></i>
+        </div>
+        <h3>No tienes pedidos aún</h3>
+        <p>Cuando realices tu primera compra, aparecerá aquí tu historial de pedidos.</p>
+        <a href="{% url 'pagina_principal' %}" class="btn btn-primary">
+            <i class="bi bi-bag"></i> Comenzar a Comprar
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

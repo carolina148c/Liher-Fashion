@@ -282,7 +282,7 @@ class Pedidos(models.Model):
     estado_pago = models.CharField(max_length=50)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'pedidos'
 
 
@@ -360,6 +360,95 @@ class ItemCarrito(models.Model):
         return self.cantidad * self.precio_unitario
 
 
+class PerfilUsuario(models.Model):
+    TIPO_DOCUMENTO_CHOICES = [
+        ('cedula', 'Cédula de Ciudadanía'),
+        ('tarjeta_identidad', 'Tarjeta de Identidad'),
+        ('cedula_extranjeria', 'Cédula de Extranjería'),
+        ('pasaporte', 'Pasaporte'),
+    ]
+    
+    GENERO_CHOICES = [
+        ('femenino', 'Femenino'),
+        ('masculino', 'Masculino'),
+        ('otro', 'Otro'),
+        ('prefiero_no_decir', 'Prefiero no decir'),
+    ]
+
+    usuario = models.OneToOneField(Usuarios, on_delete=models.CASCADE, related_name='perfil')
+    nombre = models.CharField(max_length=50, blank=True)
+    apellido = models.CharField(max_length=50, blank=True)
+    tipo_documento = models.CharField(max_length=20, choices=TIPO_DOCUMENTO_CHOICES, blank=True)
+    numero_documento = models.CharField(max_length=20, blank=True)
+    telefono = models.CharField(max_length=20, blank=True)
+    genero = models.CharField(max_length=20, choices=GENERO_CHOICES, blank=True)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'perfil_usuario'
+        verbose_name = 'Perfil de Usuario'
+        verbose_name_plural = 'Perfiles de Usuarios'
+
+    def __str__(self):
+        return f"Perfil de {self.usuario.email}"
+
+class DireccionEnvio(models.Model):
+    TIPO_DIRECCION_CHOICES = [
+        ('casa', 'Casa'),
+        ('apartamento', 'Apartamento'),
+        ('oficina', 'Oficina'),
+        ('otro', 'Otro'),
+    ]
+
+    usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE, related_name='direcciones')
+    nombre_direccion = models.CharField(max_length=100, default='Mi dirección')
+    nombre_completo = models.CharField(max_length=100)
+    telefono = models.CharField(max_length=20)
+    departamento = models.CharField(max_length=50)
+    municipio = models.CharField(max_length=50)
+    tipo_direccion = models.CharField(max_length=20, choices=TIPO_DIRECCION_CHOICES)
+    direccion = models.CharField(max_length=200)  # Calle, número, etc.
+    barrio = models.CharField(max_length=50, blank=True)
+    piso_apartamento = models.CharField(max_length=50, blank=True)
+    codigo_postal = models.CharField(max_length=20, blank=True)
+    es_principal = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'direccion_envio'
+        verbose_name = 'Dirección de Envío'
+        verbose_name_plural = 'Direcciones de Envío'
+        ordering = ['-es_principal', '-fecha_creacion']
+
+    def __str__(self):
+        return f"{self.nombre_completo} - {self.direccion}"
+
+class MetodoPago(models.Model):
+    TIPO_TARJETA_CHOICES = [
+        ('visa', 'Visa'),
+        ('mastercard', 'MasterCard'),
+        ('american_express', 'American Express'),
+        ('dinners_club', 'Dinners Club'),
+    ]
+
+    usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE, related_name='metodos_pago')
+    tipo_tarjeta = models.CharField(max_length=20, choices=TIPO_TARJETA_CHOICES)
+    ultimos_digitos = models.CharField(max_length=4)
+    nombre_titular = models.CharField(max_length=100)
+    fecha_vencimiento = models.CharField(max_length=7)  # Formato: MM/YYYY
+    es_principal = models.BooleanField(default=False)
+    token_tarjeta = models.CharField(max_length=100, blank=True)  # Para almacenar token de pasarela de pago
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'metodo_pago'
+        verbose_name = 'Método de Pago'
+        verbose_name_plural = 'Métodos de Pago'
+        ordering = ['-es_principal', '-fecha_creacion']
+
+    def __str__(self):
+        return f"{self.tipo_tarjeta} ****{self.ultimos_digitos}"
 
 # ============================================================
 # PETICIONES

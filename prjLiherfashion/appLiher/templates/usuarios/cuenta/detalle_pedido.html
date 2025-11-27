@@ -1,0 +1,132 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="order-detail-header">
+    <div class="header-left">
+        <a href="{% url 'mis_pedidos' %}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Volver a Pedidos
+        </a>
+        <h1>Pedido #{{ pedido.idpedido }}</h1>
+        <p>Realizado el {{ pedido.fecha|date:"d M Y - H:i" }}</p>
+    </div>
+    <div class="header-right">
+        <span class="status-badge status-{{ pedido.estado_pedido|lower }}">
+            {{ pedido.estado_pedido }}
+        </span>
+    </div>
+</div>
+
+<div class="order-detail-content">
+    <!-- Resumen del Pedido -->
+    <div class="order-summary">
+        <h2>Resumen del Pedido</h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <label>Fecha del Pedido</label>
+                <span>{{ pedido.fecha|date:"d M Y" }}</span>
+            </div>
+            <div class="summary-item">
+                <label>Método de Pago</label>
+                <span>{{ pedido.metodo_pago }}</span>
+            </div>
+            <div class="summary-item">
+                <label>Estado del Pago</label>
+                <span class="payment-status {{ pedido.estado_pago|lower }}">
+                    {{ pedido.estado_pago }}
+                </span>
+            </div>
+            <div class="summary-item">
+                <label>Total</label>
+                <span class="order-total">${{ pedido.total|floatformat:0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de Envío -->
+    <div class="shipping-info">
+        <h2>Información de Envío</h2>
+        <div class="info-card">
+            <div class="info-content">
+                <p><strong>Dirección de Envío:</strong></p>
+                <p>Se enviará a la dirección proporcionada durante la compra</p>
+                <!-- Aquí podrías mostrar la dirección específica si la tienes en el modelo -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline del Pedido -->
+    <div class="order-timeline">
+        <h2>Seguimiento del Pedido</h2>
+        <div class="timeline">
+            <div class="timeline-item {% if pedido.estado_pedido != 'Pendiente' %}completed{% endif %}">
+                <div class="timeline-marker">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Pedido Confirmado</h4>
+                    <p>Tu pedido ha sido recibido y confirmado</p>
+                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y - H:i" }}</span>
+                </div>
+            </div>
+
+            <div class="timeline-item {% if pedido.estado_pedido in 'Procesando,Enviado,Entregado' %}completed{% endif %}">
+                <div class="timeline-marker">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>En Proceso</h4>
+                    <p>Estamos preparando tu pedido</p>
+                    {% if pedido.estado_pedido in 'Procesando,Enviado,Entregado' %}
+                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="timeline-item {% if pedido.estado_pedido in 'Enviado,Entregado' %}completed{% endif %}">
+                <div class="timeline-marker">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Enviado</h4>
+                    <p>Tu pedido está en camino</p>
+                    {% if pedido.estado_pedido in 'Enviado,Entregado' %}
+                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="timeline-item {% if pedido.estado_pedido == 'Entregado' %}completed{% endif %}">
+                <div class="timeline-marker">
+                    <i class="bi bi-house-check"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Entregado</h4>
+                    <p>Pedido entregado satisfactoriamente</p>
+                    {% if pedido.estado_pedido == 'Entregado' %}
+                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones del Pedido -->
+    <div class="order-actions-detailed">
+        <h2>Acciones</h2>
+        <div class="actions-grid">
+            <button class="btn btn-outline-primary">
+                <i class="bi bi-download"></i> Descargar Factura
+            </button>
+            {% if pedido.estado_pedido == 'Entregado' %}
+            <button class="btn btn-outline-success">
+                <i class="bi bi-arrow-repeat"></i> Solicitar Cambio
+            </button>
+            {% endif %}
+            <button class="btn btn-outline-info">
+                <i class="bi bi-question-circle"></i> Ayuda con este Pedido
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
