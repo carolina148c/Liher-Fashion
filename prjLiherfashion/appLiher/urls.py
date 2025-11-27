@@ -16,6 +16,8 @@ urlpatterns = [
     path('devoluciones/', views.devoluciones, name='devoluciones'), 
     path('peticiones/', views.peticiones, name='peticiones'), 
     path('pedidos/', views.pedidos, name='pedidos'), 
+       path('api/producto/<int:idproducto>/detalle/', views.detalle_producto_json, name='detalle_producto_json'),
+
 
 
     # LOGIN Y REGISTRO 
