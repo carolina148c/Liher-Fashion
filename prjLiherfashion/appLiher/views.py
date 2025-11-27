@@ -867,6 +867,21 @@ def listar_movimientos_producto(request, id_catalogo):
     })
 
 
+# Compatibilidad: alias esperado por urls.py
+def crear_producto(request):
+    return agregar_producto(request)
+
+
+def eliminar_producto(request, id):
+    producto = get_object_or_404(Producto, idproducto=id)
+    try:
+        producto.delete()
+        messages.success(request, "Producto eliminado correctamente.")
+    except Exception as e:
+        messages.error(request, f"No se pudo eliminar el producto: {str(e)}")
+    return redirect('listar_productos_inventario')
+
+
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -1111,7 +1126,7 @@ def agregar_producto(request):
 
 @login_required
 def editar_producto(request, idproducto):
-    producto = get_object_or_404(Producto, idproducto=idproducto)
+    producto = get_object_or_404(Producto, idproducto=id)
     variantes = VarianteProducto.objects.filter(producto=producto)
 
     context = {
@@ -1303,8 +1318,8 @@ def editar_producto(request, idproducto):
                 messages.error(request, "El producto debe tener al menos una variante.")
             else:
                 messages.success(request, "Producto y variantes actualizados correctamente.")
-                
-            return redirect("editar_producto", idproducto=idproducto)
+
+            return redirect("editar_producto", id=id)
             
         except Exception as e:
             error_msg = f"Error al actualizar el producto: {str(e)}"
@@ -1673,8 +1688,8 @@ def detalle_peticion(request, id):
         p = PeticionProducto.objects.select_related('usuario', 'producto').get(pk=id)
         data = {
             'id': p.id,
-            'producto': p.producto.inventario.nombre,
-            'usuario': f"{p.usuario.nombre} {p.usuario.apellido}",
+            'producto': getattr(p.producto.producto, 'nombre', 'Producto sin nombre'),
+            'usuario': f"{getattr(p.usuario, 'first_name', '')} {getattr(p.usuario, 'last_name', '')}".strip(),
             'email': p.usuario.email,
             'cantidad': p.cantidad_solicitada,
             'fecha': p.fecha_peticion.strftime("%d/%m/%Y"),
