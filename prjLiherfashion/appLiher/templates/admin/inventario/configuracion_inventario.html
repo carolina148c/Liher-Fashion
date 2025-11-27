@@ -1,0 +1,77 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración del Inventario</title>
+    <link rel="stylesheet" href="{% static 'css/configuracion_inventario.css' %}">
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- Contenedor Principal -->
+    <div class="main-config-container">
+        
+        <!-- Header -->
+        <div class="config-header">
+            <h1>Configuración de Inventario</h1>
+            <p>Administra fácilmente las categorías, colores y tallas disponibles en tu tienda.</p>
+        </div>
+
+        <!-- Tarjetas de Configuración -->
+        <div class="config-grid">
+            
+            <!-- Tarjeta Categorías -->
+            <div class="config-card categoria-card">
+                <div class="config-icon">📂</div>
+                <div class="config-content">
+                    <h3>Categorías</h3>
+                    <p>Organiza tus productos por categorías</p>
+                    <a href="{% url 'agregar_categoria' %}" class="btn-config">
+                        Gestionar Categorías
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tarjeta Colores -->
+            <div class="config-card color-card">
+                <div class="config-icon">🎨</div>
+                <div class="config-content">
+                    <h3>Colores</h3>
+                    <p>Define la paleta de colores disponibles</p>
+                    <a href="{% url 'agregar_color' %}" class="btn-config">
+                        Gestionar Colores
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tarjeta Tallas -->
+            <div class="config-card talla-card">
+                <div class="config-icon">📏</div>
+                <div class="config-content">
+                    <h3>Tallas</h3>
+                    <p>Administra las tallas de tu inventario</p>
+                    <a href="{% url 'agregar_talla' %}" class="btn-config">
+                        Gestionar Tallas
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Botón de Retorno -->
+        <div class="footer-actions">
+            <a href="{% url 'listar_productos_inventario' %}" class="btn-secondary">
+                ← Volver al Catálogo
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

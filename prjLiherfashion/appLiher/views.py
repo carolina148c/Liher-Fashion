@@ -1,103 +1,67 @@
 # ==========================================================
 #                   IMPORTS ESTÁNDAR
 # ==========================================================
-
-
+import base64
 import json
-import re
-import mercadopago
+import uuid
+from decimal import Decimal, InvalidOperation
 
 
 # ==========================================================
 #                   IMPORTS DJANGO
 # ==========================================================
-
-from django.http import HttpResponse
-from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate, login, logout, views as auth_views
-)
+from django.contrib.auth import authenticate, login, logout, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
-from django.db.models import F, Sum
-from django.http import JsonResponse
-from django.shortcuts import (
-    render, redirect, get_object_or_404
-)
+from django.db.models import F, Sum, Count, Q
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Count, Sum, Q
-from django.views.decorators.csrf import csrf_exempt
 
 
 # ==========================================================
-#                   IMPORTS LOCALES
+#                   IMPORTACIONES LOCALES
 # ==========================================================
-
-
 from .decorators import admin_required, permiso_requerido
 from .forms import (
-    CustomPasswordResetForm, InventarioForm, UsuarioRegistroForm,
-    UsuarioUpdateForm, IdentificacionForm, EnvioForm
+    CustomPasswordResetForm,
+    UsuarioRegistroForm,
+    CategoriaForm,
+    ColorForm,
+    TallaForm,
 )
 from .models import (
-    Carrito, Catalogo, EntradaInventario, Identificacion, Inventario,
-    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Talla, Usuarios, Envio
+    Carrito,
+    Producto,
+    VarianteProducto,
+    Categoria,
+    Color,
+    ItemCarrito,
+    Permiso,
+    PeticionProducto,
+    Talla,
+    Usuarios,
 )
 
 
 
-# ==========================================================
-#                   FUNCIÓN AUXILIAR (Agregar al inicio)
-# ==========================================================
-
-def decimal_from_session(request, key, default='0'):
-    """
-    Obtiene un valor Decimal de la sesión de forma segura.
-    Maneja conversión desde float, string o Decimal.
-    """
-    from decimal import Decimal, InvalidOperation
-    
-    valor = request.session.get(key, default)
-    
-    try:
-        # Si ya es Decimal, retornarlo
-        if isinstance(valor, Decimal):
-            return valor
-        
-        # Si es None, retornar default
-        if valor is None:
-            return Decimal(str(default))
-        
-        # Convertir a string primero para evitar problemas de precisión
-        return Decimal(str(valor))
-    except (InvalidOperation, ValueError, TypeError):
-        return Decimal(str(default))
 
 
-# ========== CONFIGURACIÓN MERCADOPAGO ==========
-# Agregar después de los imports existentes
-
-def obtener_sdk_mercadopago():
-    """
-    Obtiene el SDK de MercadoPago con las credenciales de prueba.
-    Reemplaza con tus credenciales reales en producción.
-    """
-    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
-    return sdk
 
 
 
@@ -105,15 +69,21 @@ def obtener_sdk_mercadopago():
 #                   PÁGINA PRINCIPAL
 # ==========================================================
 
-
 def pagina_principal(request):
     return render(request, 'tienda/principal/pagina_principal.html')
+
+
+
+
+
+
+
+
 
 
 # ==========================================================
 #                   USUARIO / TIENDA
 # ==========================================================
-
 
 def carrito(request):
     """
@@ -154,6 +124,10 @@ def envio(request):
 
 
 
+def pago(request):
+    return render(request, 'tienda/carrito/pago.html')
+
+
 
 def identificacion(request):
     return render(request, 'tienda/carrito/identificacion.html')
@@ -161,21 +135,27 @@ def identificacion(request):
 
 
 def vista_productos(request):
-    productos = Inventario.objects.select_related('categoria', 'color', 'talla').all().order_by('categoria__categoria')
+    productos = VarianteProducto.objects.select_related(
+        'producto', 'talla', 'color'
+    ).all().order_by('producto__categoria__categoria')
+
     categorias = Categoria.objects.all().order_by('categoria')
     colores = Color.objects.all().order_by('color')
     tallas = Talla.objects.all().order_by('talla')
-    # Obtener filtros
+
     categoria_filtrar = request.GET.get('categoria', '').strip()
     color_filtrar = request.GET.get('color', '').strip()
     talla_filtrar = request.GET.get('talla', '').strip()
-    # Aplicar filtros
+
     if categoria_filtrar:
-        productos = productos.filter(categoria__categoria=categoria_filtrar)
+        productos = productos.filter(producto__categoria__categoria=categoria_filtrar)
+
     if color_filtrar:
         productos = productos.filter(color__color=color_filtrar)
+
     if talla_filtrar:
         productos = productos.filter(talla__talla=talla_filtrar)
+
     context = {
         'productos': productos,
         'categorias': categorias,
@@ -185,7 +165,15 @@ def vista_productos(request):
         'selected_color': color_filtrar,
         'selected_talla': talla_filtrar,
     }
+
     return render(request, 'tienda/principal/productos.html', context)
+
+
+
+
+
+
+
 
 
 
@@ -324,7 +312,7 @@ def registro_ajax(request):
     user.phone = phone
     user.save()
 
-    # ✅ Guardar permisos solo si el rol es administrador
+    # Guardar permisos solo si el rol es administrador
     if rol == "administrador":
         from .models import Permiso
         permisos, _ = Permiso.objects.get_or_create(usuario=user)
@@ -464,9 +452,9 @@ def activar_cuenta(request, uidb64, token):
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'Bienvenido, {user.first_name or user.email}!')
         if user.is_staff:
-            return redirect('panel_admin')  # admin → panel-admin/
+            return redirect('panel_admin')  
         else:
-            return redirect('pagina_principal')  # usuario → home normal
+            return redirect('pagina_principal')  
     else:
         return render(request, 'usuarios/autenticacion/activacion_invalida.html')
 
@@ -596,45 +584,50 @@ class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
 @require_POST
 def anadir_al_carrito(request, producto_id):
     try:
-        # Obtener el producto del inventario
-        producto = get_object_or_404(Inventario, pk=producto_id)
-        # Leer la cantidad enviada desde el frontend
+        variante = get_object_or_404(VarianteProducto, pk=producto_id)
+
         import json
         try:
             data = json.loads(request.body)
             cantidad = int(data.get('cantidad', 1))
         except (json.JSONDecodeError, ValueError):
             cantidad = 1
+
         if cantidad <= 0:
-            return JsonResponse({'success': False, 'message': 'La cantidad debe ser un número positivo.'})
-        if cantidad > producto.stock:
-            return JsonResponse({'success': False, 'message': f'Solo hay {producto.stock} unidades disponibles en stock.'})
-        # Obtener o crear carrito
+            return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
+
+        if cantidad > variante.stock:
+            return JsonResponse({'success': False, 'message': f'Solo hay {variante.stock} unidades.'})
+
         carrito = obtener_o_crear_carrito(request)
-        # Verificar si el producto ya existe en el carrito
-        item_existente = ItemCarrito.objects.filter(carrito=carrito, producto=producto).first()
+
+        item_existente = ItemCarrito.objects.filter(
+            carrito=carrito,
+            producto=variante
+        ).first()
+
         if item_existente:
             item_existente.cantidad += cantidad
             item_existente.save()
-            mensaje = f'Se han añadido {cantidad} unidades más de "{producto.catalogo.nombre}" al carrito.'
+            mensaje = f'Se añadieron {cantidad} unidades más de "{variante.producto.nombre}".'
         else:
             ItemCarrito.objects.create(
                 carrito=carrito,
-                producto=producto,
+                producto=variante,
                 cantidad=cantidad,
-                precio_unitario=producto.precio
+                precio_unitario=variante.producto.precio,
             )
-            mensaje = f'El producto "{producto.catalogo.nombre}" se ha añadido al carrito.'
+            mensaje = f'El producto "{variante.producto.nombre}" se añadió al carrito.'
+
         return JsonResponse({
             'success': True,
             'message': mensaje,
             'total_items': carrito.total_items_carrito
         })
-    except Inventario.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'El producto no existe o está agotado.'}, status=404)
-    except Exception as e:
-        print(f"Error al añadir al carrito: {e}")
-        return JsonResponse({'success': False, 'message': f'Ocurrió un error interno: {str(e)}'}, status=500)
+
+    except VarianteProducto.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Variante no existente.'}, status=404)
+
 
     
 
@@ -691,101 +684,9 @@ def eliminar_del_carrito(request, item_id):
         return JsonResponse({'success': False, 'message': f'Ocurrió un error: {str(e)}'}, status=500)
     
 
-# ==========================================================
-#                   IDENTIFICACIÓN
-# ==========================================================
 
 
-@login_required
-def identificacion(request):
-    """
-    Vista para gestionar los datos de identificación del cliente.
-    """
-    # ✅ VERIFICAR que el carrito no esté vacío
-    carrito = obtener_o_crear_carrito(request)
-    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
-        'producto__catalogo',
-        'producto__categoria',
-        'producto__color',
-        'producto__talla'
-    )
-    
-    if not items_carrito.exists():
-        messages.warning(request, 'Tu carrito está vacío. Agrega productos antes de continuar.')
-        return redirect('vista_productos')
-    
-    # ✅ BUSCAR identificación existente
-    identificacion_existente = None
-    if request.user.is_authenticated:
-        try:
-            identificacion_existente = Identificacion.objects.get(usuario=request.user)
-        except Identificacion.DoesNotExist:
-            try:
-                identificacion_existente = Identificacion.objects.get(email=request.user.email)
-                identificacion_existente.usuario = request.user
-                identificacion_existente.save(update_fields=['usuario'])
-            except Identificacion.DoesNotExist:
-                pass
 
-    # ✅ PROCESAR formulario
-    if request.method == 'POST':
-        form = IdentificacionForm(request.POST, instance=identificacion_existente)
-        
-        if form.is_valid():
-            identificacion = form.save(commit=False)
-            
-            if request.user.is_authenticated:
-                identificacion.usuario = request.user
-                identificacion.email = request.user.email
-            
-            try:
-                identificacion.save()
-                messages.success(request, 'Tus datos de identificación han sido guardados correctamente.')
-                
-                # ✅ Guardar en sesión
-                request.session['identificacion_id'] = identificacion.id
-                
-                # ✅ CALCULAR Y GUARDAR SUBTOTAL COMO STRING
-                subtotal = sum(item.total_precio for item in items_carrito)
-                request.session['subtotal'] = str(subtotal)
-                
-                return redirect('envio')
-                
-            except Exception as e:
-                messages.error(request, f'Error al guardar los datos: {str(e)}')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    field_label = form.fields[field].label if field in form.fields else field
-                    messages.error(request, f"{field_label}: {error}")
-    else:
-        # ✅ PRE-LLENAR con datos del usuario
-        initial_data = {}
-        if request.user.is_authenticated and not identificacion_existente:
-            initial_data = {
-                'email': request.user.email,
-                'nombre': request.user.first_name,
-                'apellido': request.user.last_name,
-                'celular': request.user.phone if hasattr(request.user, 'phone') else ''
-            }
-        
-        form = IdentificacionForm(
-            instance=identificacion_existente,
-            initial=initial_data if initial_data else None
-        )
-
-    # ✅ CALCULAR subtotal
-    subtotal = sum(item.total_precio for item in items_carrito)
-    
-    contexto = {
-        'form': form,
-        'identificacion_existente': identificacion_existente,
-        'carrito': carrito,
-        'items_carrito': items_carrito,
-        'subtotal': subtotal,
-    }
-    
-    return render(request, 'tienda/carrito/identificacion.html', contexto)
 
 
 
@@ -797,12 +698,11 @@ def identificacion(request):
 @login_required
 @admin_required
 def panel_admin(request):
-    permisos = {"vista_usuario": True}  # Siempre visible
+    permisos = {"vista_usuario": True}  
     if hasattr(request.user, 'permisos'):
         permisos.update({
             "inicio": request.user.permisos.inicio,
             "inventario": request.user.permisos.inventario,
-            "catalogo": request.user.permisos.catalogo,
             "pedidos": request.user.permisos.pedidos,
             "usuarios": request.user.permisos.usuarios,
             "devoluciones": request.user.permisos.devoluciones,
@@ -818,164 +718,207 @@ def panel_admin(request):
 
 
 
+
+
+
 # ==========================================================
 #                   INVENTARIO
 # ==========================================================
 
+def configuracion_inventario(request):
+    return render(request, 'admin/inventario/configuracion_inventario.html')
+
+
+
+def agregar_categoria(request):
+    form = CategoriaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_categoria')
+
+    elementos = Categoria.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Categoría',
+        'elementos': elementos,
+        'editar_url_name': 'editar_categoria',
+        'eliminar_url_name': 'eliminar_categoria'
+    })
+
+
+
+def editar_categoria(request, pk):
+    categoria = Categoria.objects.get(pk=pk)
+    form = CategoriaForm(request.POST or None, instance=categoria)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_categoria')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Categoría',
+        'elementos': Categoria.objects.all(),
+        'editar_url_name': 'editar_categoria',
+        'eliminar_url_name': 'eliminar_categoria'
+    })
+
+
+def eliminar_categoria(request, pk):
+    categoria = Categoria.objects.get(pk=pk)
+    categoria.delete()
+    return redirect('agregar_categoria')
+
+
+
+def agregar_color(request):
+    form = ColorForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_color')
+
+    elementos = Color.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Color',
+        'elementos': elementos,
+        'editar_url_name': 'editar_color',
+        'eliminar_url_name': 'eliminar_color'
+    })
+
+
+
+def editar_color(request, pk):
+    color = Color.objects.get(pk=pk)
+    form = ColorForm(request.POST or None, instance=color)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_color')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Color',
+        'elementos': Color.objects.all(),
+        'editar_url_name': 'editar_color',
+        'eliminar_url_name': 'eliminar_color'
+    })
+
+
+
+def eliminar_color(request, pk):
+    color = Color.objects.get(pk=pk)
+    color.delete()
+    return redirect('agregar_color')
+
+
+
+def agregar_talla(request):
+    form = TallaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_talla')
+
+    elementos = Talla.objects.all()
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Agregar Talla',
+        'elementos': elementos,
+        'editar_url_name': 'editar_talla',
+        'eliminar_url_name': 'eliminar_talla'
+    })
+
+
+
+def editar_talla(request, pk):
+    talla = Talla.objects.get(pk=pk)
+    form = TallaForm(request.POST or None, instance=talla)
+    if form.is_valid():
+        form.save()
+        return redirect('agregar_talla')
+    return render(request, 'admin/inventario/agregar_form.html', {
+        'form': form,
+        'titulo': 'Editar Talla',
+        'elementos': Talla.objects.all(),
+        'editar_url_name': 'editar_talla',
+        'eliminar_url_name': 'eliminar_talla'
+    })
+
+
+
+def eliminar_talla(request, pk):
+    talla = Talla.objects.get(pk=pk)
+    talla.delete()
+    return redirect('agregar_talla')
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.core.files.base import ContentFile
+from decimal import Decimal, InvalidOperation
+import base64
+import uuid
+
+def parse_precio(precio_str):
+    """
+    Convierte un string de precio a Decimal manejando formatos con puntos
+    """
+    if not precio_str:
+        return Decimal('0.00')
+    
+    try:
+        # Limpiar el string
+        precio_limpio = precio_str.strip().replace(' ', '')
+        
+        # Si tiene punto como separador de miles y coma decimal
+        if '.' in precio_limpio and ',' in precio_limpio:
+            # Formato: 1.000,00 -> 1000.00
+            precio_limpio = precio_limpio.replace('.', '').replace(',', '.')
+        # Si solo tiene puntos (podría ser separador de miles o decimal)
+        elif precio_limpio.count('.') == 1 and len(precio_limpio.split('.')[-1]) != 2:
+            # Si la parte decimal no tiene 2 dígitos, probablemente es separador de miles
+            precio_limpio = precio_limpio.replace('.', '')
+        # Si tiene comas como decimal
+        elif ',' in precio_limpio:
+            precio_limpio = precio_limpio.replace(',', '.')
+        
+        return Decimal(precio_limpio)
+    except (ValueError, InvalidOperation):
+        raise ValueError("Formato de precio inválido")
+
+
+
+def procesar_imagen_base64(imagen_base64, prefix="variante"):
+    """
+    Procesa una imagen en base64 y retorna un ContentFile
+    """
+    if not imagen_base64 or not imagen_base64.startswith('data:image'):
+        return None
+    
+    try:
+        format, imgstr = imagen_base64.split(';base64,')
+        ext = format.split('/')[-1]
+        
+        # Validar extensión
+        if ext not in ['jpeg', 'jpg', 'png', 'gif']:
+            raise ValueError("Formato de imagen no soportado")
+            
+        filename = f"{prefix}_{uuid.uuid4().hex[:8]}.{ext}"
+        image_data = ContentFile(base64.b64decode(imgstr), name=filename)
+        return image_data
+    except Exception as e:
+        raise ValueError(f"Error al procesar imagen: {str(e)}")
+
+
 @login_required
 @permiso_requerido('inventario')
-def listar_productos_tabla(request):
-    productos = Inventario.objects.select_related('categoria', 'color', 'talla', 'catalogo').all().order_by('catalogo__nombre')
-    total_productos = productos.count()
-    valor_inventario = productos.aggregate(total=Sum(F('precio') * F('stock')))['total'] or 0
-    productos_stock_bajo = productos.filter(stock__lt=10).count()
-    productos_agotados = productos.filter(stock=0).count()
-    stock_total_unidades = productos.aggregate(Sum('stock'))['stock__sum'] or 0
-    context = {
-        'productos': productos,
-        'total_productos': total_productos,
-        'valor_inventario': valor_inventario,
-        'productos_stock_bajo': productos_stock_bajo,
-        'productos_agotados': productos_agotados,
-        'stock_total_unidades': stock_total_unidades,
-        'active': 'inventario',
-    }
-    return render(request, 'admin/inventario/vista_inventario.html', context)
-
-
-
-@login_required
-def crear_producto(request):
-    if request.method == 'POST':
-        form = InventarioForm(request.POST, request.FILES)  #
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Producto añadido exitosamente al inventario.")
-            return redirect('listar_productos_tabla')
-        else:
-            messages.error(request, "Error al añadir el producto. Por favor, verifica los datos.")
-            return render(request, 'admin/inventario/crear_producto.html', {'form': form})
-    else:
-        form = InventarioForm()
-    return render(request, 'admin/inventario/crear_producto.html', {'form': form})
-
-
-
-@login_required
-def editar_producto(request, id):
-    producto = get_object_or_404(Inventario, idinventario=id)
-    
-    if request.method == 'POST':
-        form = InventarioForm(request.POST, request.FILES, instance=producto)
-        # Ocultamos stock antes de validar
-        form.fields.pop('stock', None)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Producto actualizado exitosamente.")
-            return redirect('listar_productos_tabla')
-        else:
-            messages.error(request, "Error al actualizar el producto. Por favor, verifica los datos.")
-    else:
-        form = InventarioForm(instance=producto)
-        form.fields.pop('stock', None)
-
-    return render(request, 'admin/inventario/editar_producto.html', {'form': form, 'producto': producto})
-
-
-
-@login_required
-def eliminar_producto(request, id):
-    producto = get_object_or_404(Inventario, idinventario=id)
-    if request.method == 'POST':
-        producto.delete()
-        messages.success(request, "Producto eliminado exitosamente.")
-        return redirect('listar_productos_tabla')
-    else:
-        return render(request, 'admin/inventario/eliminar_producto.html', {'producto': producto})
-    
-
-def mostrar_formulario_stock(request, id_catalogo):
-    # Obtener el producto principal del catálogo
-    producto_principal = get_object_or_404(Catalogo, idcatalogo=id_catalogo)
-    # Obtener todas las variantes (Inventario) relacionadas a este producto
-    variantes = Inventario.objects.filter(catalogo=producto_principal).order_by('color', 'talla')
-    if not variantes.exists():
-        messages.error(request, f"El producto '{producto_principal.nombre}' no tiene variantes de inventario.")
-        return redirect('listar_productos_catalogo')
-    context = {
-        'producto': producto_principal,
-        'variantes': variantes,
-    }
-    return render(request, 'admin/catalogo/formulario_stock.html', context)
-
-
-
-def procesar_entrada_stock(request):
-    """
-    Procesa la entrada de stock para una variante específica del inventario.
-    """
-    if request.method == 'POST':
-        try:
-            id_variante = request.POST.get('id_variante') 
-            cantidad = int(request.POST.get('cantidad_ingreso'))
-        except (ValueError, TypeError):
-            messages.error(request, "Error: La cantidad de ingreso debe ser un número entero.")
-            return redirect('listar_productos_catalogo')
-        
-        if cantidad <= 0:
-            messages.error(request, "Error: La cantidad debe ser mayor que cero.")
-            return redirect('listar_productos_catalogo')
-        
-        variante_a_surtir = get_object_or_404(Inventario, idinventario=id_variante)
-        
-        try:
-            with transaction.atomic():
-                EntradaInventario.objects.create(
-                    idinventario_fk=variante_a_surtir,
-                    cantidad_ingreso=cantidad,
-                )
-            
-            messages.success(
-                request, 
-                f"¡Entrada registrada! Se añadieron {cantidad} unidades a la variante "
-                f"{variante_a_surtir.color}/{variante_a_surtir.talla}. "
-                f"(Verifique el stock actualizado)."
-            )
-            
-            # ✅ CORRECCIÓN: Usar catalogo en lugar de producto
-            return redirect(
-                'listar_movimientos_producto', 
-                id_catalogo=variante_a_surtir.catalogo.idcatalogo
-            )
-            
-        except Exception as e:
-            messages.error(request, f"Error al procesar la entrada: {e}")
-            return redirect('listar_productos_catalogo')
-    
-    return redirect('listar_productos_catalogo')
-
-
-
-
-
-
-
-
-
-# ==========================================================
-#                   CATÁLOGO
-# ==========================================================
-
-@login_required
-@permiso_requerido('catalogo')
-def listar_productos_catalogo(request):
-    productos = Catalogo.objects.annotate(
-        n_variantes=Count('inventarios', distinct=True),
-        total_stock=Sum('inventarios__stock')
+def listar_productos_inventario(request):
+    productos = Producto.objects.annotate(
+        n_variantes=Count('variantes', distinct=True),
+        total_stock=Sum('variantes__stock')
     ).order_by('nombre')
 
     total_productos = productos.count()
-    total_variantes = Inventario.objects.count()
+    total_variantes = VarianteProducto.objects.count()
     productos_activos = productos.filter(total_stock__gt=0).count()
     productos_inactivos = total_productos - productos_activos
 
@@ -985,54 +928,444 @@ def listar_productos_catalogo(request):
         'total_variantes': total_variantes,
         'productos_activos': productos_activos,
         'productos_inactivos': productos_inactivos,
-        'active': 'catalogo', 
+        'active': 'inventario',
     }
-    return render(request, 'admin/catalogo/vista_catalogo.html', context)
+
+    return render(request, 'admin/inventario/vista_inventario.html', context)
+
 
 
 
 @login_required
 def agregar_producto(request):
+    categorias = Categoria.objects.all()
+    tallas = Talla.objects.all()
+    colores = Color.objects.all()
+    
+    context = {
+        "categorias": categorias,
+        "tallas": tallas,
+        "colores": colores,
+    }
+
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
-        descripcion = request.POST.get('descripcion', '').strip()
-        # Validación: nombre obligatorio
+        referencia = request.POST.get('referencia', '').strip()
+        categoria_id = request.POST.get('categoria')
+        descripcion = request.POST.get('descripcion', '')
+        estado = request.POST.get('estado', 'Activo')
+        precio_str = request.POST.get('precio', '0')
+        imagen = request.FILES.get('imagen')
+
+        context.update({
+            "nombre": nombre,
+            "referencia": referencia,
+            "categoria_id": categoria_id,
+            "descripcion": descripcion,
+            "precio": precio_str,
+        })
+
+        # Validaciones básicas
         if not nombre:
-            messages.error(request, "Error: El nombre del catálogo es obligatorio.")
-            return render(request, 'admin/catalogo/formulario_catalogo.html', {
-                'nombre': nombre,
-                'descripcion': descripcion
-            })
+            messages.error(request, "El nombre del producto es obligatorio.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        if not referencia:
+            messages.error(request, "La referencia del producto es obligatoria.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Validar que existe al menos una variante
+        if "variantes[0][talla]" not in request.POST:
+            messages.error(request, "Debe agregar mínimo una variante antes de guardar.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Validar referencia única
+        if Producto.objects.filter(referencia=referencia).exists():
+            messages.error(request, "La referencia ya existe. Use una referencia única.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Procesar categoría
+        categoria = None
+        if categoria_id:
+            try:
+                categoria = Categoria.objects.get(id=categoria_id)
+            except Categoria.DoesNotExist:
+                messages.error(request, "La categoría seleccionada no existe.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Procesar precio
         try:
-            nuevo_catalogo = Catalogo.objects.create(
+            precio_decimal = parse_precio(precio_str)
+            if precio_decimal < Decimal('0.00'):
+                raise ValueError("El precio no puede ser negativo")
+        except ValueError as e:
+            messages.error(request, f"Error en el precio: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Validar imagen
+        if imagen:
+            if not imagen.content_type.startswith('image/'):
+                messages.error(request, "El archivo debe ser una imagen válida.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
+            
+            if imagen.size > 5 * 1024 * 1024:  # 5MB
+                messages.error(request, "La imagen no debe superar los 5MB.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Crear producto
+        try:
+            producto = Producto.objects.create(
                 nombre=nombre,
-                descripcion=descripcion
+                referencia=referencia,
+                categoria=categoria,
+                descripcion=descripcion,
+                imagen=imagen,
+                estado=estado,
+                precio=precio_decimal
             )
-            messages.success(request, f"Catálogo '{nuevo_catalogo.nombre}' agregado con éxito.")
-            return redirect('listar_productos_catalogo')
         except Exception as e:
-            messages.error(request, f"Error al guardar el catálogo: {e}")
-            return render(request, 'admin/catalogo/formulario_catalogo.html', {
-                'nombre': nombre,
-                'descripcion': descripcion
-            })
-    return render(request, 'admin/catalogo/formulario_catalogo.html', {})
+            messages.error(request, f"Error al crear el producto: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Guardar variantes dinámicas
+        index = 0
+        variantes_guardadas = 0
+        variantes_errors = []
+        
+        while True:
+            talla_id = request.POST.get(f"variantes[{index}][talla]")
+            color_id = request.POST.get(f"variantes[{index}][color]")
+            stock = request.POST.get(f"variantes[{index}][stock]", '0')
+            
+            if talla_id is None:
+                break
+                
+            try:
+                talla_obj = Talla.objects.get(pk=talla_id)
+                color_obj = Color.objects.get(pk=color_id)
+                
+                # Verificar si ya existe esta combinación
+                if VarianteProducto.objects.filter(
+                    producto=producto, 
+                    talla=talla_obj, 
+                    color=color_obj
+                ).exists():
+                    variantes_errors.append(f"La variante {talla_obj.talla} - {color_obj.color} ya existe")
+                    index += 1
+                    continue
+                
+                VarianteProducto.objects.create(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj,
+                    stock=int(stock) if stock else 0,
+                )
+                variantes_guardadas += 1
+                
+            except (Talla.DoesNotExist, Color.DoesNotExist) as e:
+                variantes_errors.append(f"Variante {index+1}: Talla o color no válido")
+            except ValueError as e:
+                variantes_errors.append(f"Variante {index+1}: Stock inválido")
+            except Exception as e:
+                variantes_errors.append(f"Variante {index+1}: {str(e)}")
+            
+            index += 1
+
+        # Mostrar errores de variantes
+        for error in variantes_errors:
+            messages.warning(request, error)
+
+        if variantes_guardadas > 0:
+            messages.success(request, f"Producto agregado correctamente con {variantes_guardadas} variante(s).")
+            return redirect('listar_productos_inventario')
+        else:
+            messages.error(request, "No se pudieron guardar las variantes del producto.")
+            try:
+                producto.delete()
+            except Exception as e:
+                messages.error(request, f"Error al eliminar producto sin variantes: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+    return render(request, 'admin/inventario/agregar_producto.html', context)
 
 
 
 @login_required
-def listar_movimientos_producto(request, id_catalogo):
-    producto_principal = get_object_or_404(Catalogo, idcatalogo=id_catalogo)
-    ids_variantes = Inventario.objects.filter(catalogo=producto_principal).values_list('idinventario', flat=True)
-    movimientos = EntradaInventario.objects.filter(
-        idinventario_fk__in=ids_variantes
-    ).select_related('idinventario_fk').order_by('-fecha_entrada')
+def editar_producto(request, idproducto):
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+    variantes = VarianteProducto.objects.filter(producto=producto)
+
     context = {
-        'producto_principal': producto_principal,
-        'movimientos': movimientos,
-        'total_movimientos': movimientos.count()
+        "producto": producto,
+        "categorias": Categoria.objects.all(),
+        "tallas": Talla.objects.all(),
+        "colores": Color.objects.all(),
+        "variantes": variantes
     }
-    return render(request, 'admin/catalogo/vista_movimientos.html', context)
+
+    if request.method == 'POST':
+        try:
+            # Obtener los datos del formulario
+            nombre = request.POST.get("nombre", "").strip()
+            referencia = request.POST.get("referencia", "").strip()
+            
+            # Validar campos obligatorios
+            if not nombre:
+                messages.error(request, "El nombre del producto es obligatorio.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+
+            if not referencia:
+                messages.error(request, "La referencia del producto es obligatoria.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+
+            # Validar referencia única (excluyendo el producto actual)
+            if referencia != producto.referencia:
+                if Producto.objects.filter(referencia=referencia).exclude(idproducto=producto.idproducto).exists():
+                    messages.error(request, "La referencia ya existe. Use una referencia única.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+
+            producto.nombre = nombre
+            producto.referencia = referencia
+            
+            # Procesar categoría
+            categoria_id = request.POST.get("categoria")
+            if categoria_id:
+                try:
+                    producto.categoria = Categoria.objects.get(id=categoria_id)
+                except Categoria.DoesNotExist:
+                    messages.error(request, "La categoría seleccionada no existe.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+            else:
+                producto.categoria = None
+            
+            # Procesar precio
+            precio_str = request.POST.get("precio", "0").strip()
+            try:
+                precio_decimal = parse_precio(precio_str)
+                if precio_decimal < Decimal('0.00'):
+                    raise ValueError("El precio no puede ser negativo")
+                producto.precio = precio_decimal
+            except ValueError as e:
+                messages.error(request, f"Error en el precio: {str(e)}")
+                return render(request, "admin/inventario/editar_producto.html", context)
+            
+            producto.descripcion = request.POST.get("descripcion", "")
+            producto.estado = request.POST.get("estado", "Activo")
+
+            # Manejar la imagen
+            imagen = request.FILES.get("imagen")
+            if imagen:
+                if not imagen.content_type.startswith('image/'):
+                    messages.error(request, "El archivo debe ser una imagen válida.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+                
+                if imagen.size > 5 * 1024 * 1024:
+                    messages.error(request, "La imagen no debe superar los 5MB.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+                
+                producto.imagen = imagen
+
+            producto.save()
+            
+            # ===== PROCESAR VARIANTES ELIMINADAS =====
+            variantes_eliminadas = request.POST.getlist('variantes_eliminadas[]')
+            for variante_id in variantes_eliminadas:
+                try:
+                    variante = VarianteProducto.objects.get(idvariante=variante_id, producto=producto)
+                    nombre_variante = f"{variante.talla.talla} - {variante.color.color}"
+                    variante.delete()
+                    messages.info(request, f"Variante eliminada: {nombre_variante}")
+                except VarianteProducto.DoesNotExist:
+                    messages.warning(request, f"Variante con ID {variante_id} no encontrada para eliminar.")
+                except Exception as e:
+                    messages.warning(request, f"Error al eliminar variante {variante_id}: {str(e)}")
+
+            # ===== PROCESAR VARIANTES EDITADAS =====
+            variantes_editadas = {}
+            for key, value in request.POST.items():
+                if key.startswith('variantes_editadas['):
+                    parts = key.split('[')
+                    if len(parts) >= 3:
+                        variante_id = parts[1].replace(']', '')
+                        campo = parts[2].replace(']', '')
+                        
+                        if variante_id not in variantes_editadas:
+                            variantes_editadas[variante_id] = {}
+                        variantes_editadas[variante_id][campo] = value
+
+            for variante_id, datos in variantes_editadas.items():
+                try:
+                    variante = VarianteProducto.objects.get(idvariante=variante_id, producto=producto)
+                    
+                    if 'stock' in datos:
+                        try:
+                            variante.stock = int(datos['stock'])
+                        except ValueError:
+                            messages.warning(request, f"Stock inválido para variante {variante_id}")
+                    
+                    # Manejar imagen base64 si existe
+                    if 'imagen' in datos and datos['imagen']:
+                        try:
+                            image_data = procesar_imagen_base64(datos['imagen'], f"variante_{variante_id}")
+                            if image_data:
+                                variante.imagen = image_data
+                        except ValueError as e:
+                            messages.warning(request, f"Error en imagen de variante {variante_id}: {str(e)}")
+                    
+                    variante.save()
+                    
+                except VarianteProducto.DoesNotExist:
+                    messages.warning(request, f"Variante con ID {variante_id} no encontrada.")
+                except Exception as e:
+                    messages.warning(request, f"Error al actualizar variante {variante_id}: {str(e)}")
+
+            # ===== PROCESAR NUEVAS VARIANTES =====
+            variantes_nuevas = {}
+            for key, value in request.POST.items():
+                if key.startswith('variantes_nuevas['):
+                    parts = key.split('[')
+                    if len(parts) >= 3:
+                        index = parts[1].replace(']', '')
+                        campo = parts[2].replace(']', '')
+                        
+                        if index not in variantes_nuevas:
+                            variantes_nuevas[index] = {}
+                        variantes_nuevas[index][campo] = value
+
+            for index, datos in variantes_nuevas.items():
+                talla_id = datos.get('talla')
+                color_id = datos.get('color')
+                stock = datos.get('stock', '0')
+                imagen_base64 = datos.get('imagen', '')
+                
+                if talla_id and color_id:
+                    try:
+                        talla_obj = Talla.objects.get(id=talla_id)
+                        color_obj = Color.objects.get(id=color_id)
+                        
+                        # Verificar si ya existe esta variante
+                        existe = VarianteProducto.objects.filter(
+                            producto=producto,
+                            talla=talla_obj,
+                            color=color_obj
+                        ).exists()
+                        
+                        if not existe:
+                            variante_nueva = VarianteProducto(
+                                producto=producto,
+                                talla=talla_obj,
+                                color=color_obj,
+                                stock=int(stock) if stock else 0
+                            )
+                            
+                            # Manejar imagen base64 si existe
+                            if imagen_base64:
+                                try:
+                                    image_data = procesar_imagen_base64(imagen_base64, "variante_nueva")
+                                    if image_data:
+                                        variante_nueva.imagen = image_data
+                                except ValueError as e:
+                                    messages.warning(request, f"Error en imagen de nueva variante: {str(e)}")
+                            
+                            variante_nueva.save()
+                            messages.info(request, f"Nueva variante agregada: {talla_obj.talla} - {color_obj.color}")
+                        else:
+                            messages.warning(request, f"La variante {talla_obj.talla} - {color_obj.color} ya existe.")
+                            
+                    except Talla.DoesNotExist:
+                        messages.error(request, f"Talla con ID {talla_id} no encontrada.")
+                    except Color.DoesNotExist:
+                        messages.error(request, f"Color con ID {color_id} no encontrado.")
+                    except Exception as e:
+                        messages.error(request, f"Error al crear nueva variante: {str(e)}")
+
+            # Validar que el producto tenga al menos una variante después de las operaciones
+            if not VarianteProducto.objects.filter(producto=producto).exists():
+                messages.error(request, "El producto debe tener al menos una variante.")
+            else:
+                messages.success(request, "Producto y variantes actualizados correctamente.")
+                
+            return redirect("editar_producto", idproducto=idproducto)
+            
+        except Exception as e:
+            error_msg = f"Error al actualizar el producto: {str(e)}"
+            messages.error(request, error_msg)
+            return render(request, "admin/inventario/editar_producto.html", context)
+
+    return render(request, "admin/inventario/editar_producto.html", context)
+
+
+
+
+@login_required
+def guardar_variantes(request, idproducto):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido")
+
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+
+    try:
+        talla = request.POST.get("talla")
+        colores = request.POST.getlist("colores[]")
+        stocks = request.POST.getlist("stocks[]")
+        imagenes = request.FILES.getlist("imagenes[]")
+
+        if not talla:
+            return JsonResponse({"error": "Debes seleccionar una talla"}, status=400)
+
+        if not colores:
+            return JsonResponse({"error": "Debes seleccionar al menos un color"}, status=400)
+
+        talla_obj = Talla.objects.get(id=talla)
+        variantes_creadas = 0
+        errors = []
+
+        for i, color_id in enumerate(colores):
+            try:
+                color_obj = Color.objects.get(id=color_id)
+                stock_val = int(stocks[i]) if i < len(stocks) and stocks[i] else 0
+                
+                # Verificar si ya existe
+                if VarianteProducto.objects.filter(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj
+                ).exists():
+                    errors.append(f"La variante {talla_obj.talla} - {color_obj.color} ya existe")
+                    continue
+
+                VarianteProducto.objects.create(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj,
+                    stock=stock_val,
+                    imagen=imagenes[i] if i < len(imagenes) else None
+                )
+                variantes_creadas += 1
+                
+            except Color.DoesNotExist:
+                errors.append(f"Color con ID {color_id} no encontrado")
+            except ValueError:
+                errors.append(f"Stock inválido para color {color_id}")
+            except Exception as e:
+                errors.append(f"Error al crear variante: {str(e)}")
+
+        if errors:
+            return JsonResponse({
+                "success": variantes_creadas > 0,
+                "message": f"Se crearon {variantes_creadas} variantes, pero hubo {len(errors)} errores",
+                "errors": errors
+            }, status=207 if variantes_creadas > 0 else 400)
+        else:
+            return JsonResponse({
+                "success": True, 
+                "message": f"{variantes_creadas} variante(s) guardadas correctamente"
+            })
+            
+    except Talla.DoesNotExist:
+        return JsonResponse({"error": "La talla seleccionada no existe"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Error general: {str(e)}"}, status=500)
 
 
 
@@ -1103,8 +1436,6 @@ def editar_usuario(request, id):
                 mapa_permisos = {
                     "inicio": "inicio",
                     "inventario": "inventario",
-                    "catálogo": "catalogo", 
-                    "catalogo": "catalogo",
                     "pedidos": "pedidos",
                     "usuarios": "usuarios",
                     "devoluciones": "devoluciones",
@@ -1144,7 +1475,6 @@ def ver_usuario(request, user_id):
         permisos_dict = {
             "Inicio": permisos.inicio,
             "Inventario": permisos.inventario,
-            "Catálogo": permisos.catalogo,
             "Pedidos": permisos.pedidos,
             "Usuarios": permisos.usuarios,
             "Devoluciones": permisos.devoluciones,
@@ -1241,706 +1571,96 @@ def peticiones(request):
 @admin_required
 @permiso_requerido('peticiones')
 def listar_peticiones(request):
-    peticiones = PeticionProducto.objects.select_related('usuario', 'producto').order_by('-fecha_peticion')
-    return render(request, 'admin/peticiones/peticiones.html', {'active': 'peticiones', 'peticiones': peticiones})
+    peticiones = PeticionProducto.objects.select_related(
+        'usuario', 'producto'
+    ).order_by('-fecha_peticion')
+
+    # Contadores
+    stats = {
+        'pendientes': peticiones.filter(atendida=False).count(),
+        'revision': peticiones.filter(atendida=False).count(),  
+        'aceptadas': peticiones.filter(atendida=True).count(),
+        'rechazadas': peticiones.filter(atendida=False).count(),  
+        'total': peticiones.count(),
+    }
+
+    return render(request, 'admin/peticiones/peticiones.html', {
+        'active': 'peticiones',
+        'peticiones': peticiones,
+        'stats': stats
+    })
 
 
 
 @login_required
 @require_POST
 def crear_peticion(request, producto_id):
-    """
-    Crea una petición de producto cuando no hay stock disponible.
-    """
     try:
-        producto = Inventario.objects.get(pk=producto_id)
-    except Inventario.DoesNotExist:
-        return JsonResponse({
-            'success': False, 
-            'message': 'Producto no existe.'
-        }, status=404)
+        variante = VarianteProducto.objects.get(pk=producto_id)
+    except VarianteProducto.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Variante no existe.'}, status=404)
 
+    import json
     try:
         data = json.loads(request.body)
         cantidad = int(data.get('cantidad', 1))
-    except (ValueError, json.JSONDecodeError):
+    except:
         cantidad = 1
 
     if cantidad <= 0:
-        return JsonResponse({
-            'success': False, 
-            'message': 'Cantidad inválida.'
-        })
+        return JsonResponse({'success': False, 'message': 'Cantidad inválida.'})
 
-    # Crear la petición
-    try:
-        peticion = PeticionProducto.objects.create(
-            usuario=request.user,
-            producto=producto,
-            cantidad_solicitada=cantidad
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Petición creada para {producto.catalogo.nombre}, cantidad {cantidad}.',
-            'peticion_id': peticion.id
-        })
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Error al crear la petición: {str(e)}'
-        }, status=500)
-
-
-    # ==========================================================
-    #                   ENVÍO
-    # ==========================================================
-
-@login_required
-def envio(request):
-    """
-    Vista para gestionar la información de envío del pedido.
-    """
-    # PASO 1: Verificar que el usuario tenga identificación
-    identificacion_existente = None
-    if request.user.is_authenticated:
-        try:
-            identificacion_existente = Identificacion.objects.get(usuario=request.user)
-        except Identificacion.DoesNotExist:
-            messages.warning(request, 'Por favor completa tu identificación primero.')
-            return redirect('identificacion')
-    
-    # PASO 2: Verificar que el carrito no esté vacío
-    carrito = obtener_o_crear_carrito(request)
-    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
-        'producto__catalogo'
+    peticion = PeticionProducto.objects.create(
+        usuario=request.user,
+        producto=variante,
+        cantidad_solicitada=cantidad
     )
-    
-    if not items_carrito.exists():
-        messages.warning(request, 'Tu carrito está vacío.')
-        return redirect('carrito')
-    
-    # PASO 3: Buscar envío existente o crear uno nuevo
-    envio_existente = None
-    if request.user.is_authenticated:
-        envio_existente = Envio.objects.filter(
-            usuario=request.user,
-            activo=True
-        ).order_by('-fecha_actualizacion').first()
-    
-    # PASO 4: Calcular subtotal
-    subtotal = sum(item.total_precio for item in items_carrito)
-    
-    # Costos de envío según empresa
-    COSTOS_ENVIO = {
-        'coordinadora': Decimal('12000'),
-        'interrapidisimo': Decimal('15000'),
-        'envia': Decimal('15000'),
-    }
-    
-    # PASO 5: Procesar formulario
-    if request.method == 'POST':
-        form = EnvioForm(request.POST, instance=envio_existente)
-        
-        if form.is_valid():
-            envio_obj = form.save(commit=False)
-            
-            # Asociar con usuario e identificación
-            if request.user.is_authenticated:
-                envio_obj.usuario = request.user
-                envio_obj.identificacion = identificacion_existente
-            
-            # Calcular costo de envío según empresa seleccionada
-            empresa = envio_obj.empresa_envio
-            envio_obj.costo_envio = COSTOS_ENVIO.get(empresa, Decimal('12000'))
-            
-            # Si el teléfono del receptor no se proporciona, usar el de identificación
-            if not envio_obj.telefono_receptor and identificacion_existente:
-                envio_obj.telefono_receptor = identificacion_existente.celular
-            
-            # Marcar como activo
-            envio_obj.activo = True
-            
-            try:
-                with transaction.atomic():
-                    # Desactivar todos los envíos anteriores del usuario
-                    Envio.objects.filter(
-                        usuario=request.user,
-                        activo=True
-                    ).update(activo=False)
-                    
-                    # Guardar el nuevo envío
-                    envio_obj.save()
-                    
-                    # ✅ GUARDAR EN SESIÓN COMO STRING (NO FLOAT)
-                    request.session['envio_id'] = envio_obj.id
-                    request.session['costo_envio'] = str(envio_obj.costo_envio)
-                    request.session['subtotal'] = str(subtotal)
-                    
-                    messages.success(request, f'Información de envío guardada correctamente.')
-                    return redirect('pago')
-                    
-            except Exception as e:
-                messages.error(request, f'Error al guardar el envío: {str(e)}')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    field_label = form.fields[field].label if field in form.fields else field
-                    messages.error(request, f"{field_label}: {error}")
-    else:
-        # Pre-llenar datos si existen
-        initial_data = {}
-        if envio_existente:
-            form = EnvioForm(instance=envio_existente)
-        else:
-            if identificacion_existente:
-                initial_data['nombre_receptor'] = f"{identificacion_existente.nombre} {identificacion_existente.apellido}"
-                initial_data['telefono_receptor'] = identificacion_existente.celular
-            form = EnvioForm(initial=initial_data)
-    
-    # Calcular costo de envío actual
-    costo_envio = Decimal('12000')  # Por defecto Coordinadora
-    if envio_existente:
-        costo_envio = envio_existente.costo_envio
-    
-    total = subtotal + costo_envio
-    
-    contexto = {
-        'form': form,
-        'identificacion': identificacion_existente,
-        'envio': envio_existente,
-        'carrito': carrito,
-        'items_carrito': items_carrito,
-        'subtotal': subtotal,
-        'costo_envio': costo_envio,
-        'total': total,
-        'costos_envio': COSTOS_ENVIO,
-    }
-    
-    return render(request, 'tienda/carrito/datos_envio.html', contexto)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Petición creada para {variante.producto.nombre}, cantidad {cantidad}.'
+    })
 
 
-# ==========================================================
-#                   CONFIGURACIÓN
-# ==========================================================
-
-@login_required
-def pago(request):
-    """
-    Vista para procesar el pago del pedido con MercadoPago.
-    """
-    # PASO 1: Verificar identificación
-    try:
-        identificacion = Identificacion.objects.get(usuario=request.user)
-    except Identificacion.DoesNotExist:
-        messages.warning(request, 'Debes completar tu identificación primero.')
-        return redirect('identificacion')
-    
-    # PASO 2: Verificar envío activo
-    try:
-        envio = Envio.objects.filter(
-            usuario=request.user, 
-            activo=True
-        ).order_by('-fecha_actualizacion').first()
-        
-        if not envio:
-            messages.warning(request, 'Debes completar los datos de envío primero.')
-            return redirect('envio')
-            
-    except Exception as e:
-        messages.error(request, f'Error al cargar datos de envío: {str(e)}')
-        return redirect('envio')
-    
-    # PASO 3: Obtener carrito
-    carrito = obtener_o_crear_carrito(request)
-    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
-        'producto__catalogo',
-        'producto__categoria',
-        'producto__color',
-        'producto__talla'
-    )
-    
-    if not items_carrito.exists():
-        messages.warning(request, 'Tu carrito está vacío.')
-        return redirect('carrito')
-    
-    # PASO 4: Calcular totales usando Decimal
-    subtotal = sum(item.total_precio for item in items_carrito)
-    costo_envio = envio.costo_envio
-    
-    # Obtener descuento de sesión de forma segura
-    descuento = decimal_from_session(request, 'descuento', '0')
-    cupon_aplicado = request.session.get('cupon_aplicado', None)
-    
-    # Calcular total
-    total = subtotal + costo_envio - descuento
-    
-    # PASO 5: Guardar en sesión como STRING
-    request.session['subtotal'] = str(subtotal)
-    request.session['costo_envio'] = str(costo_envio)
-    request.session['descuento'] = str(descuento)
-    request.session['total'] = str(total)
-    request.session['identificacion_id'] = identificacion.id
-    request.session['envio_id'] = envio.id
-    
-    # PASO 6: Métodos de pago
-    payment_methods = [
-        {
-            'id': 'mercadopago', 
-            'name': 'MercadoPago', 
-            'icon': 'fas fa-credit-card', 
-            'color': 'text-primary',
-            'description': 'Tarjetas, PSE, Efectivo y más'
-        }
-    ]
-    
-    # PASO 7: Generar preferencia de MercadoPago
-    preference_id = None
-    error_message = None
-    
-    try:
-        print("=" * 60)
-        print("🔍 DEBUG - Creando preferencia de pago")
-        print("=" * 60)
-        
-        # Verificar credenciales
-        if not hasattr(settings, 'MERCADO_PAGO_ACCESS_TOKEN'):
-            error_message = "❌ MERCADO_PAGO_ACCESS_TOKEN no configurado"
-            print(error_message)
-            raise ValueError(error_message)
-        
-        if not hasattr(settings, 'MERCADO_PAGO_PUBLIC_KEY'):
-            error_message = "❌ MERCADO_PAGO_PUBLIC_KEY no configurado"
-            print(error_message)
-            raise ValueError(error_message)
-        
-        print(f"✅ ACCESS_TOKEN: {settings.MERCADO_PAGO_ACCESS_TOKEN[:20]}...")
-        print(f"✅ PUBLIC_KEY: {settings.MERCADO_PAGO_PUBLIC_KEY[:20]}...")
-        
-        # Inicializar SDK
-        sdk = obtener_sdk_mercadopago()
-        print("✅ SDK inicializado")
-        
-        # Construir items para MercadoPago
-        items_mp = []
-        for item in items_carrito:
-            item_data = {
-                "title": f"{item.producto.catalogo.nombre} - {item.producto.color}/{item.producto.talla}",
-                "quantity": item.cantidad,
-                "unit_price": float(item.precio_unitario),
-                "currency_id": "COP"
-            }
-            items_mp.append(item_data)
-            print(f"   📦 Item: {item_data['title']} - ${item_data['unit_price']}")
-        
-        # Agregar costo de envío
-        if costo_envio > 0:
-            envio_item = {
-                "title": f"Envío - {envio.get_empresa_envio_display()}",
-                "quantity": 1,
-                "unit_price": float(costo_envio),
-                "currency_id": "COP"
-            }
-            items_mp.append(envio_item)
-            print(f"   🚚 Envío: ${envio_item['unit_price']}")
-        
-        # Agregar descuento si existe
-        if descuento > 0:
-            descuento_item = {
-                "title": f"Descuento cupón - {cupon_aplicado}",
-                "quantity": 1,
-                "unit_price": -float(descuento),
-                "currency_id": "COP"
-            }
-            items_mp.append(descuento_item)
-            print(f"   🎟️ Descuento: -${abs(descuento_item['unit_price'])}")
-        
-        print(f"💰 Total a pagar: ${float(total)}")
-        
-        # ✅ CREAR PREFERENCIA SIN notification_url
-        preference_data = {
-            "items": items_mp,
-            "payer": {
-                "name": identificacion.nombre,
-                "surname": identificacion.apellido,
-                "email": identificacion.email,
-                "phone": {
-                    "number": identificacion.celular
-                },
-                "identification": {
-                    "type": identificacion.tipo_documento,
-                    "number": identificacion.numero_documento
-                },
-                "address": {
-                    "street_name": envio.direccion_completa,
-                    "city_name": envio.municipio,
-                    "state_name": envio.departamento
-                }
-            },
-            "back_urls": {
-                "success": request.build_absolute_uri(reverse('pago_exitoso')),
-                "failure": request.build_absolute_uri(reverse('pago_fallido')),
-                "pending": request.build_absolute_uri(reverse('pago_pendiente'))
-            },
-            "payment_methods": {
-                "excluded_payment_methods": [],
-                "excluded_payment_types": [],
-                "installments": 12
-            },
-            "statement_descriptor": "LIHER FASHION",
-            "external_reference": f"PEDIDO-{request.user.id}-{timezone.now().timestamp()}",
-            "expires": False,
-        }
-        
-        # ⚠️ NO incluir notification_url en desarrollo local
-        print("⚠️ Modo DEBUG: notification_url omitida (requiere URL pública)")
-        
-        print("\n🔄 Enviando preferencia a MercadoPago...")
-        preference_response = sdk.preference().create(preference_data)
-        
-        print(f"📊 Status de respuesta: {preference_response['status']}")
-        
-        if preference_response["status"] == 201:
-            preference = preference_response["response"]
-            preference_id = preference["id"]
-            
-            # Guardar en sesión
-            request.session['preference_id'] = preference_id
-            
-            print(f"✅ Preferencia creada exitosamente!")
-            print(f"   ID: {preference_id}")
-            print(f"   Init Point: {preference.get('init_point', 'N/A')}")
-            print("=" * 60)
-        else:
-            error_message = f"Error al crear preferencia - Status: {preference_response['status']}"
-            print(f"❌ {error_message}")
-            print(f"📄 Respuesta completa: {preference_response}")
-            messages.error(request, 'Error al crear preferencia de pago. Intenta nuevamente.')
-            
-    except Exception as e:
-        error_message = str(e)
-        print(f"\n❌ EXCEPCIÓN al crear preferencia:")
-        print(f"   Error: {error_message}")
-        import traceback
-        traceback.print_exc()
-        print("=" * 60)
-        messages.error(request, f'Error al inicializar el sistema de pagos: {error_message}')
-    
-    # PASO 8: Contexto
-    contexto = {
-        'identificacion': identificacion,
-        'envio': envio,
-        'carrito': carrito,
-        'items_carrito': items_carrito,
-        'total_items': carrito.total_items_carrito,
-        'subtotal': float(subtotal),
-        'costo_envio': float(costo_envio),
-        'descuento': float(descuento),
-        'total': float(total),
-        'cupon_aplicado': cupon_aplicado,
-        'payment_methods': payment_methods,
-        'mostrar_productos': True,
-        'puede_editar': True,
-        'preference_id': preference_id,
-        'mercado_pago_public_key': getattr(settings, 'MERCADO_PAGO_PUBLIC_KEY', ''),
-        'error_message': error_message,
-    }
-    
-    return render(request, 'tienda/carrito/pago.html', contexto)
 
 
 @login_required
 @require_POST
-def aplicar_cupon(request):
-    """
-    Valida y aplica un cupón de descuento.
-    """
+def aprobar_peticion(request, id):
     try:
-        data = json.loads(request.body)
-        codigo_cupon = data.get('cupon', '').strip().upper()
-        
-        if not codigo_cupon:
-            return JsonResponse({'success': False, 'message': 'Código de cupón inválido'})
-        
-        # Cupones válidos
-        cupones_validos = {
-            'DESCUENTO10': {'porcentaje': Decimal('0.10'), 'nombre': '10% de descuento'},
-            'DESCUENTO20': {'porcentaje': Decimal('0.20'), 'nombre': '20% de descuento'},
-            'PRIMERACOMPRA': {'porcentaje': Decimal('0.15'), 'nombre': '15% primera compra'},
-            'BIENVENIDA': {'porcentaje': Decimal('0.05'), 'nombre': '5% bienvenida'},
-            'NAVIDAD2024': {'porcentaje': Decimal('0.25'), 'nombre': '25% Navidad'},
+        peticion = PeticionProducto.objects.get(id=id)
+        peticion.atendida = True
+        peticion.save()
+        return JsonResponse({'success': True})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
+
+
+
+@login_required
+@require_POST
+def rechazar_peticion(request, id):
+    try:
+        peticion = PeticionProducto.objects.get(id=id)
+        peticion.delete()  # o marcar campo "rechazada"
+        return JsonResponse({'success': True})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
+
+
+
+def detalle_peticion(request, id):
+    try:
+        p = PeticionProducto.objects.select_related('usuario', 'producto').get(pk=id)
+        data = {
+            'id': p.id,
+            'producto': p.producto.inventario.nombre,
+            'usuario': f"{p.usuario.nombre} {p.usuario.apellido}",
+            'email': p.usuario.email,
+            'cantidad': p.cantidad_solicitada,
+            'fecha': p.fecha_peticion.strftime("%d/%m/%Y"),
+            'estado': "Aceptada" if p.atendida else "Pendiente"
         }
-        
-        if codigo_cupon in cupones_validos:
-            cupon = cupones_validos[codigo_cupon]
-            
-            # ✅ Usar función auxiliar para obtener valores
-            subtotal = decimal_from_session(request, 'subtotal', '0')
-            costo_envio = decimal_from_session(request, 'costo_envio', '0')
-            
-            # Calcular descuento
-            descuento = subtotal * cupon['porcentaje']
-            nuevo_total = subtotal + costo_envio - descuento
-            
-            # ✅ Guardar COMO STRING
-            request.session['descuento'] = str(descuento)
-            request.session['total'] = str(nuevo_total)
-            request.session['cupon_aplicado'] = codigo_cupon
-            request.session['cupon_nombre'] = cupon['nombre']
-            
-            return JsonResponse({
-                'success': True,
-                'descuento': float(descuento),
-                'descuento_formatted': f'${float(descuento):,.0f}',
-                'nuevo_total': float(nuevo_total),
-                'nuevo_total_formatted': f'${float(nuevo_total):,.0f}',
-                'message': f'✓ Cupón aplicado: {cupon["nombre"]}',
-                'cupon_nombre': cupon['nombre']
-            })
-        else:
-            return JsonResponse({'success': False, 'message': 'Cupón inválido o expirado'})
-            
-    except Exception as e:
-        print(f"❌ Error aplicar_cupon: {e}")
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
-
-
-# ==========================================================
-#  5. REMOVER CUPÓN (CORREGIDA)
-# ==========================================================
-
-@login_required
-@require_POST
-def remover_cupon(request):
-    """
-    Elimina el cupón aplicado.
-    """
-    try:
-        # ✅ Usar función auxiliar
-        subtotal = decimal_from_session(request, 'subtotal', '0')
-        costo_envio = decimal_from_session(request, 'costo_envio', '0')
-        
-        nuevo_total = subtotal + costo_envio
-        
-        # Resetear
-        request.session['descuento'] = '0'
-        request.session['total'] = str(nuevo_total)
-        request.session.pop('cupon_aplicado', None)
-        request.session.pop('cupon_nombre', None)
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Cupón removido correctamente',
-            'nuevo_total': float(nuevo_total),
-            'nuevo_total_formatted': f'${float(nuevo_total):,.0f}'
-        })
-    except Exception as e:
-        print(f"❌ Error remover_cupon: {e}")
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
-
-
-@login_required
-def pago_exitoso(request):
-    """
-    Maneja el retorno exitoso de MercadoPago.
-    """
-    payment_id = request.GET.get('payment_id')
-    status = request.GET.get('status')
-    external_reference = request.GET.get('external_reference')
-    preference_id = request.GET.get('preference_id')
-    
-    # Verificar el pago con MercadoPago
-    try:
-        sdk = obtener_sdk_mercadopago()
-        payment_info = sdk.payment().get(payment_id)
-        
-        if payment_info["status"] == 200:
-            payment_data = payment_info["response"]
-            
-            # Validar que el pago esté aprobado
-            if payment_data["status"] == "approved":
-                # Procesar el pedido
-                carrito = obtener_o_crear_carrito(request)
-                
-                with transaction.atomic():
-                    # Reducir stock
-                    for item in carrito.items_carrito.all():
-                        producto = item.producto
-                        if producto.stock >= item.cantidad:
-                            producto.stock -= item.cantidad
-                            producto.save()
-                        else:
-                            messages.error(request, f'Stock insuficiente para {producto.catalogo.nombre}')
-                            return redirect('carrito')
-                    
-                    # Marcar carrito como completado
-                    carrito.completado = True
-                    carrito.save()
-                    
-                    # Limpiar sesión
-                    request.session.pop('carrito_id', None)
-                    request.session.pop('preference_id', None)
-                    request.session.pop('descuento', None)
-                    request.session.pop('cupon_aplicado', None)
-                
-                contexto = {
-                    'payment_id': payment_id,
-                    'status': payment_data["status"],
-                    'status_detail': payment_data.get("status_detail", ""),
-                    'transaction_amount': payment_data.get("transaction_amount", 0),
-                    'payment_method': payment_data.get("payment_method_id", ""),
-                }
-                
-                messages.success(request, '¡Pago exitoso! Tu pedido ha sido procesado.')
-                return render(request, 'tienda/carrito/pago_exitoso.html', contexto)
-            else:
-                return redirect('pago_pendiente')
-        else:
-            messages.error(request, 'No se pudo verificar el pago.')
-            return redirect('pago_fallido')
-            
-    except Exception as e:
-        print(f"❌ Error verificando pago: {e}")
-        messages.error(request, 'Error al verificar el pago.')
-        return redirect('pago_fallido')
-
-
-
-@login_required
-def pago_fallido(request):
-    """
-    Maneja el retorno fallido de MercadoPago.
-    """
-    payment_id = request.GET.get('payment_id')
-    status = request.GET.get('status')
-    
-    contexto = {
-        'payment_id': payment_id,
-        'status': status,
-    }
-    
-    messages.error(request, 'El pago no pudo ser procesado.')
-    return render(request, 'tienda/carrito/pago_fallido.html', contexto)
-
-
-@login_required
-def pago_pendiente(request):
-    """
-    Maneja el retorno pendiente de MercadoPago.
-    """
-    payment_id = request.GET.get('payment_id')
-    status = request.GET.get('status')
-    
-    contexto = {
-        'payment_id': payment_id,
-        'status': status,
-    }
-    
-    messages.warning(request, 'Tu pago está pendiente de confirmación.')
-    return render(request, 'tienda/carrito/pago_pendiente.html', contexto)
-
-
-# ========== WEBHOOK DE MERCADOPAGO ==========
-
-@csrf_exempt
-@require_POST
-def webhook_mercadopago(request):
-    """
-    Recibe notificaciones de MercadoPago sobre cambios en el estado del pago.
-    """
-    try:
-        data = json.loads(request.body)
-        
-        # MercadoPago envía el tipo de notificación
-        topic = data.get('topic') or data.get('type')
-        
-        if topic == 'payment':
-            payment_id = data.get('data', {}).get('id') or data.get('id')
-            
-            # Consultar información del pago
-            sdk = obtener_sdk_mercadopago()
-            payment_info = sdk.payment().get(payment_id)
-            
-            if payment_info["status"] == 200:
-                payment_data = payment_info["response"]
-                
-                # Aquí puedes actualizar el estado del pedido en tu base de datos
-                # según el estado del pago: approved, pending, rejected, etc.
-                
-                print(f"✅ Webhook recibido - Payment ID: {payment_id}, Status: {payment_data['status']}")
-                
-                # Guardar log del webhook (opcional, puedes crear un modelo para esto)
-                
-        return HttpResponse(status=200)
-        
-    except Exception as e:
-        print(f"❌ Error procesando webhook: {e}")
-        return HttpResponse(status=500)
-
-        from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-import json
-# Asegúrate de importar todas las dependencias necesarias (settings, obtener_sdk_mercadopago, etc.)
-
-@require_POST
-@login_required
-def crear_preferencia_mp(request):
-    """
-    Crea la preferencia de Mercado Pago y devuelve el ID.
-    """
-    try:
-        # Recuperar datos de sesión (o rehacer los cálculos si es más seguro)
-        total = request.session.get('total')
-        identificacion_id = request.session.get('identificacion_id')
-        envio_id = request.session.get('envio_id')
-        # ... otros datos de sesión necesarios ...
-        
-        if not total:
-            return JsonResponse({'status': 'error', 'message': 'Total no encontrado en sesión.'}, status=400)
-        
-        # Recalcular items para la preferencia (lógica idéntica al PASO 7 de tu vista 'pago')
-        carrito = obtener_o_crear_carrito(request)
-        items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(...)
-        identificacion = Identificacion.objects.get(pk=identificacion_id)
-        envio = Envio.objects.get(pk=envio_id)
-        
-        # Lógica de construcción de items (igual a tu PASO 7)
-        # ... items_mp, descuento, costo_envio ...
-
-        sdk = obtener_sdk_mercadopago()
-        
-        preference_data = {
-            "items": items_mp,
-            "payer": { 
-                # ... datos del pagador (identificacion) ... 
-                "email": identificacion.email,
-                # ...
-            },
-            "back_urls": {
-                "success": request.build_absolute_uri(reverse('pago_exitoso')),
-                "failure": request.build_absolute_uri(reverse('pago_fallido')),
-                "pending": request.build_absolute_uri(reverse('pago_pendiente'))
-            },
-            "auto_return": "approved",
-            "notification_url": request.build_absolute_uri(reverse('webhook_mercadopago')),
-            "external_reference": f"PEDIDO-{request.user.id}-{timezone.now().timestamp()}",
-            # ... otros campos ...
-        }
-        
-        preference_response = sdk.preference().create(preference_data)
-
-        if preference_response["status"] == 201:
-            preference_id = preference_response["response"]["id"]
-            # En lugar de guardar en sesión aquí, la devolvemos al frontend
-            return JsonResponse({'status': 'success', 'preference_id': preference_id})
-        else:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Error de MP al crear preferencia',
-                'details': preference_response['response']
-            }, status=400)
-
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({'success': True, 'data': data})
+    except PeticionProducto.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)

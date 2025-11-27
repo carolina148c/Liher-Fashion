@@ -5,53 +5,295 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Producto</title>
-    <link rel="stylesheet" href="{% static 'css/vistainventario.css' %}">
-    <link rel="stylesheet" href="{% static 'css/editar_producto.css' %}">
-
+    <link rel="stylesheet" href="{% static 'css/agregar_producto.css' %}">
 </head>
 <body>
-    <div class="header">
-        <div class="header-title">
-            <div class="burger-icon">
-                <div></div>
-                <div></div>
-                <div></div>
+
+<form method="post" action="" enctype="multipart/form-data" id="formEditarProducto">
+    {% csrf_token %}
+
+    <!-- CONTENEDOR PARA INPUTS HIDDEN DINÁMICOS -->
+    <div id="hiddenInputsContainer"></div>
+
+    <div class="page-container">
+        <!-- HEADER -->
+        <div class="header-box">
+            <h2>Editar Producto</h2>
+        </div>
+
+        <!-- Mostrar mensajes -->
+        {% if messages %}
+        <div class="messages-container" style="padding: 0 24px;">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" 
+                style="padding: 12px; margin: 16px 0; border-radius: 4px; 
+                        {% if message.tags == 'success' %}background: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                        {% elif message.tags == 'error' %}background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
+                        {% else %}background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;{% endif %}">
+                {{ message }}
             </div>
-            INVENTARIO
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="content-box">
+            <!-- INFORMACIÓN GENERAL -->
+            <div class="section-header">
+                <span class="section-icon">📋</span>
+                <span>Información General</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nombre del producto:</label>
+                    <input type="text" class="form-input" name="nombre" value="{{ producto.nombre }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Referencia:</label>
+                    <input type="text" class="form-input" name="referencia" value="{{ producto.referencia }}" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Categoría:</label>
+                    <select name="categoria" class="form-input" required>
+                        <option value="">Seleccione una categoría</option>
+                        {% for c in categorias %}
+                        <option value="{{ c.id }}" 
+                            {% if producto.categoria.id == c.id %}selected{% endif %}>
+                            {{ c.categoria }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Precio:</label>
+                    <input type="text" class="form-input" name="precio" 
+                        value="{% if producto.precio %}{{ producto.precio|floatformat:0 }}{% else %}0{% endif %}" 
+                        required
+                        oninput="formatPrice(this)">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label class="form-label">Descripción:</label>
+                    <textarea class="form-input form-textarea" name="descripcion" maxlength="500">{{ producto.descripcion }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- IMAGEN -->
+                <div class="form-group">
+                    <label class="form-label">Imagen Principal</label>
+                    <div class="image-upload-container">
+                        <div class="image-preview">
+                            {% if producto.imagen %}
+                                <img src="{{ producto.imagen.url }}" alt="Imagen actual" id="previewImagenPrincipal">
+                            {% else %}
+                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 48px;"></div>
+                            {% endif %}
+                        </div>
+                        <label class="upload-btn">
+                            📎 Cambiar Imagen
+                            <input type="file" name="imagen" accept="image/*" id="inputImagenPrincipal" hidden>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ESTADO -->
+                <div class="form-group">
+                    <label class="form-label">Estado General:</label>
+                    <select name="estado" class="form-input">
+                        <option value="Activo" {% if producto.estado == "Activo" %}selected{% endif %}>Activo</option>
+                        <option value="Inactivo" {% if producto.estado == "Inactivo" %}selected{% endif %}>Inactivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- VARIANTES -->
+            <div class="variants-section">
+                <div class="section-header">
+                    <span class="section-icon">🎨</span>
+                    <span>Variantes del Producto</span>
+                </div>
+
+                <div class="variants-header">
+                    <div></div>
+                    <button type="button" class="btn-add-variant" id="btnAbrirModal">
+                        Agregar Nueva Variante
+                    </button>
+                </div>
+
+                <!-- LISTADO DE VARIANTES -->
+                {% if variantes %}
+                    <div class="variants-list" id="variantesLista">
+                        {% for v in variantes %}
+                            <div class="variant-card" 
+                                 data-id="{{ v.idvariante }}"
+                                 data-talla="{{ v.talla.id }}"  
+                                 data-color="{{ v.color.id }}"  
+                                 data-stock="{{ v.stock }}"
+                                 data-imagen="{% if v.imagen %}{{ v.imagen.url }}{% endif %}"
+                                 id="variante-{{ v.idvariante }}">
+                                
+                                <div style="display: flex; gap: 24px; align-items: center;">
+                                    {% if v.imagen %}
+                                        <img src="{{ v.imagen.url }}" alt="{{ v.color.color }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e0e0e0;">
+                                    {% else %}
+                                        <div style="width: 50px; height: 50px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid #e0e0e0; color: #999; font-size: 20px;"></div>
+                                    {% endif %}
+                                    
+                                    <div>
+                                        <span style="font-size: 12px; color: #999;">Talla</span>
+                                        <div style="font-size: 14px; font-weight: 600; color: #333;">{{ v.talla.talla }}</div>
+                                    </div>
+                                    
+                                    <div>
+                                        <span style="font-size: 12px; color: #999;">Color</span>
+                                        <div style="font-size: 14px; font-weight: 600; color: #333;">{{ v.color.color }}</div>
+                                    </div>
+                                    
+                                    <div>
+                                        <span style="font-size: 12px; color: #999;">Stock</span>
+                                        <div style="font-size: 14px; font-weight: 600; color: #ff4081;">{{ v.stock }} unidades</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 8px;">
+                                    <button 
+                                        type="button"
+                                        onclick="editarVarianteExistente('{{ v.idvariante }}')"
+                                        class="btn-action-variant"
+                                    >
+                                        ✏️ Editar
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onclick="marcarComoEliminada('{{ v.idvariante }}')"
+                                        class="btn-delete-variant"
+                                    >
+                                        🗑️ Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div class="empty-title">No hay variantes agregadas</div>
+                        <div class="empty-subtitle">Haz clic en "Agregar Nueva Variante" para comenzar</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer-box">
+            <div class="footer-info" id="contadorVariantes">
+                {{ variantes|length }} Variante{{ variantes|length|pluralize }}
+            </div>
+
+            <div class="footer-actions">
+                <a href="{% url 'listar_productos_inventario' %}" class="btn btn-cancel">Cancelar</a>
+                <button type="submit" class="btn btn-save" id="btnGuardar">Guardar Cambios</button>
+            </div>
         </div>
     </div>
+</form>
 
-    <div class="form-container">
-        <h2>Editar Producto: {{ producto.producto }}</h2>
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="form-group">
-                    {{ field.label_tag }}
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small class="form-text text-muted">{{ field.help_text }}</small>
-                    {% endif %}
-                    {% if field.errors %}
-                        <ul class="errorlist">
-                            {% for error in field.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            <button type="submit" class="btn-submit">Actualizar Producto</button>
-            <a href="{% url 'listar_productos_tabla' %}" class="btn-cancel">Cancelar</a>
-        </form>
-    </div>
+<!-- Modal agregar variante -->
+{% include 'admin/inventario/agregar_variante.html' %}
+{% include 'admin/inventario/editar_variante.html' %}
 
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+<script src="{% static 'js/inventario.js' %}"></script>
+
+<script>
+// Script adicional para manejar el envío del formulario
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formEditarProducto');
+    const btnGuardar = document.getElementById('btnGuardar');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('🔍 Formulario enviándose...');
+            
+            // Verificar que hay al menos una variante
+            const variantesVisibles = document.querySelectorAll('.variant-card:not([style*="display: none"])');
+            if (variantesVisibles.length === 0) {
+                e.preventDefault();
+                alert('Error: El producto debe tener al menos una variante.');
+                return;
+            }
+            
+            // Inyectar inputs hidden antes del envío
+            if (typeof inyectarInputsHidden === 'function') {
+                inyectarInputsHidden();
+            }
+            
+            console.log('✅ Formulario enviado correctamente');
+        });
+    }
+    
+    // Preview de imagen principal
+    const inputImagenPrincipal = document.getElementById('inputImagenPrincipal');
+    if (inputImagenPrincipal) {
+        inputImagenPrincipal.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('previewImagenPrincipal');
+            
+            if (file && preview) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+// Función para formatear precio
+function formatPrice(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value) {
+        value = parseInt(value, 10).toLocaleString('es-ES');
+    }
+    input.value = value;
+}
+
+// Función para marcar variante como eliminada
+function marcarComoEliminada(varianteId) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta variante?')) {
+        // Ocultar la variante visualmente
+        const varianteElement = document.getElementById('variante-' + varianteId);
+        if (varianteElement) {
+            varianteElement.style.display = 'none';
+        }
+        
+        // Agregar a la lista de eliminadas (manejado por el JS principal)
+        if (typeof agregarVarianteEliminada === 'function') {
+            agregarVarianteEliminada(varianteId);
+        }
+        
+        // Actualizar contador
+        actualizarContadorVariantes();
+    }
+}
+
+// Actualizar contador de variantes
+function actualizarContadorVariantes() {
+    const variantesVisibles = document.querySelectorAll('.variant-card:not([style*="display: none"])');
+    const contador = document.getElementById('contadorVariantes');
+    if (contador) {
+        contador.textContent = variantesVisibles.length + ' Variante' + (variantesVisibles.length !== 1 ? 's' : '');
+    }
+}
+</script>
+
 </body>
 </html>

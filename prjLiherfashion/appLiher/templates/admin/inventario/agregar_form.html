@@ -1,0 +1,83 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <link rel="stylesheet" href="{% static 'css/configuracion_inventario.css' %}">
+</head>
+<body>
+
+<div class="container container-form">
+    <div class="card">
+
+        <!-- Header -->
+        <div class="card-header">
+            <h2>{{ titulo }}</h2>
+        </div>
+
+        <div class="card-body">
+
+            <!-- FORMULARIO -->
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.non_field_errors }}
+                <div class="mb-3">
+                    {{ form.as_p }}
+                </div>
+                <button type="submit" class="btn-primary">
+                    Guardar
+                </button>
+            </form>
+
+            <!-- TABLA DE ELEMENTOS EXISTENTES -->
+            {% if elementos %}
+            <h5>📋 Elementos registrados</h5>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in elementos %}
+                    <tr>
+                        <td data-label="Nombre">{{ item }}</td>
+                        <td data-label="Acciones">
+                            <a href="{% url editar_url_name item.pk %}" 
+                               class="btn btn-sm btn-warning">
+                               Editar
+                            </a>
+                            <a href="{% url eliminar_url_name item.pk %}" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('¿Estás segura de eliminar este elemento?');">
+                               Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-box">
+                <p>📦</p>
+                <p>No hay elementos registrados aún</p>
+                <p>Comienza agregando el primer elemento con el formulario de arriba</p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="card-footer">
+            <a href="{% url 'configuracion_inventario' %}" class="btn-secondary">
+                ← Volver
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
