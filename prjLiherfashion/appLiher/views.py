@@ -1785,8 +1785,40 @@ def crear_preferencia_mp(request):
     """Placeholder para crear una preferencia de pago (MercadoPago/otro).
     Devuelve un id ficticio para permitir la integración en frontend.
     """
-    # Recibir datos mínimos y devolver un id de preferencia ficticio
+    # Recibir datos mínimos
     importe = request.POST.get('importe') or request.POST.get('amount') or '0'
+
+    # Intentar usar credenciales reales si existen en .env (no forzamos la integración)
+    try:
+        from decouple import config
+        mp_token = config('MERCADOPAGO_ACCESS_TOKEN', default=None)
+    except Exception:
+        mp_token = None
+
+    if mp_token:
+        try:
+            import mercadopago
+            sdk = mercadopago.SDK(mp_token)
+            # Construir preferencia mínima
+            preference_data = {
+                "items": [
+                    {
+                        "title": "Compra Liher Fashion",
+                        "quantity": 1,
+                        "unit_price": float(importe)
+                    }
+                ]
+            }
+            preference = sdk.preference().create(preference_data)
+            resp = preference.get('response') if isinstance(preference, dict) else getattr(preference, 'response', None)
+            pref_id = resp.get('id') if resp else f"pref_{uuid.uuid4().hex[:10]}"
+            return JsonResponse({'success': True, 'preference_id': pref_id, 'preference': resp})
+        except Exception as e:
+            # Si falla la integración real, volvemos al placeholder pero sin interrumpir
+            pref_id = f"pref_{uuid.uuid4().hex[:10]}"
+            return JsonResponse({'success': True, 'preference_id': pref_id, 'amount': importe, 'note': 'fallback - error usando SDK', 'error': str(e)})
+
+    # Sin credenciales, devolver preferencia ficticia (placeholder)
     pref_id = f"pref_{uuid.uuid4().hex[:10]}"
     return JsonResponse({'success': True, 'preference_id': pref_id, 'amount': importe})
 
