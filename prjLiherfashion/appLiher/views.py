@@ -946,11 +946,18 @@ def eliminar_del_carrito(request, item_id):
 # ==========================================================
 #                   ADMIN
 # ==========================================================
+from django.db.models import Count, Sum, Avg, Max, Min, F
+
 
 @login_required
 @admin_required
 def panel_admin(request):
-    permisos = {"vista_usuario": True}  
+
+    # -----------------------------------------------------
+    #                PERMISOS DEL ADMIN
+    # -----------------------------------------------------
+    permisos = {"vista_usuario": True}
+
     if hasattr(request.user, 'permisos'):
         permisos.update({
             "inicio": request.user.permisos.inicio,
@@ -961,15 +968,118 @@ def panel_admin(request):
             "peticiones": request.user.permisos.peticiones,
         })
 
-    return render(request, "admin/panel_admin.html", {
-        "permisos_json": json.dumps(permisos)
-    })
+    # -----------------------------------------------------
+    #                  PRODUCTOS + VARIANTES
+    # -----------------------------------------------------
+    productos = (
+        Producto.objects
+        .annotate(
+            n_variantes=Count("variantes"),
+            total_stock=Sum("variantes__stock")
+        )
+    )
+
+    total_productos = productos.count()
+    productos_activos = productos.filter(estado="Activo").count()
+    productos_inactivos = productos.filter(estado="Inactivo").count()
+
+    total_variantes = VarianteProducto.objects.count()
+
+    productos_con_variantes = productos.filter(n_variantes__gt=0).count()
+    productos_sin_variantes = productos.filter(n_variantes=0).count()
+
+    productos_con_stock = productos.filter(total_stock__gt=0).count()
+    productos_sin_stock = productos.filter(total_stock__lte=0).count()
+
+    # -----------------------------------------------------
+    #                   PRECIOS
+    # -----------------------------------------------------
+    precio_promedio = productos.aggregate(avg=Avg("precio"))["avg"] or 0
+    precio_max = productos.aggregate(m=Max("precio"))["m"] or 0
+    precio_min = productos.aggregate(m=Min("precio"))["m"] or 0
+
+    valor_inventario = productos.aggregate(
+        total=Sum(F("precio") * F("total_stock"))
+    )["total"] or 0
+
+    # -----------------------------------------------------
+    #                      USUARIOS
+    # -----------------------------------------------------
+    usuarios = Usuarios.objects.all()
+    total_usuarios = usuarios.count()
+    usuarios_activos = usuarios.filter(is_active=True).count()
+    usuarios_inactivos = usuarios.filter(is_active=False).count()
+
+    # -----------------------------------------------------
+    #                   CONTEXTO
+    # -----------------------------------------------------
+    context = {
+        "permisos_json": json.dumps(permisos),
+
+        # Productos
+        "total_productos": total_productos,
+        "productos_activos": productos_activos,
+        "productos_inactivos": productos_inactivos,
+
+        # Variantes
+        "total_variantes": total_variantes,
+        "productos_con_variantes": productos_con_variantes,
+        "productos_sin_variantes": productos_sin_variantes,
+
+        # Stock
+        "productos_con_stock": productos_con_stock,
+        "productos_sin_stock": productos_sin_stock,
+
+        # Precios
+        "precio_promedio": round(precio_promedio, 2),
+        "precio_max": precio_max,
+        "precio_min": precio_min,
+        "valor_inventario": round(valor_inventario, 2),
+
+        # Usuarios
+        "total_usuarios": total_usuarios,
+        "usuarios_activos": usuarios_activos,
+        "usuarios_inactivos": usuarios_inactivos,
+    }
+
+    return render(request, "admin/panel_admin.html", context)
+
+def inventario(request):
+    productos = Producto.objects.all()
+
+    total_productos = productos.count()
+    productos_activos = productos.filter(estado="Activo").count()
+    productos_inactivos = productos.filter(estado="Inactivo").count()
+    total_variantes = Variante.objects.count()
+
+    context = {
+        "productos": productos,
+        "total_productos": total_productos,
+        "productos_activos": productos_activos,
+        "productos_inactivos": productos_inactivos,
+        "total_variantes": total_variantes,
+    }
+
+    return render(request, "admin/inventario.html", context)
 
 
+def inventario_estadisticas(request):
+    productos = Producto.objects.all()
 
+    total_productos = productos.count()
+    productos_activos = productos.filter(estado="Activo").count()
+    productos_inactivos = productos.filter(estado="Inactivo").count()
 
+    total_variantes = Variante.objects.count()
 
+    context = {
+        "total_productos": total_productos,
+        "productos_activos": productos_activos,
+        "productos_inactivos": productos_inactivos,
+        "total_variantes": total_variantes,
+    }
 
+    return render(request, "admin/inventario_estadisticas.html", context)
 
 
 
