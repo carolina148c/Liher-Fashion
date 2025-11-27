@@ -32,6 +32,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Prefetch
+from django.core.paginator import Paginator
 
 
 # ==========================================================
@@ -70,7 +72,11 @@ from .models import (
 # ==========================================================
 
 def pagina_principal(request):
-    return render(request, 'tienda/principal/pagina_principal.html')
+    categorias = Categoria.objects.all()  
+    
+    return render(request, 'tienda/principal/pagina_principal.html', {
+        'categorias': categorias,
+    })
 
 
 
@@ -135,29 +141,51 @@ def identificacion(request):
 
 
 def vista_productos(request):
-    productos = VarianteProducto.objects.select_related(
-        'producto', 'talla', 'color'
-    ).all().order_by('producto__categoria__categoria')
 
-    categorias = Categoria.objects.all().order_by('categoria')
-    colores = Color.objects.all().order_by('color')
-    tallas = Talla.objects.all().order_by('talla')
+    # Obtener productos con sus variantes
+    productos = Producto.objects.filter(
+        estado='Activo',
+        variantes__activo=True
+    ).prefetch_related(
+        Prefetch('variantes', queryset=VarianteProducto.objects.filter(activo=True))
+    ).distinct()
 
+    # Obtener filtros disponibles
+    categorias = Categoria.objects.filter(
+        producto__variantes__activo=True
+    ).distinct().order_by('categoria')
+    
+    colores = Color.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('color')
+    
+    tallas = Talla.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('talla')
+
+    # Aplicar filtros
     categoria_filtrar = request.GET.get('categoria', '').strip()
     color_filtrar = request.GET.get('color', '').strip()
     talla_filtrar = request.GET.get('talla', '').strip()
 
     if categoria_filtrar:
-        productos = productos.filter(producto__categoria__categoria=categoria_filtrar)
+        productos = productos.filter(categoria__categoria=categoria_filtrar)
 
     if color_filtrar:
-        productos = productos.filter(color__color=color_filtrar)
+        productos = productos.filter(variantes__color__color=color_filtrar)
 
     if talla_filtrar:
-        productos = productos.filter(talla__talla=talla_filtrar)
+        productos = productos.filter(variantes__talla__talla=talla_filtrar)
+
+    # Paginación
+    paginator = Paginator(productos, 12)  # <-- CORREGIDO
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        'productos': productos,
+        'productos': page_obj,
         'categorias': categorias,
         'colores': colores,
         'tallas': tallas,
@@ -166,10 +194,48 @@ def vista_productos(request):
         'selected_talla': talla_filtrar,
     }
 
-    return render(request, 'tienda/principal/productos.html', context)
+    return render(request, 'tienda/principal/card_productos.html', context)
 
 
 
+# views.py
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
+def detalle_producto_json(request, idproducto):
+    """API endpoint para obtener detalle del producto con variantes"""
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+    
+    # Serializar variantes
+    variantes_data = []
+    for variante in producto.variantes.select_related('talla', 'color').filter(activo=True):
+        variantes_data.append({
+            'id': variante.idvariante,
+            'talla': {
+                'id': variante.talla.id,
+                'talla': variante.talla.talla
+            },
+            'color': {
+                'id': variante.color.id,
+                'color': variante.color.color,
+                'codigo_hex': variante.color.codigo_hex
+            },
+            'stock': variante.stock,
+            'imagen': variante.imagen.url if variante.imagen else producto.imagen.url if producto.imagen else None
+        })
+    
+    data = {
+        'idproducto': producto.idproducto,
+        'nombre': producto.nombre,
+        'referencia': producto.referencia,
+        'precio': str(producto.precio),
+        'descripcion': producto.descripcion or '',
+        'imagen': producto.imagen.url if producto.imagen else None,
+        'categoria': producto.categoria.nombre if producto.categoria else None,
+        'variantes': variantes_data
+    }
+    
+    return JsonResponse(data)
 
 
 
@@ -848,15 +914,6 @@ def eliminar_talla(request, pk):
     return redirect('agregar_talla')
 
 
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.core.files.base import ContentFile
-from decimal import Decimal, InvalidOperation
-import base64
-import uuid
 
 def parse_precio(precio_str):
     """

@@ -1,0 +1,528 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos - Liher Fashion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/pagina_principal.css' %}">
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="titulo">
+            <div class="logo-section">
+                <img src="{% static 'Img/1.png' %}">
+                <span>Liher Fashion</span>
+            </div>
+            <div class="opciones">
+                <div class="user-menu">
+                    <i class="bi bi-person-circle"></i>
+                    {% if user.is_authenticated %}
+                        <ul>
+                            <li>Bienvenido, {{ user.username }}!</li>
+                            <li><a href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                        </ul>
+                    {% else %}
+                        <ul>
+                            <li><a href="{% url 'acceso' %}">Iniciar sesión</a></li>
+                            <li><a href="{% url 'registro_usuario' %}">Registrarse</a></li>
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="cart-menu">
+                    <i class="bi bi-basket-fill"></i> 
+                    <ul>
+                        <li>
+                            <a href="{% url 'carrito' %}">
+                                carrito(<span id="carrito-count">{{ request.session.carrito_items|default:0 }}</span>)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAV -->
+        <nav class="banner" id="sticky-nav">
+            <ul>
+                <li><a href="{% url 'pagina_principal' %}">INICIO</a></li>
+                <li><a href="{% url 'vista_productos' %}" class="active">PRODUCTOS</a></li>
+                <li><a href="#destacados">DESTACADO</a></li>
+                <li><a href="#ofertas">OFERTAS</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main-container">
+        <!-- FILTROS -->
+        <div class="filter-section">
+            <h2>Filtrar Productos</h2>
+            <form method="get" id="formFiltros" class="filter-form">
+                <div class="filter-group">
+                    <label for="categoria">Categoría</label>
+                    <select id="categoria" name="categoria">
+                        <option value="">Todas las categorías</option>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.categoria }}" 
+                                {% if categoria.categoria == selected_categoria %}selected{% endif %}>
+                                {{ categoria.categoria }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="color">Color</label>
+                    <select id="color" name="color">
+                        <option value="">Todos los colores</option>
+                        {% for color in colores %}
+                            <option value="{{ color.color }}" 
+                                {% if color.color == selected_color %}selected{% endif %}>
+                                {{ color.color }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="talla">Talla</label>
+                    <select id="talla" name="talla">
+                        <option value="">Todas las tallas</option>
+                        {% for talla in tallas %}
+                            <option value="{{ talla.talla }}" 
+                                {% if talla.talla == selected_talla %}selected{% endif %}>
+                                {{ talla.talla }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="filter-btn">
+                    Filtrar Productos
+                </button>
+            </form>
+        </div>
+
+        <!-- CONTADOR DE PRODUCTOS -->
+        <div id="contadorProductos" class="product-counter">
+            Mostrando {{ productos|length }} productos
+        </div>
+
+        <!-- PRODUCTOS -->
+        <div id="productosContainer" class="products-grid">
+            {% for producto in productos %}
+                <div class="product-card" data-producto-id="{{ producto.idproducto }}">
+                    <div class="product-header">
+                        <h3>{{ producto.nombre }}</h3>
+                        {% if producto.categoria %}
+                            <span class="category-badge">{{ producto.categoria.categoria }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Imagen del producto -->
+                    <div class="product-image-container">
+                        {% if producto.imagen %}
+                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="product-image">
+                        {% else %}
+                            <img src="{% static 'Img/sin_imagen.jpg' %}" alt="Sin imagen disponible" class="product-image">
+                        {% endif %}
+                        
+                        <!-- Indicador de variantes disponibles -->
+                        <div class="variants-indicator">
+                            <span class="variants-count">
+                                {{ producto.variantes.count }} variantes
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="product-body">
+                        <div class="product-info">
+                            <p class="product-description">{{ producto.descripcion|default:"Producto de alta calidad" }}</p>
+                            
+                            <!-- Precio range -->
+                            <div class="price-range">
+                                {% with min_price=producto.variantes.all|dictsort:"precio"|first %}
+                                {% with max_price=producto.variantes.all|dictsortreversed:"precio"|first %}
+                                    {% if min_price.precio == max_price.precio %}
+                                        <span class="price">${{ min_price.precio }}</span>
+                                    {% else %}
+                                        <span class="price">${{ min_price.precio }} - ${{ max_price.precio }}</span>
+                                    {% endif %}
+                                {% endwith %}
+                                {% endwith %}
+                            </div>
+
+                            <!-- Colores disponibles -->
+                            <div class="available-colors">
+                                <strong>Colores:</strong>
+                                {% for color in producto.variantes.all|dictsort:"color.color"|slice:":5" %}
+                                    <span class="color-dot" style="background-color: {{ color.color.codigo_hex|default:'#ccc' }}"
+                                          title="{{ color.color.color }}"></span>
+                                {% endfor %}
+                                {% if producto.variantes.count > 5 %}
+                                    <span class="more-colors">+{{ producto.variantes.count|add:"-5" }}</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Tallas disponibles -->
+                            <div class="available-sizes">
+                                <strong>Tallas:</strong>
+                                {% for talla in producto.variantes.all|dictsort:"talla.talla"|slice:":6" %}
+                                    <span class="size-tag">{{ talla.talla.talla }}</span>
+                                {% endfor %}
+                                {% if producto.variantes.count > 6 %}
+                                    <span class="more-sizes">+{{ producto.variantes.count|add:"-6" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-select-variants" 
+                                    onclick="abrirModalVariantes({{ producto.idproducto }})">
+                                Ver Opciones
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <h3>No hay productos disponibles</h3>
+                    <p>Intenta ajustar los filtros para ver más resultados.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if productos.has_other_pages %}
+        <div class="pagination">
+            {% if productos.has_previous %}
+                <a href="?page={{ productos.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="page-link">Anterior</a>
+            {% endif %}
+
+            {% for num in productos.paginator.page_range %}
+                {% if productos.number == num %}
+                    <span class="page-current">{{ num }}</span>
+                {% else %}
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                       class="page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if productos.has_next %}
+                <a href="?page={{ productos.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                   class="page-link">Siguiente</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- MODAL DE VARIANTES -->
+    <div id="modalVariantes" class="modal-variantes">
+        <div class="modal-content">
+            <span class="close-modal" onclick="cerrarModalVariantes()">&times;</span>
+            <div id="modalVariantesContent">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PETICIÓN -->
+    {% include 'tienda/principal/modal_peticion.html' %}
+
+    <script>
+        // === Configuración global ===
+        const CSRF_TOKEN = '{{ csrf_token }}';
+
+        // === Datos de productos para el modal ===
+        const productosData = {
+            {% for producto in productos %}
+            "{{ producto.idproducto }}": {
+                id: "{{ producto.idproducto }}",
+                nombre: "{{ producto.nombre|escapejs }}",
+                descripcion: "{{ producto.descripcion|default:'Producto de alta calidad'|escapejs }}",
+                imagen: "{% if producto.imagen %}{{ producto.imagen.url }}{% else %}{% static 'Img/sin_imagen.jpg' %}{% endif %}",
+                categoria: "{{ producto.categoria.categoria|escapejs }}",
+                variantes: [
+                    {% for variante in producto.variantes.all %}
+                    {
+                        id: "{{ variante.idvariante }}",
+                        talla: "{{ variante.talla.talla }}",
+                        color: "{{ variante.color.color }}",
+                        color_hex: "{{ variante.color.codigo_hex|default:'#cccccc' }}",
+                        precio: {{ variante.precio }},
+                        descuento: {{ variante.descuento }},
+                        stock: {{ variante.stock }},
+                        imagen: "{% if variante.imagen %}{{ variante.imagen.url }}{% else %}{% if producto.imagen %}{{ producto.imagen.url }}{% else %}{% static 'Img/sin_imagen.jpg' %}{% endif %}{% endif %}"
+                    },
+                    {% endfor %}
+                ]
+            },
+            {% endfor %}
+        };
+
+        // === Modal de variantes ===
+        function abrirModalVariantes(productoId) {
+            const producto = productosData[productoId];
+            if (!producto) return;
+
+            const modal = document.getElementById('modalVariantes');
+            const content = document.getElementById('modalVariantesContent');
+
+            // Agrupar variantes por color
+            const variantesPorColor = {};
+            producto.variantes.forEach(variante => {
+                if (!variantesPorColor[variante.color]) {
+                    variantesPorColor[variante.color] = [];
+                }
+                variantesPorColor[variante.color].push(variante);
+            });
+
+            let modalHTML = `
+                <div class="modal-product-header">
+                    <h2>${producto.nombre}</h2>
+                    <p class="product-category">${producto.categoria}</p>
+                </div>
+                
+                <div class="modal-product-content">
+                    <div class="product-images">
+                        <img src="${producto.imagen}" alt="${producto.nombre}" id="modalProductImage">
+                    </div>
+                    
+                    <div class="product-options">
+                        <div class="option-section">
+                            <h3>Selecciona Color y Talla</h3>
+                            
+                            <div class="color-selection">
+                                <h4>Color:</h4>
+                                <div class="color-options">
+            `;
+
+            // Opciones de color
+            Object.keys(variantesPorColor).forEach(color => {
+                const primeraVariante = variantesPorColor[color][0];
+                modalHTML += `
+                    <div class="color-option" 
+                         data-color="${color}"
+                         onclick="seleccionarColor('${color}', ${productoId})">
+                        <span class="color-dot" style="background-color: ${primeraVariante.color_hex}"></span>
+                        <span>${color}</span>
+                    </div>
+                `;
+            });
+
+            modalHTML += `
+                                </div>
+                            </div>
+                            
+                            <div class="size-selection">
+                                <h4>Talla:</h4>
+                                <div id="sizeOptions" class="size-options">
+                                    <!-- Se llena dinámicamente según el color seleccionado -->
+                                    <p class="select-color-first">Selecciona un color primero</p>
+                                </div>
+                            </div>
+                            
+                            <div class="selected-variant-info" id="selectedVariantInfo" style="display: none;">
+                                <div class="price-section">
+                                    <span class="price" id="variantPrice">$0</span>
+                                    <span class="discount" id="variantDiscount" style="display: none;"></span>
+                                </div>
+                                <div class="stock-info" id="variantStock"></div>
+                            </div>
+                            
+                            <div class="quantity-selection">
+                                <label for="quantity">Cantidad:</label>
+                                <input type="number" id="quantity" min="1" value="1" max="1">
+                            </div>
+                            
+                            <div class="modal-actions">
+                                <button class="btn-add-cart" onclick="agregarAlCarritoDesdeModal()" disabled>
+                                    Agregar al Carrito
+                                </button>
+                                <button class="btn-buy-now" onclick="comprarAhoraDesdeModal()" disabled>
+                                    Comprar Ahora
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = modalHTML;
+            modal.style.display = 'block';
+
+            // Seleccionar primer color por defecto
+            const primerColor = Object.keys(variantesPorColor)[0];
+            if (primerColor) {
+                seleccionarColor(primerColor, productoId);
+            }
+        }
+
+        function seleccionarColor(color, productoId) {
+            const producto = productosData[productoId];
+            const variantesDelColor = producto.variantes.filter(v => v.color === color);
+            
+            // Actualizar UI de selección de color
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Actualizar imagen si hay una específica para este color
+            const primeraVariante = variantesDelColor[0];
+            if (primeraVariante.imagen) {
+                document.getElementById('modalProductImage').src = primeraVariante.imagen;
+            }
+            
+            // Mostrar opciones de talla
+            const sizeOptions = document.getElementById('sizeOptions');
+            sizeOptions.innerHTML = '';
+            
+            variantesDelColor.forEach(variante => {
+                const disabled = variante.stock === 0;
+                sizeOptions.innerHTML += `
+                    <button class="size-option ${disabled ? 'disabled' : ''}" 
+                            ${disabled ? 'disabled' : ''}
+                            onclick="seleccionarTalla(${variante.id}, ${productoId})"
+                            data-variante-id="${variante.id}">
+                        ${variante.talla}
+                        ${disabled ? '<span class="stock-badge">Sin stock</span>' : ''}
+                    </button>
+                `;
+            });
+            
+            // Resetear selección
+            document.getElementById('selectedVariantInfo').style.display = 'none';
+            document.querySelector('.btn-add-cart').disabled = true;
+            document.querySelector('.btn-buy-now').disabled = true;
+        }
+
+        function seleccionarTalla(varianteId, productoId) {
+            const producto = productosData[productoId];
+            const variante = producto.variantes.find(v => v.id === varianteId);
+            
+            if (!variante || variante.stock === 0) return;
+            
+            // Actualizar UI de selección de talla
+            document.querySelectorAll('.size-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Mostrar información de la variante seleccionada
+            const infoDiv = document.getElementById('selectedVariantInfo');
+            const priceElem = document.getElementById('variantPrice');
+            const discountElem = document.getElementById('variantDiscount');
+            const stockElem = document.getElementById('variantStock');
+            const quantityInput = document.getElementById('quantity');
+            
+            priceElem.textContent = `$${variante.precio}`;
+            
+            if (variante.descuento > 0) {
+                discountElem.textContent = `${variante.descuento}% OFF`;
+                discountElem.style.display = 'inline';
+            } else {
+                discountElem.style.display = 'none';
+            }
+            
+            stockElem.textContent = `${variante.stock} disponibles`;
+            stockElem.className = `stock-info ${variante.stock > 10 ? 'high-stock' : variante.stock > 0 ? 'low-stock' : 'no-stock'}`;
+            
+            quantityInput.max = variante.stock;
+            quantityInput.value = Math.min(1, variante.stock);
+            
+            infoDiv.style.display = 'block';
+            
+            // Habilitar botones
+            document.querySelector('.btn-add-cart').disabled = false;
+            document.querySelector('.btn-buy-now').disabled = false;
+            
+            // Guardar variante seleccionada globalmente
+            window.varianteSeleccionada = variante;
+        }
+
+        function cerrarModalVariantes() {
+            document.getElementById('modalVariantes').style.display = 'none';
+            window.varianteSeleccionada = null;
+        }
+
+        // === Funciones del carrito ===
+        function agregarAlCarritoDesdeModal() {
+            if (!window.varianteSeleccionada) return;
+            
+            const cantidad = parseInt(document.getElementById('quantity').value) || 1;
+            
+            if (cantidad > window.varianteSeleccionada.stock) {
+                alert('No hay suficiente stock disponible');
+                return;
+            }
+            
+            manejarCarrito(window.varianteSeleccionada.id, cantidad, false);
+        }
+
+        function comprarAhoraDesdeModal() {
+            if (!window.varianteSeleccionada) return;
+            
+            const cantidad = parseInt(document.getElementById('quantity').value) || 1;
+            
+            if (cantidad > window.varianteSeleccionada.stock) {
+                alert('No hay suficiente stock disponible');
+                return;
+            }
+            
+            manejarCarrito(window.varianteSeleccionada.id, cantidad, true);
+        }
+
+        function manejarCarrito(varianteId, cantidad = 1, redirigir = false) {
+            fetch(`/anadir-al-carrito/${varianteId}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": CSRF_TOKEN,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ cantidad: cantidad })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (redirigir) {
+                        window.location.href = "{% url 'carrito' %}";
+                    } else {
+                        alert('Producto agregado al carrito');
+                        // Actualizar contador del carrito
+                        const carritoCount = document.getElementById('carrito-count');
+                        if (carritoCount) {
+                            carritoCount.textContent = data.total_items;
+                        }
+                        cerrarModalVariantes();
+                    }
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error al añadir al carrito:", error);
+                alert("Hubo un problema al agregar el producto.");
+            });
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalVariantes');
+            if (event.target === modal) {
+                cerrarModalVariantes();
+            }
+        }
+
+        // Filtros dinámicos (opcional - para AJAX)
+        document.getElementById('formFiltros').addEventListener('change', function() {
+            this.submit();
+        });
+    </script>
+
+</body>
+</html>

@@ -242,6 +242,8 @@ class Producto(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    
 
 class VarianteProducto(models.Model):
     idvariante = models.AutoField(primary_key=True)
@@ -258,6 +260,8 @@ class VarianteProducto(models.Model):
         max_length=255
     )
     stock = models.PositiveIntegerField(default=0)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'variante_producto'
