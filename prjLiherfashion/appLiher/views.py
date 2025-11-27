@@ -882,6 +882,48 @@ def eliminar_producto(request, id):
     return redirect('listar_productos_inventario')
 
 
+@login_required
+@permiso_requerido('inventario')
+def mostrar_formulario_stock(request, id_catalogo):
+    producto = get_object_or_404(Producto, idproducto=id_catalogo)
+    variantes = VarianteProducto.objects.filter(producto=producto)
+    return render(request, 'admin/inventario/agregar_stock.html', {
+        'producto': producto,
+        'variantes': variantes,
+        'active': 'inventario'
+    })
+
+
+@login_required
+@permiso_requerido('inventario')
+def procesar_entrada_stock(request):
+    if request.method != 'POST':
+        return HttpResponseBadRequest('Método no permitido')
+
+    variante_id = request.POST.get('variante_id')
+    cantidad = request.POST.get('cantidad')
+    try:
+        variante = VarianteProducto.objects.get(pk=variante_id)
+        cantidad_int = int(cantidad)
+        if cantidad_int <= 0:
+            raise ValueError('Cantidad inválida')
+
+        EntradaInventario.objects.create(
+            idinventario_fk=variante,
+            cantidad_ingreso=cantidad_int
+        )
+        variante.stock = variante.stock + cantidad_int
+        variante.save()
+        messages.success(request, f'Se ingresaron {cantidad_int} unidades a la variante.')
+        return redirect('listar_movimientos_producto', id_catalogo=variante.producto.idproducto)
+    except VarianteProducto.DoesNotExist:
+        messages.error(request, 'Variante no encontrada')
+        return redirect('listar_productos_inventario')
+    except Exception as e:
+        messages.error(request, f'Error al procesar entrada: {str(e)}')
+        return redirect('listar_productos_inventario')
+
+
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
