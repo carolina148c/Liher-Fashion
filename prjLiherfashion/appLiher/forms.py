@@ -5,7 +5,7 @@ from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Usuarios, Inventario, Identificacion, Envio
+from .models import Usuarios, VarianteProducto, Identificacion, Envio, Categoria, Color, Talla
 import re
 
 User = get_user_model()
@@ -133,28 +133,28 @@ class InventarioForm(forms.ModelForm):
     ]
     estado = forms.ChoiceField(
         choices=ESTADO_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False
     )
 
     class Meta:
-        model = Inventario
-        fields = ['catalogo', 'categoria', 'color', 'talla', 'precio', 'estado', 'imagen']
+        model = VarianteProducto
+        fields = ['producto', 'talla', 'color', 'precio', 'stock', 'imagen']
         widgets = {
-            'catalogo': forms.Select(attrs={'class': 'form-control'}),
-            'categoria': forms.Select(attrs={'class': 'form-control'}),
-            'color': forms.Select(attrs={'class': 'form-control'}),
+            'producto': forms.Select(attrs={'class': 'form-control'}),
             'talla': forms.Select(attrs={'class': 'form-control'}),
+            'color': forms.Select(attrs={'class': 'form-control'}),
             'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
             'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
         labels = {
-            'catalogo': 'Catálogo',
-            'categoria': 'Categoría',
-            'color': 'Color',
+            'producto': 'Producto',
             'talla': 'Talla',
+            'color': 'Color',
             'precio': 'Precio',
-            'estado': 'Estado',
-            'imagen': 'Imagen del Producto',
+            'stock': 'Stock',
+            'imagen': 'Imagen de la Variante',
         }
 
 
@@ -324,3 +324,39 @@ class EnvioForm(forms.ModelForm):
         if telefono and len(telefono) != 10:
             raise forms.ValidationError('El teléfono debe tener 10 dígitos')
         return telefono
+
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['categoria']
+
+    def clean_categoria(self):
+        data = self.cleaned_data['categoria']
+        if Categoria.objects.filter(categoria__iexact=data).exists():
+            raise forms.ValidationError("Esta categoría ya existe")
+        return data
+
+
+class ColorForm(forms.ModelForm):
+    class Meta:
+        model = Color
+        fields = ['color']
+
+    def clean_color(self):
+        data = self.cleaned_data['color']
+        if Color.objects.filter(color__iexact=data).exists():
+            raise forms.ValidationError("Este color ya existe")
+        return data
+
+
+class TallaForm(forms.ModelForm):
+    class Meta:
+        model = Talla
+        fields = ['talla']
+
+    def clean_talla(self):
+        data = self.cleaned_data['talla']
+        if Talla.objects.filter(talla__iexact=data).exists():
+            raise forms.ValidationError("Esta talla ya existe")
+        return data
