@@ -2,10 +2,9 @@
 
 from django import forms
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
-from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Usuarios, VarianteProducto, Identificacion, Envio, Categoria, Color, Talla
+from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
 import re
 
 User = get_user_model()
@@ -59,7 +58,7 @@ class UsuarioRegistroForm(UserCreationForm):
             self.add_error('password2', "Las contraseñas no coinciden.")
 
         # ⚡ Validar teléfono solo si el rol es administrador
-        rol = self.data.get("rol", "").strip()  # viene del payload de tu fetch
+        rol = self.data.get("rol")  # viene del payload de tu fetch
         phone = cleaned_data.get("phone", "").strip()
 
         if rol == "administrador":
@@ -67,7 +66,6 @@ class UsuarioRegistroForm(UserCreationForm):
                 self.add_error("phone", "El teléfono es obligatorio para administradores.")
             elif not re.match(r'^\d{7,15}$', phone):
                 self.add_error("phone", "El teléfono debe contener solo números y tener entre 7 y 15 dígitos.")
-        return cleaned_data
 
 
 
@@ -120,211 +118,193 @@ class UsuarioUpdateForm(forms.ModelForm):
         }
 
 
-# ==========================
-# FORMULARIOS PARA INVENTARIO
-# ==========================
+class ProductoForm(forms.ModelForm):
+    class Meta:
+        model = Producto
+        fields = [
+            'nombre',
+            'referencia',
+            'categoria',
+            'precio',
+            'descripcion',
+            'imagen',
+            'estado'
+        ]
+        labels = {
+            'nombre': 'Nombre del producto',
+            'referencia': 'Referencia',
+            'categoria': 'Categoría',
+            'precio': 'Precio',
+            'descripcion': 'Descripción',
+            'imagen': 'Imagen',
+            'estado': 'Estado',
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'referencia': forms.TextInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+        }
 
-class InventarioForm(forms.ModelForm):
-    ESTADO_CHOICES = [
-        ('disponible', 'Disponible'),
-        ('agotado', 'Agotado'),
-        ('stock_bajo', 'Stock Bajo'),
-        ('inactivo', 'Inactivo'),
-    ]
-    estado = forms.ChoiceField(
-        choices=ESTADO_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=False
-    )
+# --------------------------------------
+    # VALIDACIÓN NOMBRE
+    # --------------------------------------
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
 
+        # Longitud
+        if len(nombre) < 3 or len(nombre) > 150:
+            raise forms.ValidationError("El nombre debe tener entre 3 y 150 caracteres.")
+
+        if "  " in nombre:
+            raise forms.ValidationError("No se permiten dobles espacios.")
+
+        patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+( [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+        if not re.match(patron, nombre):
+            raise forms.ValidationError("El nombre solo puede contener letras y un espacio entre palabras.")
+
+        # evitar "aaaaaa", "bbbbbb", etc
+        for palabra in nombre.split(" "):
+            if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+                raise forms.ValidationError("El nombre no puede ser una secuencia repetida.")
+
+        return nombre
+
+    # --------------------------------------
+    # VALIDACIÓN REFERENCIA
+    # --------------------------------------
+    def clean_referencia(self):
+        referencia = self.cleaned_data.get('referencia', '').strip()
+
+        if len(referencia) < 3 or len(referencia) > 10:
+            raise forms.ValidationError("La referencia debe tener entre 3 y 10 caracteres.")
+
+        if not re.match(r'^[A-Za-z0-9]+$', referencia):
+            raise forms.ValidationError("La referencia solo permite letras y números (sin espacios).")
+
+        if " " in referencia:
+            raise forms.ValidationError("La referencia no puede contener espacios.")
+
+        # referencia ÚNICA
+        qs = Producto.objects.filter(referencia=referencia)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError("Ya existe un producto con esta referencia.")
+
+        return referencia
+
+    # --------------------------------------
+    # VALIDACIÓN PRECIO
+    # --------------------------------------
+def clean_precio(self):
+    precio_raw = self.cleaned_data.get('precio')
+
+    if precio_raw in (None, ''):
+        raise forms.ValidationError("El precio es obligatorio.")
+
+    # Lo convertimos a string (por si viene como int/Decimal)
+    precio_str = str(precio_raw).strip()
+
+    # No permitir espacios internos o externos
+    if " " in precio_str:
+        raise forms.ValidationError("El precio no puede contener espacios.")
+
+    # Debe ser solo dígitos
+    if not re.fullmatch(r'^[0-9]+$', precio_str):
+        raise forms.ValidationError("El precio solo puede contener números.")
+
+    # Longitud: 3 a 8 caracteres/dígitos
+    if len(precio_str) < 3 or len(precio_str) > 8:
+        raise forms.ValidationError("El precio debe tener entre 3 y 8 dígitos.")
+
+    # Si quieres guardar como entero:
+    try:
+        return int(precio_str)
+    except ValueError:
+        raise forms.ValidationError("Precio inválido.")
+
+
+   # --------------------------------------
+    # VALIDACIÓN descripcion
+    # --------------------------------------
+
+def clean_descripcion(self):
+    descripcion = self.cleaned_data.get('descripcion', '')
+    descripcion = descripcion.strip()
+
+    if descripcion == '':
+        raise forms.ValidationError("La descripción es obligatoria.")
+
+    if len(descripcion) < 5 or len(descripcion) > 500:
+        raise forms.ValidationError("La descripción debe tener entre 5 y 500 caracteres.")
+
+    # Solo letras (incluye tildes y ñ) y solo un espacio entre palabras
+    patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+    if not re.match(patron, descripcion):
+        raise forms.ValidationError("La descripción solo puede contener letras y un solo espacio entre palabras.")
+
+    # (Opcional) evitar palabras formadas por una misma letra repetida
+    for palabra in descripcion.split(' '):
+        if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+            raise forms.ValidationError("La descripción contiene palabras inválidas (letra repetida).")
+
+    return descripcion
+
+    # --------------------------------------
+    # VALIDACIÓN IMAGEN
+    # --------------------------------------
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get('imagen')
+
+        if not imagen:
+            raise forms.ValidationError("Debe subir una imagen principal.")
+
+        if not imagen.content_type.startswith("image/"):
+            raise forms.ValidationError("El archivo debe ser una imagen.")
+
+        if imagen.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("La imagen no debe superar los 5MB.")
+
+        return imagen
+    
+
+
+
+class VarianteProductoForm(forms.ModelForm):
     class Meta:
         model = VarianteProducto
-        fields = ['producto', 'talla', 'color', 'precio', 'stock', 'imagen']
-        widgets = {
-            'producto': forms.Select(attrs={'class': 'form-control'}),
-            'talla': forms.Select(attrs={'class': 'form-control'}),
-            'color': forms.Select(attrs={'class': 'form-control'}),
-            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
-            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-        }
+        fields = [
+            'producto',
+            'talla',
+            'color',
+            'imagen',
+            'stock',
+        ]
         labels = {
             'producto': 'Producto',
             'talla': 'Talla',
             'color': 'Color',
-            'precio': 'Precio',
-            'stock': 'Stock',
-            'imagen': 'Imagen de la Variante',
+            'imagen': 'Imagen de la variante',
+            'stock': 'Stock disponible',
         }
-
-
-# ==========================
-# FORMULARIO DE IDENTIFICACIÓN
-# ==========================
-
-class IdentificacionForm(forms.ModelForm):
-    class Meta:
-        model = Identificacion
-        fields = [
-            'email', 'nombre', 'apellido', 'tipo_documento', 
-            'numero_documento', 'celular', 'acepta_terminos', 
-            'autoriza_datos', 'autoriza_publicidad'
-        ]
         widgets = {
-            'email': forms.EmailInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Correo electrónico',
-                'required': 'required'
-            }),
-            'nombre': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Nombre',
-                'required': 'required'
-            }),
-            'apellido': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Apellido',
-                'required': 'required'
-            }),
-            'tipo_documento': forms.Select(attrs={
-                'class': 'form-control form-select',
-                'required': 'required'
-            }),
-            'numero_documento': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Número documento',
-                'required': 'required'
-            }),
-            'celular': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Celular',
-                'required': 'required'
-            }),
-        }
-        labels = {
-            'email': 'Correo electrónico',
-            'nombre': 'Nombre',
-            'apellido': 'Apellido',
-            'tipo_documento': 'Tipo de documento',
-            'numero_documento': 'Número de documento',
-            'celular': 'Celular',
-            'acepta_terminos': 'Acepto términos y condiciones',
-            'autoriza_datos': 'Autorizo tratamiento de mis datos personales',
-            'autoriza_publicidad': 'Autorizo tratamiento de mis datos para el envío de publicidad',
+            'producto': forms.Select(attrs={'class': 'form-control'}),
+            'talla': forms.Select(attrs={'class': 'form-control'}),
+            'color': forms.Select(attrs={'class': 'form-control'}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
-# ==========================
-# FORMULARIO DE ENVÍO       
-# ==========================
 
-class EnvioForm(forms.ModelForm):
-    # Datos de Colombia
-    DEPARTAMENTOS = [
-        ('', 'Seleccione una opción'),
-        ('Antioquia', 'Antioquia'),
-        ('Atlántico', 'Atlántico'),
-        ('Bolívar', 'Bolívar'),
-        ('Boyacá', 'Boyacá'),
-        ('Caldas', 'Caldas'),
-        ('Caquetá', 'Caquetá'),
-        ('Cauca', 'Cauca'),
-        ('Cesar', 'Cesar'),
-        ('Chocó', 'Chocó'),
-        ('Córdoba', 'Córdoba'),
-        ('Cundinamarca', 'Cundinamarca'),
-        ('Huila', 'Huila'),
-        ('La Guajira', 'La Guajira'),
-        ('Magdalena', 'Magdalena'),
-        ('Meta', 'Meta'),
-        ('Nariño', 'Nariño'),
-        ('Norte de Santander', 'Norte de Santander'),
-        ('Quindío', 'Quindío'),
-        ('Risaralda', 'Risaralda'),
-        ('Santander', 'Santander'),
-        ('Sucre', 'Sucre'),
-        ('Tolima', 'Tolima'),
-        ('Valle del Cauca', 'Valle del Cauca'),
-    ]
-    
-    departamento = forms.ChoiceField(
-        choices=DEPARTAMENTOS,
-        widget=forms.Select(attrs={'class': 'form-control', 'required': True})
-    )
-    
-    municipio = forms.CharField(
-        max_length=50,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Ingrese el municipio',
-            'required': True
-        })
-    )
-    
-    class Meta:
-        model = Envio
-        fields = [
-            'departamento', 'municipio', 'tipo_direccion', 
-            'calle', 'letra', 'numero', 'adicional', 
-            'barrio', 'piso_apartamento', 'nombre_receptor',
-            'telefono_receptor', 'empresa_envio'
-        ]
-        widgets = {
-            'tipo_direccion': forms.Select(attrs={'class': 'form-control'}),
-            'calle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 65'}),
-            'letra': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: C'}),
-            'numero': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '113'}),
-            'adicional': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '50'}),
-            'barrio': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Laureles'}),
-            'piso_apartamento': forms.TextInput(attrs={
-                'class': 'form-control', 
-                'placeholder': 'Ej: Edificio 3 Apto 103'
-            }),
-            'nombre_receptor': forms.TextInput(attrs={
-                'class': 'form-control', 
-                'placeholder': 'Ej: Juliana'
-            }),
-            'telefono_receptor': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': '3001234567'
-            }),
-            'empresa_envio': forms.RadioSelect(),
-        }
-        labels = {
-            'departamento': 'Departamento',
-            'municipio': 'Municipio o ciudad capital',
-            'tipo_direccion': 'Tipo de dirección',
-            'calle': 'Calle',
-            'letra': 'Letra',
-            'numero': 'Número',
-            'adicional': 'Adicional',
-            'barrio': 'Barrio',
-            'piso_apartamento': 'Piso/Apartamento/Torre/Edificio',
-            'nombre_receptor': 'Nombre de la persona que recibe',
-            'telefono_receptor': 'Teléfono del receptor',
-            'empresa_envio': 'Empresa de envío',
-        }
-    
-    def clean_calle(self):
-        calle = self.cleaned_data.get('calle', '').strip()
-        if not calle:
-            raise forms.ValidationError('La calle es obligatoria')
-        return calle
-    
-    def clean_numero(self):
-        numero = self.cleaned_data.get('numero', '').strip()
-        if not numero:
-            raise forms.ValidationError('El número es obligatorio')
-        return numero
-    
-    def clean_telefono_receptor(self):
-        telefono = self.cleaned_data.get('telefono_receptor', '').strip()
-        # Solo números, 10 dígitos para Colombia
-        if telefono and not telefono.isdigit():
-            raise forms.ValidationError('El teléfono debe contener solo números')
-        if telefono and len(telefono) != 10:
-            raise forms.ValidationError('El teléfono debe tener 10 dígitos')
-        return telefono
 
+
+from django import forms
+from .models import Categoria, Color, Talla
 
 class CategoriaForm(forms.ModelForm):
     class Meta:
@@ -337,7 +317,6 @@ class CategoriaForm(forms.ModelForm):
             raise forms.ValidationError("Esta categoría ya existe")
         return data
 
-
 class ColorForm(forms.ModelForm):
     class Meta:
         model = Color
@@ -349,7 +328,6 @@ class ColorForm(forms.ModelForm):
             raise forms.ValidationError("Este color ya existe")
         return data
 
-
 class TallaForm(forms.ModelForm):
     class Meta:
         model = Talla
@@ -360,3 +338,4 @@ class TallaForm(forms.ModelForm):
         if Talla.objects.filter(talla__iexact=data).exists():
             raise forms.ValidationError("Esta talla ya existe")
         return data
+

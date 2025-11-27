@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Envio, Identificacion, Pedidos, Talla
+from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Envios, Identificacion, Pedidos, Talla
 
 class UsuariosAdmin(BaseUserAdmin):
     model = Usuarios
@@ -28,7 +28,7 @@ admin.site.register(Producto)
 admin.site.register(VarianteProducto)
 admin.site.register(Categoria)
 admin.site.register(Color)
-admin.site.register(Envio)
+admin.site.register(Envios)
 admin.site.register(Identificacion)
 admin.site.register(Pedidos)
 admin.site.register(Talla)

@@ -32,6 +32,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Prefetch
+from django.core.paginator import Paginator
 
 
 # ==========================================================
@@ -55,7 +57,6 @@ from .models import (
     Permiso,
     PeticionProducto,
     Talla,
-    EntradaInventario,
     Usuarios,
 )
 
@@ -71,7 +72,11 @@ from .models import (
 # ==========================================================
 
 def pagina_principal(request):
-    return render(request, 'tienda/principal/pagina_principal.html')
+    categorias = Categoria.objects.all()  
+    
+    return render(request, 'tienda/principal/pagina_principal.html', {
+        'categorias': categorias,
+    })
 
 
 
@@ -136,29 +141,51 @@ def identificacion(request):
 
 
 def vista_productos(request):
-    productos = VarianteProducto.objects.select_related(
-        'producto', 'talla', 'color'
-    ).all().order_by('producto__categoria__categoria')
 
-    categorias = Categoria.objects.all().order_by('categoria')
-    colores = Color.objects.all().order_by('color')
-    tallas = Talla.objects.all().order_by('talla')
+    # Obtener productos con sus variantes
+    productos = Producto.objects.filter(
+        estado='Activo',
+        variantes__activo=True
+    ).prefetch_related(
+        Prefetch('variantes', queryset=VarianteProducto.objects.filter(activo=True))
+    ).distinct()
 
+    # Obtener filtros disponibles
+    categorias = Categoria.objects.filter(
+        producto__variantes__activo=True
+    ).distinct().order_by('categoria')
+    
+    colores = Color.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('color')
+    
+    tallas = Talla.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('talla')
+
+    # Aplicar filtros
     categoria_filtrar = request.GET.get('categoria', '').strip()
     color_filtrar = request.GET.get('color', '').strip()
     talla_filtrar = request.GET.get('talla', '').strip()
 
     if categoria_filtrar:
-        productos = productos.filter(producto__categoria__categoria=categoria_filtrar)
+        productos = productos.filter(categoria__categoria=categoria_filtrar)
 
     if color_filtrar:
-        productos = productos.filter(color__color=color_filtrar)
+        productos = productos.filter(variantes__color__color=color_filtrar)
 
     if talla_filtrar:
-        productos = productos.filter(talla__talla=talla_filtrar)
+        productos = productos.filter(variantes__talla__talla=talla_filtrar)
+
+    # Paginación
+    paginator = Paginator(productos, 12)  # <-- CORREGIDO
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        'productos': productos,
+        'productos': page_obj,
         'categorias': categorias,
         'colores': colores,
         'tallas': tallas,
@@ -167,10 +194,48 @@ def vista_productos(request):
         'selected_talla': talla_filtrar,
     }
 
-    return render(request, 'tienda/principal/productos.html', context)
+    return render(request, 'tienda/principal/card_productos.html', context)
 
 
 
+# views.py
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
+def detalle_producto_json(request, idproducto):
+    """API endpoint para obtener detalle del producto con variantes"""
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+    
+    # Serializar variantes
+    variantes_data = []
+    for variante in producto.variantes.select_related('talla', 'color').filter(activo=True):
+        variantes_data.append({
+            'id': variante.idvariante,
+            'talla': {
+                'id': variante.talla.id,
+                'talla': variante.talla.talla
+            },
+            'color': {
+                'id': variante.color.id,
+                'color': variante.color.color,
+                'codigo_hex': variante.color.codigo_hex
+            },
+            'stock': variante.stock,
+            'imagen': variante.imagen.url if variante.imagen else producto.imagen.url if producto.imagen else None
+        })
+    
+    data = {
+        'idproducto': producto.idproducto,
+        'nombre': producto.nombre,
+        'referencia': producto.referencia,
+        'precio': str(producto.precio),
+        'descripcion': producto.descripcion or '',
+        'imagen': producto.imagen.url if producto.imagen else None,
+        'categoria': producto.categoria.nombre if producto.categoria else None,
+        'variantes': variantes_data
+    }
+    
+    return JsonResponse(data)
 
 
 
@@ -849,90 +914,6 @@ def eliminar_talla(request, pk):
     return redirect('agregar_talla')
 
 
-# Alias/backwards-compatible endpoints expected by urls.py
-def listar_productos_tabla(request):
-    return listar_productos_inventario(request)
-
-
-def listar_productos_catalogo(request):
-    # Para compatibilidad con rutas antiguas, reutilizamos la vista de inventario.
-    return listar_productos_inventario(request)
-
-
-def listar_movimientos_producto(request, id_catalogo):
-    entradas = EntradaInventario.objects.select_related('idinventario_fk').filter(idinventario_fk__producto__idproducto=id_catalogo).order_by('-fecha_entrada')
-    return render(request, 'admin/inventario/movimientos.html', {
-        'entradas': entradas,
-        'active': 'inventario'
-    })
-
-
-# Compatibilidad: alias esperado por urls.py
-def crear_producto(request):
-    return agregar_producto(request)
-
-
-def eliminar_producto(request, id):
-    producto = get_object_or_404(Producto, idproducto=id)
-    try:
-        producto.delete()
-        messages.success(request, "Producto eliminado correctamente.")
-    except Exception as e:
-        messages.error(request, f"No se pudo eliminar el producto: {str(e)}")
-    return redirect('listar_productos_inventario')
-
-
-@login_required
-@permiso_requerido('inventario')
-def mostrar_formulario_stock(request, id_catalogo):
-    producto = get_object_or_404(Producto, idproducto=id_catalogo)
-    variantes = VarianteProducto.objects.filter(producto=producto)
-    return render(request, 'admin/inventario/agregar_stock.html', {
-        'producto': producto,
-        'variantes': variantes,
-        'active': 'inventario'
-    })
-
-
-@login_required
-@permiso_requerido('inventario')
-def procesar_entrada_stock(request):
-    if request.method != 'POST':
-        return HttpResponseBadRequest('Método no permitido')
-
-    variante_id = request.POST.get('variante_id')
-    cantidad = request.POST.get('cantidad')
-    try:
-        variante = VarianteProducto.objects.get(pk=variante_id)
-        cantidad_int = int(cantidad)
-        if cantidad_int <= 0:
-            raise ValueError('Cantidad inválida')
-
-        EntradaInventario.objects.create(
-            idinventario_fk=variante,
-            cantidad_ingreso=cantidad_int
-        )
-        variante.stock = variante.stock + cantidad_int
-        variante.save()
-        messages.success(request, f'Se ingresaron {cantidad_int} unidades a la variante.')
-        return redirect('listar_movimientos_producto', id_catalogo=variante.producto.idproducto)
-    except VarianteProducto.DoesNotExist:
-        messages.error(request, 'Variante no encontrada')
-        return redirect('listar_productos_inventario')
-    except Exception as e:
-        messages.error(request, f'Error al procesar entrada: {str(e)}')
-        return redirect('listar_productos_inventario')
-
-
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.core.files.base import ContentFile
-from decimal import Decimal, InvalidOperation
-import base64
-import uuid
 
 def parse_precio(precio_str):
     """
@@ -1008,6 +989,81 @@ def listar_productos_inventario(request):
     }
 
     return render(request, 'admin/inventario/vista_inventario.html', context)
+
+
+# --- Compatibilidad: funciones que `urls.py` espera (delegan a las existentes) ---
+def listar_productos_tabla(request):
+    return listar_productos_inventario(request)
+
+
+def listar_productos_catalogo(request):
+    return vista_productos(request)
+
+
+def mostrar_formulario_stock(request, id_catalogo):
+    try:
+        producto = Producto.objects.get(pk=id_catalogo)
+        return redirect('editar_producto', id=producto.idproducto)
+    except Exception:
+        return redirect('listar_productos_inventario')
+
+
+def procesar_entrada_stock(request):
+    # Placeholder: no-op for now, redirect to inventory list
+    return redirect('listar_productos_inventario')
+
+
+def listar_movimientos_producto(request, id_catalogo):
+    # Minimal JSON placeholder to satisfy admin UI until real implementation
+    return JsonResponse({'movimientos': []})
+
+
+def crear_producto(request):
+    return agregar_producto(request)
+
+
+def eliminar_producto(request, id):
+    try:
+        producto = Producto.objects.get(idproducto=id)
+        producto.delete()
+        messages.success(request, "Producto eliminado correctamente.")
+    except Producto.DoesNotExist:
+        messages.error(request, "Producto no encontrado.")
+    except Exception as e:
+        messages.error(request, f"Error eliminando producto: {str(e)}")
+    return redirect('listar_productos_inventario')
+
+
+def aplicar_cupon(request):
+    return JsonResponse({'success': False, 'message': 'Funcionalidad de cupones no habilitada.'})
+
+
+def remover_cupon(request):
+    return JsonResponse({'success': False, 'message': 'Funcionalidad de cupones no habilitada.'})
+
+
+def pago_exitoso(request):
+    messages.success(request, 'Pago procesado correctamente.')
+    return redirect('pagina_principal')
+
+
+def pago_fallido(request):
+    messages.error(request, 'El pago ha fallado.')
+    return redirect('pagina_principal')
+
+
+def pago_pendiente(request):
+    messages.info(request, 'El pago está pendiente.')
+    return redirect('pagina_principal')
+
+
+def crear_preferencia_mp(request):
+    return JsonResponse({'success': False, 'message': 'MercadoPago no configurado en este entorno.'})
+
+
+def webhook_mercadopago(request):
+    # Accept webhook POSTs but do nothing in local/dev environment
+    return JsonResponse({'success': True})
 
 
 
@@ -1168,7 +1224,7 @@ def agregar_producto(request):
 
 @login_required
 def editar_producto(request, idproducto):
-    producto = get_object_or_404(Producto, idproducto=id)
+    producto = get_object_or_404(Producto, idproducto=idproducto)
     variantes = VarianteProducto.objects.filter(producto=producto)
 
     context = {
@@ -1360,8 +1416,8 @@ def editar_producto(request, idproducto):
                 messages.error(request, "El producto debe tener al menos una variante.")
             else:
                 messages.success(request, "Producto y variantes actualizados correctamente.")
-
-            return redirect("editar_producto", id=id)
+                
+            return redirect("editar_producto", idproducto=idproducto)
             
         except Exception as e:
             error_msg = f"Error al actualizar el producto: {str(e)}"
@@ -1730,8 +1786,8 @@ def detalle_peticion(request, id):
         p = PeticionProducto.objects.select_related('usuario', 'producto').get(pk=id)
         data = {
             'id': p.id,
-            'producto': getattr(p.producto.producto, 'nombre', 'Producto sin nombre'),
-            'usuario': f"{getattr(p.usuario, 'first_name', '')} {getattr(p.usuario, 'last_name', '')}".strip(),
+            'producto': p.producto.inventario.nombre,
+            'usuario': f"{p.usuario.nombre} {p.usuario.apellido}",
             'email': p.usuario.email,
             'cantidad': p.cantidad_solicitada,
             'fecha': p.fecha_peticion.strftime("%d/%m/%Y"),
@@ -1740,97 +1796,3 @@ def detalle_peticion(request, id):
         return JsonResponse({'success': True, 'data': data})
     except PeticionProducto.DoesNotExist:
         return JsonResponse({'success': False}, status=404)
-
-
-# ==========================
-# Placeholder endpoints (cupones / pagos / webhook)
-# Estos placeholders devuelven respuestas seguras para permitir
-# que Django cargue las urls durante las comprobaciones.
-# Reemplazar con lógica real de pagos cuando esté listo.
-# ==========================
-
-@require_POST
-def aplicar_cupon(request):
-    """Placeholder: aplicar un cupón al carrito (espera POST con 'codigo')."""
-    codigo = request.POST.get('codigo') or request.GET.get('codigo')
-    if not codigo:
-        return JsonResponse({'success': False, 'message': 'Código no proporcionado.'}, status=400)
-    # Lógica mínima: aceptar cualquier código y devolver descuento de ejemplo
-    return JsonResponse({'success': True, 'codigo': codigo, 'descuento': '10%', 'message': 'Cupón aplicado (placeholder)'} )
-
-
-@require_POST
-def remover_cupon(request):
-    """Placeholder: remover cupón del carrito."""
-    codigo = request.POST.get('codigo') or request.GET.get('codigo')
-    if not codigo:
-        return JsonResponse({'success': False, 'message': 'Código no proporcionado.'}, status=400)
-    return JsonResponse({'success': True, 'codigo': codigo, 'message': 'Cupón removido (placeholder)'})
-
-
-def pago_exitoso(request):
-    return render(request, 'tienda/carrito/pago_exitoso.html')
-
-
-def pago_fallido(request):
-    return render(request, 'tienda/carrito/pago_fallido.html')
-
-
-def pago_pendiente(request):
-    return render(request, 'tienda/carrito/pago_pendiente.html')
-
-
-@require_POST
-def crear_preferencia_mp(request):
-    """Placeholder para crear una preferencia de pago (MercadoPago/otro).
-    Devuelve un id ficticio para permitir la integración en frontend.
-    """
-    # Recibir datos mínimos
-    importe = request.POST.get('importe') or request.POST.get('amount') or '0'
-
-    # Intentar usar credenciales reales si existen en .env (no forzamos la integración)
-    try:
-        from decouple import config
-        mp_token = config('MERCADOPAGO_ACCESS_TOKEN', default=None)
-    except Exception:
-        mp_token = None
-
-    if mp_token:
-        try:
-            import mercadopago
-            sdk = mercadopago.SDK(mp_token)
-            # Construir preferencia mínima
-            preference_data = {
-                "items": [
-                    {
-                        "title": "Compra Liher Fashion",
-                        "quantity": 1,
-                        "unit_price": float(importe)
-                    }
-                ]
-            }
-            preference = sdk.preference().create(preference_data)
-            resp = preference.get('response') if isinstance(preference, dict) else getattr(preference, 'response', None)
-            pref_id = resp.get('id') if resp else f"pref_{uuid.uuid4().hex[:10]}"
-            return JsonResponse({'success': True, 'preference_id': pref_id, 'preference': resp})
-        except Exception as e:
-            # Si falla la integración real, volvemos al placeholder pero sin interrumpir
-            pref_id = f"pref_{uuid.uuid4().hex[:10]}"
-            return JsonResponse({'success': True, 'preference_id': pref_id, 'amount': importe, 'note': 'fallback - error usando SDK', 'error': str(e)})
-
-    # Sin credenciales, devolver preferencia ficticia (placeholder)
-    pref_id = f"pref_{uuid.uuid4().hex[:10]}"
-    return JsonResponse({'success': True, 'preference_id': pref_id, 'amount': importe})
-
-
-@csrf_exempt
-def webhook_mercadopago(request):
-    """Endpoint webhook placeholder para MercadoPago u otro proveedor.
-    Registra el payload y responde 200 para que el proveedor considere entrega exitosa.
-    """
-    try:
-        payload = request.body.decode('utf-8') if request.body else ''
-        # Para debugging local, se podría escribir a un log; aquí retornamos OK.
-        return JsonResponse({'success': True, 'received': bool(payload)})
-    except Exception:
-        return JsonResponse({'success': False}, status=400)
