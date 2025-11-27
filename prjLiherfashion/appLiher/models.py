@@ -124,37 +124,46 @@ class Talla(models.Model):
         return self.talla
 
 
-class Catalogo(models.Model):
-    idcatalogo = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(null=True, blank=True)
+class Producto(models.Model):
+    idproducto = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100)
+    referencia = models.CharField(max_length=10, unique=True, null=True, blank=True)
+    categoria = models.ForeignKey(
+        'Categoria', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    precio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    descripcion = models.CharField(max_length=200, null=True, blank=True)
+    imagen = models.ImageField(upload_to='productos/', null=True, blank=True, max_length=255)
+    estado = models.CharField(max_length=20, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = True
-        db_table = 'catalogo'
+        db_table = 'producto'
 
     def __str__(self):
         return self.nombre
 
 
-class Inventario(models.Model):
-    idinventario = models.AutoField(primary_key=True)
-    catalogo = models.ForeignKey('Catalogo', on_delete=models.CASCADE, related_name='inventarios')
-    categoria = models.ForeignKey('Categoria', on_delete=models.DO_NOTHING)
-    color = models.ForeignKey('Color', on_delete=models.DO_NOTHING)
-    talla = models.ForeignKey('Talla', on_delete=models.DO_NOTHING)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=20)
+class VarianteProducto(models.Model):
+    idvariante = models.AutoField(primary_key=True)
+    producto = models.ForeignKey(
+        Producto, on_delete=models.CASCADE, related_name='variantes'
+    )
+    talla = models.ForeignKey('Talla', on_delete=models.PROTECT)
+    color = models.ForeignKey('Color', on_delete=models.PROTECT)
+    imagen = models.ImageField(upload_to='productos/variantes/', null=True, blank=True, max_length=255)
     stock = models.PositiveIntegerField(default=0)
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
+    precio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
         managed = True
-        db_table = 'inventario'
+        db_table = 'variante_producto'
+        unique_together = ('producto', 'talla', 'color')
 
     def __str__(self):
-        return f"{self.catalogo.nombre} - {self.categoria} - {self.color} - {self.talla} - ${self.precio}"
+        return f"{self.producto.nombre} - {self.talla} - {self.color}"
 
 
 # ==========================
@@ -252,9 +261,9 @@ class ItemCarrito(models.Model):
         verbose_name='Carrito de Compras'
     )
     producto = models.ForeignKey(
-        Inventario,
+        VarianteProducto,
         on_delete=models.CASCADE,
-        verbose_name='Producto'
+        verbose_name='Variante del Producto'
     )
     cantidad = models.PositiveIntegerField(default=1)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -280,7 +289,7 @@ class ItemCarrito(models.Model):
 
 class EntradaInventario(models.Model):
     identrada = models.AutoField(primary_key=True)
-    idinventario_fk = models.ForeignKey(Inventario, on_delete=models.DO_NOTHING, db_column='idInventario_fk', verbose_name='Variante a Surtir')
+    idinventario_fk = models.ForeignKey(VarianteProducto, on_delete=models.DO_NOTHING, db_column='idInventario_fk', verbose_name='Variante a Surtir')
     cantidad_ingreso = models.PositiveIntegerField(verbose_name='Cantidad a Ingresar')
     fecha_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Entrada')
 
@@ -295,7 +304,7 @@ class EntradaInventario(models.Model):
 
 class PeticionProducto(models.Model):
     usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
-    producto = models.ForeignKey(Inventario, on_delete=models.CASCADE)
+    producto = models.ForeignKey(VarianteProducto, on_delete=models.CASCADE)
     cantidad_solicitada = models.PositiveIntegerField(default=1)
     fecha_peticion = models.DateTimeField(auto_now_add=True)
     atendida = models.BooleanField(default=False)
