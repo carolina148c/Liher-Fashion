@@ -8,31 +8,40 @@
             <i class="bi bi-arrow-left"></i> Volver a Pedidos
         </a>
         <h1>Pedido #{{ pedido.idpedido }}</h1>
-        <p>Realizado el {{ pedido.fecha|date:"d M Y - H:i" }}</p>
+        <p>Realizado el {{ pedido.fecha|date:"d/m/Y H:i:s" }}</p>
     </div>
     <div class="header-right">
         <span class="status-badge status-{{ pedido.estado_pedido|lower }}">
             {{ pedido.estado_pedido }}
+        </span>
+        <span class="payment-status status-{{ pedido.estado_pago|lower }}">
+            {{ pedido.estado_pago }}
         </span>
     </div>
 </div>
 
 <div class="order-detail-content">
     <!-- Resumen del Pedido -->
-    <div class="order-summary">
+    <div class="order-summary-card">
         <h2>Resumen del Pedido</h2>
         <div class="summary-grid">
             <div class="summary-item">
                 <label>Fecha del Pedido</label>
-                <span>{{ pedido.fecha|date:"d M Y" }}</span>
+                <span>{{ pedido.fecha|date:"d/m/Y" }}</span>
             </div>
             <div class="summary-item">
                 <label>Método de Pago</label>
                 <span>{{ pedido.metodo_pago }}</span>
             </div>
             <div class="summary-item">
+                <label>Estado del Pedido</label>
+                <span class="status-badge status-{{ pedido.estado_pedido|lower }}">
+                    {{ pedido.estado_pedido }}
+                </span>
+            </div>
+            <div class="summary-item">
                 <label>Estado del Pago</label>
-                <span class="payment-status {{ pedido.estado_pago|lower }}">
+                <span class="payment-status status-{{ pedido.estado_pago|lower }}">
                     {{ pedido.estado_pago }}
                 </span>
             </div>
@@ -43,90 +52,257 @@
         </div>
     </div>
 
-    <!-- Información de Envío -->
-    <div class="shipping-info">
-        <h2>Información de Envío</h2>
-        <div class="info-card">
-            <div class="info-content">
-                <p><strong>Dirección de Envío:</strong></p>
-                <p>Se enviará a la dirección proporcionada durante la compra</p>
-                <!-- Aquí podrías mostrar la dirección específica si la tienes en el modelo -->
+    <!-- Artículos del Pedido -->
+    <div class="order-items-card">
+        <h2>Artículos del Pedido</h2>
+        {% if items_pedido %}
+        <div class="items-list">
+            {% for item in items_pedido %}
+            <div class="order-item">
+                <div class="item-image">
+                    {% if item.variante.imagen %}
+                    <img src="{{ item.variante.imagen.url }}" alt="{{ item.producto.nombre }}">
+                    {% else %}
+                    <img src="{% static 'img/default-product.jpg' %}" alt="{{ item.producto.nombre }}">
+                    {% endif %}
+                </div>
+                <div class="item-details">
+                    <h4>{{ item.producto.nombre }}</h4>
+                    <p class="item-variant">{{ item.variante.talla.talla }} - {{ item.variante.color.color }}</p>
+                    <p class="item-price">${{ item.precio_unitario|floatformat:0 }} x {{ item.cantidad }}</p>
+                </div>
+                <div class="item-subtotal">
+                    ${{ item.subtotal|floatformat:0 }}
+                </div>
             </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="no-items">
+            <p>No hay información detallada de los artículos disponibles.</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Timeline del Pedido -->
-    <div class="order-timeline">
+    <div class="order-timeline-card">
         <h2>Seguimiento del Pedido</h2>
         <div class="timeline">
-            <div class="timeline-item {% if pedido.estado_pedido != 'Pendiente' %}completed{% endif %}">
+            {% for seguimiento in seguimientos %}
+            <div class="timeline-item completed">
+                <div class="timeline-marker">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>{{ seguimiento.get_estado_display }}</h4>
+                    <p>{{ seguimiento.comentario|default:"Actualización de estado" }}</p>
+                    <span class="timeline-date">{{ seguimiento.fecha|date:"d/m/Y H:i" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="timeline-item completed">
                 <div class="timeline-marker">
                     <i class="bi bi-check-lg"></i>
                 </div>
                 <div class="timeline-content">
                     <h4>Pedido Confirmado</h4>
                     <p>Tu pedido ha sido recibido y confirmado</p>
-                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y - H:i" }}</span>
+                    <span class="timeline-date">{{ pedido.fecha|date:"d/m/Y H:i" }}</span>
                 </div>
             </div>
-
-            <div class="timeline-item {% if pedido.estado_pedido in 'Procesando,Enviado,Entregado' %}completed{% endif %}">
-                <div class="timeline-marker">
-                    <i class="bi bi-gear"></i>
-                </div>
-                <div class="timeline-content">
-                    <h4>En Proceso</h4>
-                    <p>Estamos preparando tu pedido</p>
-                    {% if pedido.estado_pedido in 'Procesando,Enviado,Entregado' %}
-                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="timeline-item {% if pedido.estado_pedido in 'Enviado,Entregado' %}completed{% endif %}">
-                <div class="timeline-marker">
-                    <i class="bi bi-truck"></i>
-                </div>
-                <div class="timeline-content">
-                    <h4>Enviado</h4>
-                    <p>Tu pedido está en camino</p>
-                    {% if pedido.estado_pedido in 'Enviado,Entregado' %}
-                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="timeline-item {% if pedido.estado_pedido == 'Entregado' %}completed{% endif %}">
-                <div class="timeline-marker">
-                    <i class="bi bi-house-check"></i>
-                </div>
-                <div class="timeline-content">
-                    <h4>Entregado</h4>
-                    <p>Pedido entregado satisfactoriamente</p>
-                    {% if pedido.estado_pedido == 'Entregado' %}
-                    <span class="timeline-date">{{ pedido.fecha|date:"d M Y" }}</span>
-                    {% endif %}
-                </div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
     <!-- Acciones del Pedido -->
-    <div class="order-actions-detailed">
-        <h2>Acciones</h2>
+    <div class="order-actions-card">
+        <h2>Acciones Disponibles</h2>
         <div class="actions-grid">
-            <button class="btn btn-outline-primary">
-                <i class="bi bi-download"></i> Descargar Factura
-            </button>
             {% if pedido.estado_pedido == 'Entregado' %}
-            <button class="btn btn-outline-success">
-                <i class="bi bi-arrow-repeat"></i> Solicitar Cambio
+            <button class="btn btn-outline-success" onclick="solicitarDevolucion({{ pedido.idpedido }})">
+                <i class="bi bi-arrow-return-left"></i> Solicitar Devolución
             </button>
             {% endif %}
+            
+            {% if pedido.estado_pedido == 'Enviado' or pedido.estado_pedido == 'Entregado' %}
+            <button class="btn btn-outline-primary" onclick="mostrarComentarios({{ pedido.idpedido }})">
+                <i class="bi bi-chat"></i> Agregar Comentarios
+            </button>
+            {% endif %}
+            
             <button class="btn btn-outline-info">
+                <i class="bi bi-download"></i> Descargar Factura
+            </button>
+            
+            <button class="btn btn-outline-secondary">
                 <i class="bi bi-question-circle"></i> Ayuda con este Pedido
             </button>
         </div>
     </div>
 </div>
+
+<!-- Los mismos modales del template anterior -->
+{% include 'usuarios/cuenta/modales_pedidos.html' %}
+
+<style>
+.order-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-left h1 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.header-right {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.order-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.order-summary-card,
+.order-items-card,
+.order-timeline-card,
+.order-actions-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+}
+
+.order-summary-card h2,
+.order-items-card h2,
+.order-timeline-card h2,
+.order-actions-card h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    font-size: 1.3rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.summary-item label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.order-total {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.item-image {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-details h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.item-variant {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.item-price {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.item-subtotal {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.no-items {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .order-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .order-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}
