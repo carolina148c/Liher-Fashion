@@ -1740,3 +1740,65 @@ def detalle_peticion(request, id):
         return JsonResponse({'success': True, 'data': data})
     except PeticionProducto.DoesNotExist:
         return JsonResponse({'success': False}, status=404)
+
+
+# ==========================
+# Placeholder endpoints (cupones / pagos / webhook)
+# Estos placeholders devuelven respuestas seguras para permitir
+# que Django cargue las urls durante las comprobaciones.
+# Reemplazar con lógica real de pagos cuando esté listo.
+# ==========================
+
+@require_POST
+def aplicar_cupon(request):
+    """Placeholder: aplicar un cupón al carrito (espera POST con 'codigo')."""
+    codigo = request.POST.get('codigo') or request.GET.get('codigo')
+    if not codigo:
+        return JsonResponse({'success': False, 'message': 'Código no proporcionado.'}, status=400)
+    # Lógica mínima: aceptar cualquier código y devolver descuento de ejemplo
+    return JsonResponse({'success': True, 'codigo': codigo, 'descuento': '10%', 'message': 'Cupón aplicado (placeholder)'} )
+
+
+@require_POST
+def remover_cupon(request):
+    """Placeholder: remover cupón del carrito."""
+    codigo = request.POST.get('codigo') or request.GET.get('codigo')
+    if not codigo:
+        return JsonResponse({'success': False, 'message': 'Código no proporcionado.'}, status=400)
+    return JsonResponse({'success': True, 'codigo': codigo, 'message': 'Cupón removido (placeholder)'})
+
+
+def pago_exitoso(request):
+    return render(request, 'tienda/carrito/pago_exitoso.html')
+
+
+def pago_fallido(request):
+    return render(request, 'tienda/carrito/pago_fallido.html')
+
+
+def pago_pendiente(request):
+    return render(request, 'tienda/carrito/pago_pendiente.html')
+
+
+@require_POST
+def crear_preferencia_mp(request):
+    """Placeholder para crear una preferencia de pago (MercadoPago/otro).
+    Devuelve un id ficticio para permitir la integración en frontend.
+    """
+    # Recibir datos mínimos y devolver un id de preferencia ficticio
+    importe = request.POST.get('importe') or request.POST.get('amount') or '0'
+    pref_id = f"pref_{uuid.uuid4().hex[:10]}"
+    return JsonResponse({'success': True, 'preference_id': pref_id, 'amount': importe})
+
+
+@csrf_exempt
+def webhook_mercadopago(request):
+    """Endpoint webhook placeholder para MercadoPago u otro proveedor.
+    Registra el payload y responde 200 para que el proveedor considere entrega exitosa.
+    """
+    try:
+        payload = request.body.decode('utf-8') if request.body else ''
+        # Para debugging local, se podría escribir a un log; aquí retornamos OK.
+        return JsonResponse({'success': True, 'received': bool(payload)})
+    except Exception:
+        return JsonResponse({'success': False}, status=400)
