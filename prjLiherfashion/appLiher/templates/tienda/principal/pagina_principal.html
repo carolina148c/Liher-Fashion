@@ -36,16 +36,22 @@
                     <i class="bi bi-person-circle"></i>
                     {% if user.is_authenticated %}
                         <ul class="user-dropdown">
+                            <li class="user-welcome">¡Hola, {{ user.first_name|default:user.email }}!</li>
+                            <li><a href="#"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                            <li><a href="#"><i class="bi bi-bag"></i> Mis Pedidos</a></li>
+                            <li class="dropdown-divider"></li>
                             <li>
-                                <form method="POST" action="{% url 'logout' %}">
+                                <form method="POST" action="{% url 'logout' %}" class="logout-form">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn-logout">Cerrar Sesión</button>
+                                    <button type="submit" class="btn-logout">
+                                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                                    </button>
                                 </form>
                             </li>
                         </ul>
                     {% else %}
                         <ul class="user-dropdown">
-                            <li><a href="{% url 'acceso' %}">Iniciar sesión</a></li>
+                            <li><a href="{% url 'acceso' %}"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</a></li>
                         </ul>
                     {% endif %}
                 </div>
@@ -65,7 +71,7 @@
             <div class="banner-container">
                 <ul>
                     <li><a href="#inicio">Inicio</a></li>
-                    <li><a href="#categorias">Categorías</a></li>
+                    <li><a href="#categorias">Productos</a></li>
                     <li><a href="#sobre_nosotros">Sobre Nosotros</a></li>
                     <li><a href="#contactanos">Contáctanos</a></li>
                 </ul>
