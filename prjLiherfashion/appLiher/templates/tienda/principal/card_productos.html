@@ -1,0 +1,854 @@
+{% load static %}
+
+<style>
+:root {
+    --primary-color: #f7b2c6;
+    --secondary-color: #ffd4e5;
+    --accent-color: #e89bb3;
+    --dark-color: #2d2d2d;
+    --white: #ffffff;
+    --border-color: #f0e6ea;
+    --shadow: 0 2px 12px rgba(247, 178, 198, 0.15);
+    --shadow-hover: 0 4px 20px rgba(247, 178, 198, 0.25);
+}
+
+/* Grid de productos */
+.productos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2.5rem;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Card de producto */
+.producto-card {
+    background: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.producto-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-hover);
+}
+
+.producto-card-imagen {
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    position: relative;
+}
+
+.producto-card-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.producto-card:hover .producto-card-imagen img {
+    transform: scale(1.05);
+}
+
+.producto-card-body {
+    padding: 2rem;
+}
+
+.producto-card-titulo {
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+
+.producto-card-precio {
+    font-size: 2.2rem;
+    font-weight: 400;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+.producto-card-botones {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-producto {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.3rem;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.btn-agregar {
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.btn-agregar:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-comprar {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: var(--white);
+}
+
+.btn-comprar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(247, 178, 198, 0.4);
+}
+
+/* Modal de detalle */
+.producto-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(45, 45, 45, 0.95);
+    backdrop-filter: blur(5px);
+    z-index: 3000;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.producto-modal.activo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-contenido {
+    background: var(--white);
+    border-radius: 8px;
+    max-width: 1200px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: modalSlideIn 0.4s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-cerrar {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--white);
+    border: none;
+    cursor: pointer;
+    font-size: 2.4rem;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: var(--shadow);
+}
+
+.modal-cerrar:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    transform: rotate(90deg);
+}
+
+.modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    padding: 4rem;
+}
+
+/* Galería de imágenes */
+.modal-galeria {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.galeria-principal {
+    width: 100%;
+    height: 500px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+}
+
+.galeria-principal img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.galeria-miniaturas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 1rem;
+}
+
+.miniatura {
+    width: 100%;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.miniatura:hover,
+.miniatura.activa {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.miniatura img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Información del producto */
+.modal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.modal-titulo {
+    font-size: 2.8rem;
+    font-weight: 400;
+    color: var(--dark-color);
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+}
+
+.modal-precio {
+    font-size: 3.2rem;
+    font-weight: 400;
+    color: var(--primary-color);
+}
+
+.modal-stock {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    background: rgba(74, 157, 95, 0.1);
+    color: #4a9d5f;
+    border-radius: 6px;
+    font-size: 1.4rem;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+}
+
+.modal-stock.sin-stock {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+/* Selectores de variantes */
+.variante-grupo {
+    margin-bottom: 2rem;
+}
+
+.variante-label {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.variante-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.variante-opcion {
+    padding: 1rem 2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.4rem;
+    font-weight: 300;
+}
+
+.variante-opcion:hover {
+    border-color: var(--primary-color);
+}
+
+.variante-opcion.activa {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+.variante-opcion.deshabilitada {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.color-opcion {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.color-opcion:hover,
+.color-opcion.activa {
+    border-color: var(--primary-color);
+    border-width: 3px;
+    transform: scale(1.1);
+}
+
+.color-opcion.activa::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--white);
+    font-size: 1.8rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Cantidad */
+.cantidad-grupo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.cantidad-control {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.cantidad-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--background-color);
+    color: var(--dark-color);
+    cursor: pointer;
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
+}
+
+.cantidad-btn:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.cantidad-input {
+    width: 60px;
+    height: 40px;
+    border: none;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+/* Descripción */
+.modal-descripcion {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.descripcion-titulo {
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--dark-color);
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.descripcion-texto {
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: #666;
+    line-height: 1.8;
+}
+
+.descripcion-lista {
+    list-style: none;
+    padding: 0;
+}
+
+.descripcion-lista li {
+    padding: 0.8rem 0;
+    padding-left: 2rem;
+    position: relative;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: #666;
+}
+
+.descripcion-lista li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Botones del modal */
+.modal-botones {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.modal-btn-agregar {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.modal-btn-agregar:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.modal-btn-comprar {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: var(--white);
+}
+
+.modal-btn-comprar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(247, 178, 198, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .productos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 2rem;
+        padding: 1.5rem;
+    }
+
+    .modal-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .galeria-principal {
+        height: 350px;
+    }
+
+    .modal-titulo {
+        font-size: 2.2rem;
+    }
+
+    .modal-precio {
+        font-size: 2.6rem;
+    }
+
+    .modal-botones {
+        flex-direction: column;
+    }
+}
+</style>
+
+<!-- Template Django para las cards -->
+<div class="productos-grid">
+    {% for producto in productos.object_list %}
+    <div class="producto-card" data-producto-id="{{ producto.idproducto }}">
+        <div class="producto-card-imagen">
+            {% if producto.imagen %}
+                <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
+            {% else %}
+                <img src="{% static 'img/sin_imagen.jpg' %}" alt="{{ producto.nombre }}">
+            {% endif %}
+        </div>
+        
+        <div class="producto-card-body">
+            <h3 class="producto-card-titulo">{{ producto.nombre }}</h3>
+            <p class="producto-card-precio">${{ producto.precio|floatformat:0 }}</p>
+            
+            <div class="producto-card-botones">
+                <button class="btn-producto btn-agregar" 
+                        onclick="event.stopPropagation(); agregarAlCarrito({{ producto.idproducto }})">
+                    Agregar
+                </button>
+                <button class="btn-producto btn-comprar" 
+                        onclick="event.stopPropagation(); comprarAhora({{ producto.idproducto }})">
+                    Comprar
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal de detalle del producto -->
+<div class="producto-modal" id="productoModal">
+    <div class="modal-contenido">
+        <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+        
+        <div class="modal-grid">
+            <!-- Galería de imágenes -->
+            <div class="modal-galeria">
+                <div class="galeria-principal" id="galeriaPrincipal">
+                    <img src="" alt="" id="imagenPrincipal">
+                </div>
+                <div class="galeria-miniaturas" id="galeriaMiniaturas">
+                    <!-- Miniaturas se cargan dinámicamente -->
+                </div>
+            </div>
+            
+            <!-- Información del producto -->
+            <div class="modal-info">
+                <h2 class="modal-titulo" id="modalTitulo"></h2>
+                <p class="modal-precio" id="modalPrecio"></p>
+                
+                <span class="modal-stock" id="modalStock"></span>
+                
+                <!-- Selector de tallas -->
+                <div class="variante-grupo" id="grupoTallas">
+                    <label class="variante-label">Talla</label>
+                    <div class="variante-opciones" id="opcionesTallas">
+                        <!-- Opciones se cargan dinámicamente -->
+                    </div>
+                </div>
+                
+                <!-- Selector de colores -->
+                <div class="variante-grupo" id="grupoColores">
+                    <label class="variante-label">Color</label>
+                    <div class="variante-opciones" id="opcionesColores">
+                        <!-- Opciones se cargan dinámicamente -->
+                    </div>
+                </div>
+                
+                <!-- Cantidad -->
+                <div class="variante-grupo">
+                    <label class="variante-label">Cantidad</label>
+                    <div class="cantidad-grupo">
+                        <div class="cantidad-control">
+                            <button class="cantidad-btn" onclick="cambiarCantidad(-1)">−</button>
+                            <input type="number" class="cantidad-input" id="cantidadInput" value="1" min="1" readonly>
+                            <button class="cantidad-btn" onclick="cambiarCantidad(1)">+</button>
+                        </div>
+                        <span id="stockDisponible" style="font-size: 1.3rem; color: #999;"></span>
+                    </div>
+                </div>
+                
+                <!-- Descripción -->
+                <div class="modal-descripcion">
+                    <h3 class="descripcion-titulo">Descripción</h3>
+                    <p class="descripcion-texto" id="modalDescripcion"></p>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="modal-botones">
+                    <button class="modal-btn modal-btn-agregar" onclick="agregarAlCarritoModal()">
+                        Agregar al carrito
+                    </button>
+                    <button class="modal-btn modal-btn-comprar" onclick="comprarAhoraModal()">
+                        Comprar ahora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+let productoActual = null;
+let tallaSeleccionada = null;
+let colorSeleccionado = null;
+let stockMax = 0;
+
+// Abrir modal al hacer click en la card
+document.querySelectorAll('.producto-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const productoId = this.dataset.productoId;
+        cargarDetalleProducto(productoId);
+    });
+});
+
+// Cargar detalle del producto
+async function cargarDetalleProducto(productoId) {
+    try {
+        const response = await fetch(`/api/producto/${productoId}/detalle/`);
+        const data = await response.json();
+        
+        productoActual = data;
+        mostrarModal(data);
+    } catch (error) {
+        console.error('Error al cargar producto:', error);
+        alert('Error al cargar el producto');
+    }
+}
+
+function mostrarModal(producto) {
+    // Llenar información básica
+    document.getElementById('modalTitulo').textContent = producto.nombre;
+    document.getElementById('modalPrecio').textContent = `$${parseFloat(producto.precio).toLocaleString()}`;
+    document.getElementById('modalDescripcion').textContent = producto.descripcion || 'Sin descripción disponible';
+    
+    // Cargar imagen principal
+    const imagenPrincipal = document.getElementById('imagenPrincipal');
+    imagenPrincipal.src = producto.imagen || '/static/img/no-image.png';
+    imagenPrincipal.alt = producto.nombre;
+    
+    // Cargar variantes
+    cargarVariantes(producto.variantes);
+    
+    // Mostrar modal
+    document.getElementById('productoModal').classList.add('activo');
+    document.body.style.overflow = 'hidden';
+}
+
+function cargarVariantes(variantes) {
+    // Obtener tallas únicas
+    const tallas = [...new Set(variantes.map(v => ({
+        id: v.talla.id,
+        nombre: v.talla.talla
+    }))).values()].filter((t, i, arr) => 
+        arr.findIndex(a => a.id === t.id) === i
+    );
+    
+    // Obtener colores únicos
+    const colores = [...new Set(variantes.map(v => ({
+        id: v.color.id,
+        nombre: v.color.color,
+        codigo: v.color.codigo_hex
+    }))).values()].filter((c, i, arr) => 
+        arr.findIndex(a => a.id === c.id) === i
+    );
+    
+    // Renderizar tallas
+    const opcionesTallas = document.getElementById('opcionesTallas');
+    opcionesTallas.innerHTML = tallas.map(talla => `
+        <div class="variante-opcion" data-talla-id="${talla.id}" 
+             onclick="seleccionarTalla(${talla.id}, '${talla.nombre}')">
+            ${talla.nombre}
+        </div>
+    `).join('');
+    
+    // Renderizar colores
+    const opcionesColores = document.getElementById('opcionesColores');
+    opcionesColores.innerHTML = colores.map(color => `
+        <div class="color-opcion" 
+             style="background-color: ${color.codigo}"
+             data-color-id="${color.id}"
+             title="${color.nombre}"
+             onclick="seleccionarColor(${color.id}, '${color.nombre}')">
+        </div>
+    `).join('');
+}
+
+function seleccionarTalla(tallaId, tallaNombre) {
+    tallaSeleccionada = tallaId;
+    
+    // Actualizar UI
+    document.querySelectorAll('[data-talla-id]').forEach(el => {
+        el.classList.remove('activa');
+    });
+    document.querySelector(`[data-talla-id="${tallaId}"]`).classList.add('activa');
+    
+    actualizarStock();
+}
+
+function seleccionarColor(colorId, colorNombre) {
+    colorSeleccionado = colorId;
+    
+    // Actualizar UI
+    document.querySelectorAll('[data-color-id]').forEach(el => {
+        el.classList.remove('activa');
+    });
+    document.querySelector(`[data-color-id="${colorId}"]`).classList.add('activa');
+    
+    actualizarStock();
+}
+
+function actualizarStock() {
+    if (!tallaSeleccionada || !colorSeleccionado) {
+        document.getElementById('modalStock').textContent = 'Seleccione talla y color';
+        document.getElementById('modalStock').className = 'modal-stock';
+        return;
+    }
+    
+    const variante = productoActual.variantes.find(v => 
+        v.talla.id === tallaSeleccionada && v.color.id === colorSeleccionado
+    );
+    
+    if (variante) {
+        stockMax = variante.stock;
+        const stockEl = document.getElementById('modalStock');
+        
+        if (stockMax > 0) {
+            stockEl.textContent = `Stock disponible: ${stockMax}`;
+            stockEl.className = 'modal-stock';
+        } else {
+            stockEl.textContent = 'Sin stock';
+            stockEl.className = 'modal-stock sin-stock';
+        }
+        
+        document.getElementById('stockDisponible').textContent = `${stockMax} disponibles`;
+        document.getElementById('cantidadInput').max = stockMax;
+    }
+}
+
+function cambiarCantidad(delta) {
+    const input = document.getElementById('cantidadInput');
+    let cantidad = parseInt(input.value) + delta;
+    
+    if (cantidad < 1) cantidad = 1;
+    if (cantidad > stockMax) cantidad = stockMax;
+    
+    input.value = cantidad;
+}
+
+function cerrarModal() {
+    document.getElementById('productoModal').classList.remove('activo');
+    document.body.style.overflow = 'auto';
+    
+    // Resetear selecciones
+    tallaSeleccionada = null;
+    colorSeleccionado = null;
+    stockMax = 0;
+    document.getElementById('cantidadInput').value = 1;
+}
+
+// Funciones de acción
+function agregarAlCarrito(productoId) {
+    // Implementar lógica de agregar al carrito
+    console.log('Agregar al carrito:', productoId);
+    alert('Producto agregado al carrito');
+}
+
+function comprarAhora(productoId) {
+    // Implementar lógica de compra directa
+    console.log('Comprar ahora:', productoId);
+    window.location.href = `/checkout/${productoId}/`;
+}
+
+function agregarAlCarritoModal() {
+    if (!validarSeleccion()) return;
+    
+    const cantidad = parseInt(document.getElementById('cantidadInput').value);
+    
+    // Implementar lógica de agregar al carrito con variantes
+    console.log({
+        producto: productoActual.idproducto,
+        talla: tallaSeleccionada,
+        color: colorSeleccionado,
+        cantidad: cantidad
+    });
+    
+    alert('Producto agregado al carrito');
+    cerrarModal();
+}
+
+function comprarAhoraModal() {
+    if (!validarSeleccion()) return;
+    
+    const cantidad = parseInt(document.getElementById('cantidadInput').value);
+    
+    // Implementar lógica de compra directa con variantes
+    console.log({
+        producto: productoActual.idproducto,
+        talla: tallaSeleccionada,
+        color: colorSeleccionado,
+        cantidad: cantidad
+    });
+    
+    window.location.href = `/checkout/?producto=${productoActual.idproducto}&talla=${tallaSeleccionada}&color=${colorSeleccionado}&cantidad=${cantidad}`;
+}
+
+function validarSeleccion() {
+    if (!tallaSeleccionada) {
+        alert('Por favor seleccione una talla');
+        return false;
+    }
+    
+    if (!colorSeleccionado) {
+        alert('Por favor seleccione un color');
+        return false;
+    }
+    
+    if (stockMax === 0) {
+        alert('Producto sin stock');
+        return false;
+    }
+    
+    return true;
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById('productoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cerrarModal();
+    }
+});
+
+// Cerrar con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        cerrarModal();
+    }
+});
+</script>

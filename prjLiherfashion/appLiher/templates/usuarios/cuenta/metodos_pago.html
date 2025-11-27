@@ -1,0 +1,110 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="payments-header">
+    <h1>Métodos de Pago</h1>
+    <p>Gestiona tus tarjetas y formas de pago</p>
+    <a href="{% url 'agregar_metodo_pago' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Agregar Nueva Tarjeta
+    </a>
+</div>
+
+<div class="payments-content">
+    {% if metodos_pago %}
+    <div class="payments-grid">
+        {% for metodo in metodos_pago %}
+        <div class="payment-card {% if metodo.es_principal %}primary-payment{% endif %}">
+            {% if metodo.es_principal %}
+            <div class="payment-badge">
+                <i class="bi bi-star-fill"></i> Principal
+            </div>
+            {% endif %}
+            
+            <div class="payment-header">
+                <div class="payment-type">
+                    {% if metodo.tipo_tarjeta == 'visa' %}
+                    <i class="bi bi-credit-card text-primary"></i> Visa
+                    {% elif metodo.tipo_tarjeta == 'mastercard' %}
+                    <i class="bi bi-credit-card text-warning"></i> MasterCard
+                    {% elif metodo.tipo_tarjeta == 'american_express' %}
+                    <i class="bi bi-credit-card text-success"></i> American Express
+                    {% else %}
+                    <i class="bi bi-credit-card"></i> {{ metodo.get_tipo_tarjeta_display }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="payment-details">
+                <p class="card-number">**** **** **** {{ metodo.ultimos_digitos }}</p>
+                <p class="card-holder">{{ metodo.nombre_titular }}</p>
+                <p class="card-expiry">Vence: {{ metodo.fecha_vencimiento }}</p>
+            </div>
+
+            <div class="payment-actions">
+                {% if not metodo.es_principal %}
+                <form method="post" action="{% url 'establecer_metodo_pago_principal' metodo.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-star"></i> Principal
+                    </button>
+                </form>
+                {% endif %}
+                
+                <button type="button" class="btn btn-sm btn-outline-danger" 
+                        onclick="confirmDelete({{ metodo.pk }}, '{{ metodo.get_tipo_tarjeta_display }}')">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        <h3>No tienes métodos de pago guardados</h3>
+        <p>Agrega tu primera tarjeta para realizar compras más rápido y seguras.</p>
+        <a href="{% url 'agregar_metodo_pago' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Agregar Método de Pago
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="deletePaymentModal" class="modal">
+    <div class="modal-content">
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Estás seguro de que quieres eliminar la tarjeta <span id="paymentType"></span>?</p>
+        <div class="modal-actions">
+            <form id="deletePaymentForm" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(paymentId, paymentType) {
+    document.getElementById('paymentType').textContent = paymentType;
+    document.getElementById('deletePaymentForm').action = "{% url 'eliminar_metodo_pago' 0 %}".replace('0', paymentId);
+    document.getElementById('deletePaymentModal').style.display = 'block';
+}
+
+function closePaymentModal() {
+    document.getElementById('deletePaymentModal').style.display = 'none';
+}
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modal = document.getElementById('deletePaymentModal');
+    if (event.target === modal) {
+        closePaymentModal();
+    }
+}
+</script>
+{% endblock %}

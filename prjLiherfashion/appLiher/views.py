@@ -1,9 +1,10 @@
 # ==========================================================
 #                   IMPORTS ESTÁNDAR
 # ==========================================================
+import base64
 import json
-
-
+import uuid
+from decimal import Decimal, InvalidOperation
 
 
 # ==========================================================
@@ -11,47 +12,60 @@ import json
 # ==========================================================
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate, login, logout, views as auth_views
-)
+from django.contrib.auth import authenticate, login, logout, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F, Sum, Count, Q
 from django.http import HttpResponseBadRequest, JsonResponse
-from django.shortcuts import (
-    render, redirect, get_object_or_404
-)
+from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Count, Sum, Q
-from django.views.decorators.csrf import csrf_exempt
-import json
-from decimal import Decimal, InvalidOperation
+from django.db.models import Prefetch
+from django.core.paginator import Paginator
+
 
 # ==========================================================
 #                   IMPORTACIONES LOCALES
 # ==========================================================
 from .decorators import admin_required, permiso_requerido
 from .forms import (
-    CustomPasswordResetForm, UsuarioRegistroForm, CategoriaForm, ColorForm, TallaForm
+    CustomPasswordResetForm,
+    DireccionEnvioForm,
+    MetodoPagoForm,
+    PerfilUsuarioForm,
+    UsuarioRegistroForm,
+    CategoriaForm,
+    ColorForm,
+    TallaForm,
 )
 from .models import (
-    Carrito, Producto, VarianteProducto,
-    Categoria, Color, ItemCarrito, Permiso, PeticionProducto, Producto,VarianteProducto, Talla, Usuarios
+    Carrito,
+    DireccionEnvio,
+    MetodoPago,
+    Pedidos,
+    PerfilUsuario,
+    Producto,
+    VarianteProducto,
+    Categoria,
+    Color,
+    ItemCarrito,
+    Permiso,
+    PeticionProducto,
+    Talla,
+    Usuarios,
 )
-
-
 
 
 
@@ -65,7 +79,11 @@ from .models import (
 # ==========================================================
 
 def pagina_principal(request):
-    return render(request, 'tienda/principal/pagina_principal.html')
+    categorias = Categoria.objects.all()  
+    
+    return render(request, 'tienda/principal/pagina_principal.html', {
+        'categorias': categorias,
+    })
 
 
 
@@ -111,6 +129,185 @@ def obtener_o_crear_carrito(request):
         carrito = Carrito.objects.create()
         request.session['carrito_id'] = carrito.id
         return carrito
+    
+
+
+@login_required
+def mi_cuenta(request):
+    """Vista principal de Mi Cuenta"""
+    return render(request, 'usuarios/cuenta/inicio.html')
+
+@login_required
+def mi_perfil(request):
+    """Vista para ver el perfil del usuario"""
+    perfil, created = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    return render(request, 'usuarios/cuenta/mi_perfil.html', {
+        'perfil': perfil
+    })
+
+@login_required
+def editar_perfil(request):
+    """Vista para editar el perfil del usuario"""
+    perfil, created = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    
+    if request.method == 'POST':
+        form = PerfilUsuarioForm(request.POST, instance=perfil)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Tu perfil se ha actualizado correctamente.')
+            return redirect('mi_perfil')
+    else:
+        form = PerfilUsuarioForm(instance=perfil)
+    
+    return render(request, 'usuarios/cuenta/editar_perfil.html', {
+        'form': form,
+        'perfil': perfil
+    })
+
+@login_required
+def lista_direcciones(request):
+    """Vista para listar direcciones del usuario"""
+    direcciones = DireccionEnvio.objects.filter(usuario=request.user)
+    return render(request, 'usuarios/cuenta/direcciones.html', {
+        'direcciones': direcciones
+    })
+
+@login_required
+def agregar_direccion(request):
+    """Vista para agregar nueva dirección"""
+    if request.method == 'POST':
+        form = DireccionEnvioForm(request.POST)
+        if form.is_valid():
+            direccion = form.save(commit=False)
+            direccion.usuario = request.user
+            
+            # Si es la primera dirección, establecer como principal
+            if not DireccionEnvio.objects.filter(usuario=request.user).exists():
+                direccion.es_principal = True
+            
+            direccion.save()
+            messages.success(request, 'Dirección agregada correctamente.')
+            return redirect('lista_direcciones')
+    else:
+        form = DireccionEnvioForm()
+    
+    return render(request, 'usuarios/cuenta/agregar_direccion.html', {
+        'form': form
+    })
+
+@login_required
+def editar_direccion(request, pk):
+    """Vista para editar dirección existente"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        form = DireccionEnvioForm(request.POST, instance=direccion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Dirección actualizada correctamente.')
+            return redirect('lista_direcciones')
+    else:
+        form = DireccionEnvioForm(instance=direccion)
+    
+    return render(request, 'usuarios/cuenta/editar_direccion.html', {
+        'form': form,
+        'direccion': direccion
+    })
+
+@login_required
+def eliminar_direccion(request, pk):
+    """Vista para eliminar dirección"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        direccion.delete()
+        messages.success(request, 'Dirección eliminada correctamente.')
+    
+    return redirect('lista_direcciones')
+
+@login_required
+def establecer_direccion_principal(request, pk):
+    """Establecer una dirección como principal"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    # Quitar principal de todas las direcciones
+    DireccionEnvio.objects.filter(usuario=request.user).update(es_principal=False)
+    
+    # Establecer esta como principal
+    direccion.es_principal = True
+    direccion.save()
+    
+    messages.success(request, 'Dirección principal actualizada.')
+    return redirect('lista_direcciones')
+
+@login_required
+def lista_metodos_pago(request):
+    """Vista para listar métodos de pago"""
+    metodos_pago = MetodoPago.objects.filter(usuario=request.user)
+    return render(request, 'usuarios/cuenta/metodos_pago.html', {
+        'metodos_pago': metodos_pago
+    })
+
+@login_required
+def agregar_metodo_pago(request):
+    """Vista para agregar nuevo método de pago"""
+    if request.method == 'POST':
+        form = MetodoPagoForm(request.POST)
+        if form.is_valid():
+            metodo_pago = form.save(commit=False)
+            metodo_pago.usuario = request.user
+            metodo_pago.save()
+            messages.success(request, 'Método de pago agregado correctamente.')
+            return redirect('lista_metodos_pago')
+    else:
+        form = MetodoPagoForm()
+    
+    return render(request, 'usuarios/cuenta/agregar_metodo_pago.html', {
+        'form': form
+    })
+
+@login_required
+def eliminar_metodo_pago(request, pk):
+    """Vista para eliminar método de pago"""
+    metodo_pago = get_object_or_404(MetodoPago, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        metodo_pago.delete()
+        messages.success(request, 'Método de pago eliminado correctamente.')
+    
+    return redirect('lista_metodos_pago')
+
+@login_required
+def establecer_metodo_pago_principal(request, pk):
+    """Establecer un método de pago como principal"""
+    metodo_pago = get_object_or_404(MetodoPago, pk=pk, usuario=request.user)
+    
+    # Quitar principal de todos los métodos
+    MetodoPago.objects.filter(usuario=request.user).update(es_principal=False)
+    
+    # Establecer este como principal
+    metodo_pago.es_principal = True
+    metodo_pago.save()
+    
+    messages.success(request, 'Método de pago principal actualizado.')
+    return redirect('lista_metodos_pago')
+
+@login_required
+def mis_pedidos(request):
+    """Vista para listar pedidos del usuario"""
+    # Aquí necesitarías adaptar según tu modelo de Pedidos
+    pedidos = Pedidos.objects.filter(cliente=request.user.email).order_by('-fecha')
+    return render(request, 'usuarios/cuenta/mis_pedidos.html', {
+        'pedidos': pedidos
+    })
+
+@login_required
+def detalle_pedido(request, pedido_id):
+    """Vista para ver detalle de un pedido"""
+    pedido = get_object_or_404(Pedidos, idpedido=pedido_id, cliente=request.user.email)
+    return render(request, 'usuarios/cuenta/detalle_pedido.html', {
+        'pedido': pedido
+    })
 
 
 
@@ -130,31 +327,51 @@ def identificacion(request):
 
 
 def vista_productos(request):
-    productos = VarianteProducto.objects.select_related(
-        'producto', 'talla', 'color'
-    ).all().order_by('producto__categoria__categoria')
 
-    categorias = Categoria.objects.all().order_by('categoria')
-    colores = Color.objects.all().order_by('color')
-    tallas = Talla.objects.all().order_by('talla')
+    # Obtener productos con sus variantes
+    productos = Producto.objects.filter(
+        estado='Activo',
+        variantes__activo=True
+    ).prefetch_related(
+        Prefetch('variantes', queryset=VarianteProducto.objects.filter(activo=True))
+    ).distinct()
 
-    # Obtener filtros
+    # Obtener filtros disponibles
+    categorias = Categoria.objects.filter(
+        producto__variantes__activo=True
+    ).distinct().order_by('categoria')
+    
+    colores = Color.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('color')
+    
+    tallas = Talla.objects.filter(
+        varianteproducto__activo=True,
+        varianteproducto__producto__estado='Activo'
+    ).distinct().order_by('talla')
+
+    # Aplicar filtros
     categoria_filtrar = request.GET.get('categoria', '').strip()
     color_filtrar = request.GET.get('color', '').strip()
     talla_filtrar = request.GET.get('talla', '').strip()
 
-    # Aplicar filtros
     if categoria_filtrar:
-        productos = productos.filter(producto__categoria__categoria=categoria_filtrar)
+        productos = productos.filter(categoria__categoria=categoria_filtrar)
 
     if color_filtrar:
-        productos = productos.filter(color__color=color_filtrar)
+        productos = productos.filter(variantes__color__color=color_filtrar)
 
     if talla_filtrar:
-        productos = productos.filter(talla__talla=talla_filtrar)
+        productos = productos.filter(variantes__talla__talla=talla_filtrar)
+
+    # Paginación
+    paginator = Paginator(productos, 12)  # <-- CORREGIDO
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        'productos': productos,
+        'productos': page_obj,
         'categorias': categorias,
         'colores': colores,
         'tallas': tallas,
@@ -163,10 +380,48 @@ def vista_productos(request):
         'selected_talla': talla_filtrar,
     }
 
-    return render(request, 'tienda/principal/productos.html', context)
+    return render(request, 'tienda/principal/card_productos.html', context)
 
 
 
+# views.py
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+
+def detalle_producto_json(request, idproducto):
+    """API endpoint para obtener detalle del producto con variantes"""
+    producto = get_object_or_404(Producto, idproducto=idproducto)
+    
+    # Serializar variantes
+    variantes_data = []
+    for variante in producto.variantes.select_related('talla', 'color').filter(activo=True):
+        variantes_data.append({
+            'id': variante.idvariante,
+            'talla': {
+                'id': variante.talla.id,
+                'talla': variante.talla.talla
+            },
+            'color': {
+                'id': variante.color.id,
+                'color': variante.color.color,
+                'codigo_hex': variante.color.codigo_hex
+            },
+            'stock': variante.stock,
+            'imagen': variante.imagen.url if variante.imagen else producto.imagen.url if producto.imagen else None
+        })
+    
+    data = {
+        'idproducto': producto.idproducto,
+        'nombre': producto.nombre,
+        'referencia': producto.referencia,
+        'precio': str(producto.precio),
+        'descripcion': producto.descripcion or '',
+        'imagen': producto.imagen.url if producto.imagen else None,
+        'categoria': producto.categoria.nombre if producto.categoria else None,
+        'variantes': variantes_data
+    }
+    
+    return JsonResponse(data)
 
 
 
@@ -309,7 +564,7 @@ def registro_ajax(request):
     user.phone = phone
     user.save()
 
-    # ✅ Guardar permisos solo si el rol es administrador
+    # Guardar permisos solo si el rol es administrador
     if rol == "administrador":
         from .models import Permiso
         permisos, _ = Permiso.objects.get_or_create(usuario=user)
@@ -449,9 +704,9 @@ def activar_cuenta(request, uidb64, token):
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'Bienvenido, {user.first_name or user.email}!')
         if user.is_staff:
-            return redirect('panel_admin')  # admin → panel-admin/
+            return redirect('panel_admin')  
         else:
-            return redirect('pagina_principal')  # usuario → home normal
+            return redirect('pagina_principal')  
     else:
         return render(request, 'usuarios/autenticacion/activacion_invalida.html')
 
@@ -695,7 +950,7 @@ def eliminar_del_carrito(request, item_id):
 @login_required
 @admin_required
 def panel_admin(request):
-    permisos = {"vista_usuario": True}  # Siempre visible
+    permisos = {"vista_usuario": True}  
     if hasattr(request.user, 'permisos'):
         permisos.update({
             "inicio": request.user.permisos.inicio,
@@ -846,6 +1101,56 @@ def eliminar_talla(request, pk):
 
 
 
+def parse_precio(precio_str):
+    """
+    Convierte un string de precio a Decimal manejando formatos con puntos
+    """
+    if not precio_str:
+        return Decimal('0.00')
+    
+    try:
+        # Limpiar el string
+        precio_limpio = precio_str.strip().replace(' ', '')
+        
+        # Si tiene punto como separador de miles y coma decimal
+        if '.' in precio_limpio and ',' in precio_limpio:
+            # Formato: 1.000,00 -> 1000.00
+            precio_limpio = precio_limpio.replace('.', '').replace(',', '.')
+        # Si solo tiene puntos (podría ser separador de miles o decimal)
+        elif precio_limpio.count('.') == 1 and len(precio_limpio.split('.')[-1]) != 2:
+            # Si la parte decimal no tiene 2 dígitos, probablemente es separador de miles
+            precio_limpio = precio_limpio.replace('.', '')
+        # Si tiene comas como decimal
+        elif ',' in precio_limpio:
+            precio_limpio = precio_limpio.replace(',', '.')
+        
+        return Decimal(precio_limpio)
+    except (ValueError, InvalidOperation):
+        raise ValueError("Formato de precio inválido")
+
+
+
+def procesar_imagen_base64(imagen_base64, prefix="variante"):
+    """
+    Procesa una imagen en base64 y retorna un ContentFile
+    """
+    if not imagen_base64 or not imagen_base64.startswith('data:image'):
+        return None
+    
+    try:
+        format, imgstr = imagen_base64.split(';base64,')
+        ext = format.split('/')[-1]
+        
+        # Validar extensión
+        if ext not in ['jpeg', 'jpg', 'png', 'gif']:
+            raise ValueError("Formato de imagen no soportado")
+            
+        filename = f"{prefix}_{uuid.uuid4().hex[:8]}.{ext}"
+        image_data = ContentFile(base64.b64decode(imgstr), name=filename)
+        return image_data
+    except Exception as e:
+        raise ValueError(f"Error al procesar imagen: {str(e)}")
+
 
 @login_required
 @permiso_requerido('inventario')
@@ -887,7 +1192,6 @@ def agregar_producto(request):
     }
 
     if request.method == 'POST':
-        # CAMPOS GENERALES
         nombre = request.POST.get('nombre', '').strip()
         referencia = request.POST.get('referencia', '').strip()
         categoria_id = request.POST.get('categoria')
@@ -896,7 +1200,6 @@ def agregar_producto(request):
         precio_str = request.POST.get('precio', '0')
         imagen = request.FILES.get('imagen')
 
-        # Mantener los datos en el contexto para rellenar el formulario
         context.update({
             "nombre": nombre,
             "referencia": referencia,
@@ -905,31 +1208,52 @@ def agregar_producto(request):
             "precio": precio_str,
         })
 
-        # VALIDAR NOMBRE
+        # Validaciones básicas
         if not nombre:
             messages.error(request, "El nombre del producto es obligatorio.")
             return render(request, 'admin/inventario/agregar_producto.html', context)
 
-        # VALIDAR VARIANTES
+        if not referencia:
+            messages.error(request, "La referencia del producto es obligatoria.")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Validar que existe al menos una variante
         if "variantes[0][talla]" not in request.POST:
             messages.error(request, "Debe agregar mínimo una variante antes de guardar.")
             return render(request, 'admin/inventario/agregar_producto.html', context)
 
-        # Buscar categoría
-        try:
-            categoria = Categoria.objects.get(id=categoria_id)
-        except Categoria.DoesNotExist:
-            messages.error(request, "La categoría seleccionada no existe.")
+        # Validar referencia única
+        if Producto.objects.filter(referencia=referencia).exists():
+            messages.error(request, "La referencia ya existe. Use una referencia única.")
             return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Procesar categoría
+        categoria = None
+        if categoria_id:
+            try:
+                categoria = Categoria.objects.get(id=categoria_id)
+            except Categoria.DoesNotExist:
+                messages.error(request, "La categoría seleccionada no existe.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
 
         # Procesar precio
         try:
-            # Remover puntos y convertir a decimal
-            precio_limpio = precio_str.replace('.', '')
-            precio_decimal = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
-        except (ValueError, TypeError, InvalidOperation) as e:
-            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
+            precio_decimal = parse_precio(precio_str)
+            if precio_decimal < Decimal('0.00'):
+                raise ValueError("El precio no puede ser negativo")
+        except ValueError as e:
+            messages.error(request, f"Error en el precio: {str(e)}")
             return render(request, 'admin/inventario/agregar_producto.html', context)
+
+        # Validar imagen
+        if imagen:
+            if not imagen.content_type.startswith('image/'):
+                messages.error(request, "El archivo debe ser una imagen válida.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
+            
+            if imagen.size > 5 * 1024 * 1024:  # 5MB
+                messages.error(request, "La imagen no debe superar los 5MB.")
+                return render(request, 'admin/inventario/agregar_producto.html', context)
 
         # Crear producto
         try:
@@ -949,10 +1273,12 @@ def agregar_producto(request):
         # Guardar variantes dinámicas
         index = 0
         variantes_guardadas = 0
+        variantes_errors = []
+        
         while True:
             talla_id = request.POST.get(f"variantes[{index}][talla]")
             color_id = request.POST.get(f"variantes[{index}][color]")
-            stock = request.POST.get(f"variantes[{index}][stock]")
+            stock = request.POST.get(f"variantes[{index}][stock]", '0')
             
             if talla_id is None:
                 break
@@ -961,6 +1287,16 @@ def agregar_producto(request):
                 talla_obj = Talla.objects.get(pk=talla_id)
                 color_obj = Color.objects.get(pk=color_id)
                 
+                # Verificar si ya existe esta combinación
+                if VarianteProducto.objects.filter(
+                    producto=producto, 
+                    talla=talla_obj, 
+                    color=color_obj
+                ).exists():
+                    variantes_errors.append(f"La variante {talla_obj.talla} - {color_obj.color} ya existe")
+                    index += 1
+                    continue
+                
                 VarianteProducto.objects.create(
                     producto=producto,
                     talla=talla_obj,
@@ -968,17 +1304,30 @@ def agregar_producto(request):
                     stock=int(stock) if stock else 0,
                 )
                 variantes_guardadas += 1
-            except (Talla.DoesNotExist, Color.DoesNotExist, ValueError) as e:
-                messages.warning(request, f"Error al guardar variante {index+1}: {str(e)}")
+                
+            except (Talla.DoesNotExist, Color.DoesNotExist) as e:
+                variantes_errors.append(f"Variante {index+1}: Talla o color no válido")
+            except ValueError as e:
+                variantes_errors.append(f"Variante {index+1}: Stock inválido")
+            except Exception as e:
+                variantes_errors.append(f"Variante {index+1}: {str(e)}")
             
             index += 1
+
+        # Mostrar errores de variantes
+        for error in variantes_errors:
+            messages.warning(request, error)
 
         if variantes_guardadas > 0:
             messages.success(request, f"Producto agregado correctamente con {variantes_guardadas} variante(s).")
             return redirect('listar_productos_inventario')
         else:
             messages.error(request, "No se pudieron guardar las variantes del producto.")
-            producto.delete()  # Eliminar el producto si no hay variantes
+            try:
+                producto.delete()
+            except Exception as e:
+                messages.error(request, f"Error al eliminar producto sin variantes: {str(e)}")
+            return render(request, 'admin/inventario/agregar_producto.html', context)
 
     return render(request, 'admin/inventario/agregar_producto.html', context)
 
@@ -998,53 +1347,192 @@ def editar_producto(request, idproducto):
     }
 
     if request.method == 'POST':
-        # Obtener los datos del formulario
-        producto.nombre = request.POST.get("nombre", "").strip()
-        producto.referencia = request.POST.get("referencia", "").strip()
-        
-        # CORRECCIÓN: Obtener la categoría por ID
-        categoria_id = request.POST.get("categoria")
         try:
+            # Obtener los datos del formulario
+            nombre = request.POST.get("nombre", "").strip()
+            referencia = request.POST.get("referencia", "").strip()
+            
+            # Validar campos obligatorios
+            if not nombre:
+                messages.error(request, "El nombre del producto es obligatorio.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+
+            if not referencia:
+                messages.error(request, "La referencia del producto es obligatoria.")
+                return render(request, "admin/inventario/editar_producto.html", context)
+
+            # Validar referencia única (excluyendo el producto actual)
+            if referencia != producto.referencia:
+                if Producto.objects.filter(referencia=referencia).exclude(idproducto=producto.idproducto).exists():
+                    messages.error(request, "La referencia ya existe. Use una referencia única.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+
+            producto.nombre = nombre
+            producto.referencia = referencia
+            
+            # Procesar categoría
+            categoria_id = request.POST.get("categoria")
             if categoria_id:
-                producto.categoria = Categoria.objects.get(id=categoria_id)
-        except Categoria.DoesNotExist:
-            messages.error(request, "La categoría seleccionada no existe.")
-            return render(request, "admin/inventario/editar_producto.html", context)
-        
-        # MEJORA: Manejo del precio con formato de puntos
-        precio_str = request.POST.get("precio", "0").strip()
-        try:
-            # Remover puntos y convertir a decimal
-            precio_limpio = precio_str.replace('.', '')
-            producto.precio = Decimal(precio_limpio) if precio_limpio else Decimal('0.00')
-        except (ValueError, TypeError, InvalidOperation) as e:
-            messages.error(request, f"El precio debe ser un número válido. Error: {str(e)}")
-            return render(request, "admin/inventario/editar_producto.html", context)
-        
-        producto.descripcion = request.POST.get("descripcion", "")
-        producto.estado = request.POST.get("estado", "Activo")
-
-        # Manejar la imagen
-        imagen = request.FILES.get("imagen")
-        if imagen:
-            # Validar que sea una imagen
-            if not imagen.content_type.startswith('image/'):
-                messages.error(request, "El archivo debe ser una imagen válida.")
+                try:
+                    producto.categoria = Categoria.objects.get(id=categoria_id)
+                except Categoria.DoesNotExist:
+                    messages.error(request, "La categoría seleccionada no existe.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+            else:
+                producto.categoria = None
+            
+            # Procesar precio
+            precio_str = request.POST.get("precio", "0").strip()
+            try:
+                precio_decimal = parse_precio(precio_str)
+                if precio_decimal < Decimal('0.00'):
+                    raise ValueError("El precio no puede ser negativo")
+                producto.precio = precio_decimal
+            except ValueError as e:
+                messages.error(request, f"Error en el precio: {str(e)}")
                 return render(request, "admin/inventario/editar_producto.html", context)
             
-            # Validar tamaño (opcional, máximo 5MB)
-            if imagen.size > 5 * 1024 * 1024:
-                messages.error(request, "La imagen no debe superar los 5MB.")
-                return render(request, "admin/inventario/editar_producto.html", context)
-            
-            producto.imagen = imagen
+            producto.descripcion = request.POST.get("descripcion", "")
+            producto.estado = request.POST.get("estado", "Activo")
 
-        try:
+            # Manejar la imagen
+            imagen = request.FILES.get("imagen")
+            if imagen:
+                if not imagen.content_type.startswith('image/'):
+                    messages.error(request, "El archivo debe ser una imagen válida.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+                
+                if imagen.size > 5 * 1024 * 1024:
+                    messages.error(request, "La imagen no debe superar los 5MB.")
+                    return render(request, "admin/inventario/editar_producto.html", context)
+                
+                producto.imagen = imagen
+
             producto.save()
-            messages.success(request, "Producto actualizado correctamente.")
+            
+            # ===== PROCESAR VARIANTES ELIMINADAS =====
+            variantes_eliminadas = request.POST.getlist('variantes_eliminadas[]')
+            for variante_id in variantes_eliminadas:
+                try:
+                    variante = VarianteProducto.objects.get(idvariante=variante_id, producto=producto)
+                    nombre_variante = f"{variante.talla.talla} - {variante.color.color}"
+                    variante.delete()
+                    messages.info(request, f"Variante eliminada: {nombre_variante}")
+                except VarianteProducto.DoesNotExist:
+                    messages.warning(request, f"Variante con ID {variante_id} no encontrada para eliminar.")
+                except Exception as e:
+                    messages.warning(request, f"Error al eliminar variante {variante_id}: {str(e)}")
+
+            # ===== PROCESAR VARIANTES EDITADAS =====
+            variantes_editadas = {}
+            for key, value in request.POST.items():
+                if key.startswith('variantes_editadas['):
+                    parts = key.split('[')
+                    if len(parts) >= 3:
+                        variante_id = parts[1].replace(']', '')
+                        campo = parts[2].replace(']', '')
+                        
+                        if variante_id not in variantes_editadas:
+                            variantes_editadas[variante_id] = {}
+                        variantes_editadas[variante_id][campo] = value
+
+            for variante_id, datos in variantes_editadas.items():
+                try:
+                    variante = VarianteProducto.objects.get(idvariante=variante_id, producto=producto)
+                    
+                    if 'stock' in datos:
+                        try:
+                            variante.stock = int(datos['stock'])
+                        except ValueError:
+                            messages.warning(request, f"Stock inválido para variante {variante_id}")
+                    
+                    # Manejar imagen base64 si existe
+                    if 'imagen' in datos and datos['imagen']:
+                        try:
+                            image_data = procesar_imagen_base64(datos['imagen'], f"variante_{variante_id}")
+                            if image_data:
+                                variante.imagen = image_data
+                        except ValueError as e:
+                            messages.warning(request, f"Error en imagen de variante {variante_id}: {str(e)}")
+                    
+                    variante.save()
+                    
+                except VarianteProducto.DoesNotExist:
+                    messages.warning(request, f"Variante con ID {variante_id} no encontrada.")
+                except Exception as e:
+                    messages.warning(request, f"Error al actualizar variante {variante_id}: {str(e)}")
+
+            # ===== PROCESAR NUEVAS VARIANTES =====
+            variantes_nuevas = {}
+            for key, value in request.POST.items():
+                if key.startswith('variantes_nuevas['):
+                    parts = key.split('[')
+                    if len(parts) >= 3:
+                        index = parts[1].replace(']', '')
+                        campo = parts[2].replace(']', '')
+                        
+                        if index not in variantes_nuevas:
+                            variantes_nuevas[index] = {}
+                        variantes_nuevas[index][campo] = value
+
+            for index, datos in variantes_nuevas.items():
+                talla_id = datos.get('talla')
+                color_id = datos.get('color')
+                stock = datos.get('stock', '0')
+                imagen_base64 = datos.get('imagen', '')
+                
+                if talla_id and color_id:
+                    try:
+                        talla_obj = Talla.objects.get(id=talla_id)
+                        color_obj = Color.objects.get(id=color_id)
+                        
+                        # Verificar si ya existe esta variante
+                        existe = VarianteProducto.objects.filter(
+                            producto=producto,
+                            talla=talla_obj,
+                            color=color_obj
+                        ).exists()
+                        
+                        if not existe:
+                            variante_nueva = VarianteProducto(
+                                producto=producto,
+                                talla=talla_obj,
+                                color=color_obj,
+                                stock=int(stock) if stock else 0
+                            )
+                            
+                            # Manejar imagen base64 si existe
+                            if imagen_base64:
+                                try:
+                                    image_data = procesar_imagen_base64(imagen_base64, "variante_nueva")
+                                    if image_data:
+                                        variante_nueva.imagen = image_data
+                                except ValueError as e:
+                                    messages.warning(request, f"Error en imagen de nueva variante: {str(e)}")
+                            
+                            variante_nueva.save()
+                            messages.info(request, f"Nueva variante agregada: {talla_obj.talla} - {color_obj.color}")
+                        else:
+                            messages.warning(request, f"La variante {talla_obj.talla} - {color_obj.color} ya existe.")
+                            
+                    except Talla.DoesNotExist:
+                        messages.error(request, f"Talla con ID {talla_id} no encontrada.")
+                    except Color.DoesNotExist:
+                        messages.error(request, f"Color con ID {color_id} no encontrado.")
+                    except Exception as e:
+                        messages.error(request, f"Error al crear nueva variante: {str(e)}")
+
+            # Validar que el producto tenga al menos una variante después de las operaciones
+            if not VarianteProducto.objects.filter(producto=producto).exists():
+                messages.error(request, "El producto debe tener al menos una variante.")
+            else:
+                messages.success(request, "Producto y variantes actualizados correctamente.")
+                
             return redirect("editar_producto", idproducto=idproducto)
+            
         except Exception as e:
-            messages.error(request, f"Error al actualizar el producto: {str(e)}")
+            error_msg = f"Error al actualizar el producto: {str(e)}"
+            messages.error(request, error_msg)
             return render(request, "admin/inventario/editar_producto.html", context)
 
     return render(request, "admin/inventario/editar_producto.html", context)
@@ -1059,31 +1547,68 @@ def guardar_variantes(request, idproducto):
 
     producto = get_object_or_404(Producto, idproducto=idproducto)
 
-    talla = request.POST.get("talla")
-    colores = request.POST.getlist("colores[]")
-    stocks = request.POST.getlist("stocks[]")
+    try:
+        talla = request.POST.get("talla")
+        colores = request.POST.getlist("colores[]")
+        stocks = request.POST.getlist("stocks[]")
+        imagenes = request.FILES.getlist("imagenes[]")
 
-    imagenes = request.FILES.getlist("imagenes[]")
+        if not talla:
+            return JsonResponse({"error": "Debes seleccionar una talla"}, status=400)
 
-    if not talla:
-        return JsonResponse({"error": "Debes seleccionar una talla"}, status=400)
+        if not colores:
+            return JsonResponse({"error": "Debes seleccionar al menos un color"}, status=400)
 
-    if not colores:
-        return JsonResponse({"error": "Debes seleccionar al menos un color"}, status=400)
+        talla_obj = Talla.objects.get(id=talla)
+        variantes_creadas = 0
+        errors = []
 
-    for i, color in enumerate(colores):
-        talla_obj = Talla.objects.get(talla=talla)
-        color_obj = Color.objects.get(color=color)
+        for i, color_id in enumerate(colores):
+            try:
+                color_obj = Color.objects.get(id=color_id)
+                stock_val = int(stocks[i]) if i < len(stocks) and stocks[i] else 0
+                
+                # Verificar si ya existe
+                if VarianteProducto.objects.filter(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj
+                ).exists():
+                    errors.append(f"La variante {talla_obj.talla} - {color_obj.color} ya existe")
+                    continue
 
-        VarianteProducto.objects.create(
-            producto=producto,
-            talla=talla_obj,
-            color=color_obj,
-            stock=int(stocks[i]),
-            imagen=imagenes[i] if i < len(imagenes) else None
-        )
+                VarianteProducto.objects.create(
+                    producto=producto,
+                    talla=talla_obj,
+                    color=color_obj,
+                    stock=stock_val,
+                    imagen=imagenes[i] if i < len(imagenes) else None
+                )
+                variantes_creadas += 1
+                
+            except Color.DoesNotExist:
+                errors.append(f"Color con ID {color_id} no encontrado")
+            except ValueError:
+                errors.append(f"Stock inválido para color {color_id}")
+            except Exception as e:
+                errors.append(f"Error al crear variante: {str(e)}")
 
-    return JsonResponse({"success": True, "message": "Variantes guardadas correctamente"})
+        if errors:
+            return JsonResponse({
+                "success": variantes_creadas > 0,
+                "message": f"Se crearon {variantes_creadas} variantes, pero hubo {len(errors)} errores",
+                "errors": errors
+            }, status=207 if variantes_creadas > 0 else 400)
+        else:
+            return JsonResponse({
+                "success": True, 
+                "message": f"{variantes_creadas} variante(s) guardadas correctamente"
+            })
+            
+    except Talla.DoesNotExist:
+        return JsonResponse({"error": "La talla seleccionada no existe"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"Error general: {str(e)}"}, status=500)
 
 
 

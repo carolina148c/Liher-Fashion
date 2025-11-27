@@ -16,6 +16,30 @@ urlpatterns = [
     path('devoluciones/', views.devoluciones, name='devoluciones'), 
     path('peticiones/', views.peticiones, name='peticiones'), 
     path('pedidos/', views.pedidos, name='pedidos'), 
+    path('api/producto/<int:idproducto>/detalle/', views.detalle_producto_json, name='detalle_producto_json'),
+    
+    # Mi Cuenta
+    path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
+    path('mi-perfil/', views.mi_perfil, name='mi_perfil'),
+    path('mi-perfil/editar/', views.editar_perfil, name='editar_perfil'),
+    
+    # Direcciones
+    path('direcciones/', views.lista_direcciones, name='lista_direcciones'),
+    path('direcciones/agregar/', views.agregar_direccion, name='agregar_direccion'),
+    path('direcciones/editar/<int:pk>/', views.editar_direccion, name='editar_direccion'),
+    path('direcciones/eliminar/<int:pk>/', views.eliminar_direccion, name='eliminar_direccion'),
+    path('direcciones/principal/<int:pk>/', views.establecer_direccion_principal, name='establecer_direccion_principal'),
+    
+    # Métodos de Pago
+    path('metodos-pago/', views.lista_metodos_pago, name='lista_metodos_pago'),
+    path('metodos-pago/agregar/', views.agregar_metodo_pago, name='agregar_metodo_pago'),
+    path('metodos-pago/eliminar/<int:pk>/', views.eliminar_metodo_pago, name='eliminar_metodo_pago'),
+    path('metodos-pago/principal/<int:pk>/', views.establecer_metodo_pago_principal, name='establecer_metodo_pago_principal'),
+    
+    # Pedidos
+    path('mis-pedidos/', views.mis_pedidos, name='mis_pedidos'),
+    path('mis-pedidos/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+
 
 
     # LOGIN Y REGISTRO 

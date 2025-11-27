@@ -1,0 +1,115 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="address-form-header">
+    <h1>Agregar Nueva Dirección</h1>
+    <p>Completa la información de tu dirección de envío</p>
+    <a href="{% url 'lista_direcciones' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a Direcciones
+    </a>
+</div>
+
+<div class="address-form-content">
+    <form method="post" class="address-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>Información de la Dirección</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.nombre_direccion.id_for_label }}">Nombre para esta dirección *</label>
+                    {{ form.nombre_direccion }}
+                    <small>Ej: Casa, Oficina, Apartamento</small>
+                    {% if form.nombre_direccion.errors %}
+                    <div class="error-text">{{ form.nombre_direccion.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.tipo_direccion.id_for_label }}">Tipo de dirección *</label>
+                    {{ form.tipo_direccion }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Información de Contacto</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.nombre_completo.id_for_label }}">Nombre completo *</label>
+                    {{ form.nombre_completo }}
+                    {% if form.nombre_completo.errors %}
+                    <div class="error-text">{{ form.nombre_completo.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.telefono.id_for_label }}">Teléfono *</label>
+                    {{ form.telefono }}
+                    {% if form.telefono.errors %}
+                    <div class="error-text">{{ form.telefono.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Ubicación</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.departamento.id_for_label }}">Departamento *</label>
+                    {{ form.departamento }}
+                    {% if form.departamento.errors %}
+                    <div class="error-text">{{ form.departamento.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.municipio.id_for_label }}">Municipio/Ciudad *</label>
+                    {{ form.municipio }}
+                    {% if form.municipio.errors %}
+                    <div class="error-text">{{ form.municipio.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.barrio.id_for_label }}">Barrio</label>
+                    {{ form.barrio }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.codigo_postal.id_for_label }}">Código Postal</label>
+                    {{ form.codigo_postal }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Dirección Detallada</h2>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="{{ form.direccion.id_for_label }}">Dirección completa *</label>
+                    {{ form.direccion }}
+                    <small>Incluye calle, número, letra, etc.</small>
+                    {% if form.direccion.errors %}
+                    <div class="error-text">{{ form.direccion.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.piso_apartamento.id_for_label }}">Piso/Apartamento</label>
+                    {{ form.piso_apartamento }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar Dirección
+            </button>
+            <a href="{% url 'lista_direcciones' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

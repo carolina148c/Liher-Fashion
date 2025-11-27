@@ -1,0 +1,87 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="profile-header">
+    <h1>Editar Perfil</h1>
+    <p>Actualiza tu información personal</p>
+    <a href="{% url 'mi_perfil' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Perfil
+    </a>
+</div>
+
+<div class="edit-profile-content">
+    <form method="post" class="profile-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>Información Básica</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.nombre.id_for_label }}">Nombre *</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                    <div class="error-text">{{ form.nombre.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.apellido.id_for_label }}">Apellido *</label>
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                    <div class="error-text">{{ form.apellido.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.telefono.id_for_label }}">Teléfono *</label>
+                    {{ form.telefono }}
+                    {% if form.telefono.errors %}
+                    <div class="error-text">{{ form.telefono.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.genero.id_for_label }}">Género</label>
+                    {{ form.genero }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Documentación</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.tipo_documento.id_for_label }}">Tipo de Documento</label>
+                    {{ form.tipo_documento }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.numero_documento.id_for_label }}">Número de Documento</label>
+                    {{ form.numero_documento }}
+                    {% if form.numero_documento.errors %}
+                    <div class="error-text">{{ form.numero_documento.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Información Adicional</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.fecha_nacimiento.id_for_label }}">Fecha de Nacimiento</label>
+                    {{ form.fecha_nacimiento }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Guardar Cambios
+            </button>
+            <a href="{% url 'mi_perfil' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

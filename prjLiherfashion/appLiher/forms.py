@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
+from .models import DireccionEnvio, MetodoPago, PerfilUsuario, Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
 import re
 
 User = get_user_model()
@@ -149,6 +149,131 @@ class ProductoForm(forms.ModelForm):
             'estado': forms.Select(attrs={'class': 'form-control'}),
         }
 
+# --------------------------------------
+    # VALIDACIÓN NOMBRE
+    # --------------------------------------
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre', '').strip()
+
+        # Longitud
+        if len(nombre) < 3 or len(nombre) > 150:
+            raise forms.ValidationError("El nombre debe tener entre 3 y 150 caracteres.")
+
+        if "  " in nombre:
+            raise forms.ValidationError("No se permiten dobles espacios.")
+
+        patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+( [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+        if not re.match(patron, nombre):
+            raise forms.ValidationError("El nombre solo puede contener letras y un espacio entre palabras.")
+
+        # evitar "aaaaaa", "bbbbbb", etc
+        for palabra in nombre.split(" "):
+            if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+                raise forms.ValidationError("El nombre no puede ser una secuencia repetida.")
+
+        return nombre
+
+    # --------------------------------------
+    # VALIDACIÓN REFERENCIA
+    # --------------------------------------
+    def clean_referencia(self):
+        referencia = self.cleaned_data.get('referencia', '').strip()
+
+        if len(referencia) < 3 or len(referencia) > 10:
+            raise forms.ValidationError("La referencia debe tener entre 3 y 10 caracteres.")
+
+        if not re.match(r'^[A-Za-z0-9]+$', referencia):
+            raise forms.ValidationError("La referencia solo permite letras y números (sin espacios).")
+
+        if " " in referencia:
+            raise forms.ValidationError("La referencia no puede contener espacios.")
+
+        # referencia ÚNICA
+        qs = Producto.objects.filter(referencia=referencia)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise forms.ValidationError("Ya existe un producto con esta referencia.")
+
+        return referencia
+
+    # --------------------------------------
+    # VALIDACIÓN PRECIO
+    # --------------------------------------
+def clean_precio(self):
+    precio_raw = self.cleaned_data.get('precio')
+
+    if precio_raw in (None, ''):
+        raise forms.ValidationError("El precio es obligatorio.")
+
+    # Lo convertimos a string (por si viene como int/Decimal)
+    precio_str = str(precio_raw).strip()
+
+    # No permitir espacios internos o externos
+    if " " in precio_str:
+        raise forms.ValidationError("El precio no puede contener espacios.")
+
+    # Debe ser solo dígitos
+    if not re.fullmatch(r'^[0-9]+$', precio_str):
+        raise forms.ValidationError("El precio solo puede contener números.")
+
+    # Longitud: 3 a 8 caracteres/dígitos
+    if len(precio_str) < 3 or len(precio_str) > 8:
+        raise forms.ValidationError("El precio debe tener entre 3 y 8 dígitos.")
+
+    # Si quieres guardar como entero:
+    try:
+        return int(precio_str)
+    except ValueError:
+        raise forms.ValidationError("Precio inválido.")
+
+
+   # --------------------------------------
+    # VALIDACIÓN descripcion
+    # --------------------------------------
+
+def clean_descripcion(self):
+    descripcion = self.cleaned_data.get('descripcion', '')
+    descripcion = descripcion.strip()
+
+    if descripcion == '':
+        raise forms.ValidationError("La descripción es obligatoria.")
+
+    if len(descripcion) < 5 or len(descripcion) > 500:
+        raise forms.ValidationError("La descripción debe tener entre 5 y 500 caracteres.")
+
+    # Solo letras (incluye tildes y ñ) y solo un espacio entre palabras
+    patron = r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$'
+    if not re.match(patron, descripcion):
+        raise forms.ValidationError("La descripción solo puede contener letras y un solo espacio entre palabras.")
+
+    # (Opcional) evitar palabras formadas por una misma letra repetida
+    for palabra in descripcion.split(' '):
+        if re.fullmatch(r'([A-Za-zÁÉÍÓÚÜÑáéíóúüñ])\1{2,}', palabra):
+            raise forms.ValidationError("La descripción contiene palabras inválidas (letra repetida).")
+
+    return descripcion
+
+    # --------------------------------------
+    # VALIDACIÓN IMAGEN
+    # --------------------------------------
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get('imagen')
+
+        if not imagen:
+            raise forms.ValidationError("Debe subir una imagen principal.")
+
+        if not imagen.content_type.startswith("image/"):
+            raise forms.ValidationError("El archivo debe ser una imagen.")
+
+        if imagen.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("La imagen no debe superar los 5MB.")
+
+        return imagen
+    
+
+
 
 class VarianteProductoForm(forms.ModelForm):
     class Meta:
@@ -214,3 +339,98 @@ class TallaForm(forms.ModelForm):
             raise forms.ValidationError("Esta talla ya existe")
         return data
 
+
+
+class PerfilUsuarioForm(forms.ModelForm):
+    fecha_nacimiento = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    
+    class Meta:
+        model = PerfilUsuario
+        fields = ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 
+                 'telefono', 'genero', 'fecha_nacimiento']
+        widgets = {
+            'telefono': forms.TextInput(attrs={'placeholder': 'Ej: 3126032655'}),
+            'numero_documento': forms.TextInput(attrs={'placeholder': 'Número de documento'}),
+        }
+
+class DireccionEnvioForm(forms.ModelForm):
+    class Meta:
+        model = DireccionEnvio
+        fields = ['nombre_direccion', 'nombre_completo', 'telefono', 'departamento', 
+                 'municipio', 'tipo_direccion', 'direccion', 'barrio', 'piso_apartamento', 
+                 'codigo_postal']
+        widgets = {
+            'direccion': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Calle, número, letra, etc.'}),
+            'telefono': forms.TextInput(attrs={'placeholder': 'Ej: 3126032655'}),
+        }
+
+class MetodoPagoForm(forms.ModelForm):
+    numero_tarjeta = forms.CharField(
+        max_length=19, 
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': '1234 5678 9012 3456',
+            'data-credit-card': 'true'
+        })
+    )
+    codigo_seguridad = forms.CharField(
+        max_length=4, 
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': '123',
+            'class': 'cvv-input'
+        })
+    )
+    
+    class Meta:
+        model = MetodoPago
+        fields = ['tipo_tarjeta', 'nombre_titular', 'fecha_vencimiento']
+        widgets = {
+            'fecha_vencimiento': forms.TextInput(attrs={
+                'placeholder': 'MM/YYYY'
+            }),
+            'nombre_titular': forms.TextInput(attrs={
+                'placeholder': 'Como aparece en la tarjeta'
+            }),
+        }
+    
+    def clean_numero_tarjeta(self):
+        numero_tarjeta = self.cleaned_data['numero_tarjeta'].replace(' ', '')
+        # Validación básica del número de tarjeta
+        if len(numero_tarjeta) < 13 or len(numero_tarjeta) > 19:
+            raise forms.ValidationError('El número de tarjeta debe tener entre 13 y 19 dígitos')
+        
+        # Aquí iría la lógica para validar con algoritmo de Luhn
+        # y tokenizar con tu pasarela de pago
+        
+        # Por ahora, solo guardamos los últimos 4 dígitos
+        return numero_tarjeta[-4:]
+    
+    def clean_fecha_vencimiento(self):
+        fecha_vencimiento = self.cleaned_data['fecha_vencimiento']
+        if not re.match(r'^\d{2}/\d{4}$', fecha_vencimiento):
+            raise forms.ValidationError('El formato debe ser MM/YYYY')
+        
+        mes, año = fecha_vencimiento.split('/')
+        mes = int(mes)
+        año = int(año)
+        
+        if mes < 1 or mes > 12:
+            raise forms.ValidationError('El mes debe estar entre 01 y 12')
+        
+        # Validar que no esté vencida
+        from datetime import date
+        today = date.today()
+        if año < today.year or (año == today.year and mes < today.month):
+            raise forms.ValidationError('La tarjeta está vencida')
+        
+        return fecha_vencimiento
+    
+    def clean_codigo_seguridad(self):
+        codigo_seguridad = self.cleaned_data['codigo_seguridad']
+        if len(codigo_seguridad) < 3:
+            raise forms.ValidationError('El código de seguridad debe tener al menos 3 dígitos')
+        return codigo_seguridad

@@ -1,0 +1,86 @@
+{% load static %}
+<!-- Modal de Edición de Variante -->
+<div id="modalEditarVariante" class="modal-overlay hidden">
+    <div class="modal-container">
+        
+        <link rel="stylesheet" href="{% static 'css/editar_variante.css' %}">
+
+        <!-- Header -->
+        <div class="modal-header">
+            <h2>Editor Inventario</h2>
+            <button class="btn-close" onclick="cerrarModalEdicion()">×</button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+            
+            <!-- Info de la variante -->
+            <div class="variant-info">
+                <div class="variant-image">
+                    <img id="variantImage" src="" alt="Variante" style="display: none;">
+                    <span id="noImageText">Sin imagen</span>
+                </div>
+                <div class="variant-details">
+                    <div class="variant-color" id="variantColor">-</div>
+                    <div class="variant-size" id="variantSize">Talla: -</div>
+                    <input type="hidden" id="varianteId">
+                    <input type="hidden" id="varianteTallaId">
+                    <input type="hidden" id="varianteColorId">
+                    <input type="hidden" id="esVarianteNueva">
+                </div>
+            </div>
+
+            <!-- Stock Actual -->
+            <div class="stock-section">
+                <label class="stock-label">Stock actual:</label>
+                <div class="stock-current">
+                    Stock actual: <strong id="stockActual">0 unidades</strong>
+                </div>
+
+                <label class="stock-modify-label">Agregar Stock:</label>
+                <div class="stock-controls">
+                    <button class="stock-btn" type="button" onclick="decrementarStock()">−</button>
+                    <input 
+                        type="number" 
+                        class="stock-input" 
+                        id="stockAgregado" 
+                        value="0" 
+                        min="0"
+                        oninput="validarStock()"
+                        placeholder="Cantidad a agregar"
+                    >
+                    <span class="stock-units">unidades</span>
+                    <button class="stock-btn" type="button" onclick="incrementarStock()">+</button>
+                </div>
+                
+                <!-- Nuevo: Mostrar el total calculado -->
+                <div class="stock-total" style="margin-top: 12px; padding: 8px; background: #f0f9ff; border-radius: 4px; border-left: 4px solid #007bff;">
+                    <strong>Stock total después de agregar: <span id="stockTotal">0</span> unidades</strong>
+                </div>
+            </div>
+
+            <!-- Editar Imagen -->
+            <div class="image-section">
+                <label class="image-label">Editar imagen:</label>
+                <button class="btn-upload" type="button" onclick="document.getElementById('fileInputVariante').click()">
+                    <span>📎</span>
+                    <span>Subir Imagen</span>
+                </button>
+                <input type="file" id="fileInputVariante" accept="image/*" style="display: none;" onchange="handleImageUploadVariante(event)">
+                
+                <div class="image-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span>Una vez guardado los cambios no es posible disminuir el stock ingresado</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+            <button class="btn btn-cancel" type="button" onclick="cerrarModalEdicion()">Cancelar</button>
+            <button class="btn btn-save" type="button" onclick="guardarCambiosVariante()">Guardar Cambios</button>
+        </div>
+
+    </div>
+</div>
