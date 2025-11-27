@@ -42,6 +42,9 @@ from django.core.paginator import Paginator
 from .decorators import admin_required, permiso_requerido
 from .forms import (
     CustomPasswordResetForm,
+    DireccionEnvioForm,
+    MetodoPagoForm,
+    PerfilUsuarioForm,
     UsuarioRegistroForm,
     CategoriaForm,
     ColorForm,
@@ -49,6 +52,10 @@ from .forms import (
 )
 from .models import (
     Carrito,
+    DireccionEnvio,
+    MetodoPago,
+    Pedidos,
+    PerfilUsuario,
     Producto,
     VarianteProducto,
     Categoria,
@@ -122,6 +129,185 @@ def obtener_o_crear_carrito(request):
         carrito = Carrito.objects.create()
         request.session['carrito_id'] = carrito.id
         return carrito
+    
+
+
+@login_required
+def mi_cuenta(request):
+    """Vista principal de Mi Cuenta"""
+    return render(request, 'usuarios/cuenta/inicio.html')
+
+@login_required
+def mi_perfil(request):
+    """Vista para ver el perfil del usuario"""
+    perfil, created = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    return render(request, 'usuarios/cuenta/mi_perfil.html', {
+        'perfil': perfil
+    })
+
+@login_required
+def editar_perfil(request):
+    """Vista para editar el perfil del usuario"""
+    perfil, created = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    
+    if request.method == 'POST':
+        form = PerfilUsuarioForm(request.POST, instance=perfil)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Tu perfil se ha actualizado correctamente.')
+            return redirect('mi_perfil')
+    else:
+        form = PerfilUsuarioForm(instance=perfil)
+    
+    return render(request, 'usuarios/cuenta/editar_perfil.html', {
+        'form': form,
+        'perfil': perfil
+    })
+
+@login_required
+def lista_direcciones(request):
+    """Vista para listar direcciones del usuario"""
+    direcciones = DireccionEnvio.objects.filter(usuario=request.user)
+    return render(request, 'usuarios/cuenta/direcciones.html', {
+        'direcciones': direcciones
+    })
+
+@login_required
+def agregar_direccion(request):
+    """Vista para agregar nueva dirección"""
+    if request.method == 'POST':
+        form = DireccionEnvioForm(request.POST)
+        if form.is_valid():
+            direccion = form.save(commit=False)
+            direccion.usuario = request.user
+            
+            # Si es la primera dirección, establecer como principal
+            if not DireccionEnvio.objects.filter(usuario=request.user).exists():
+                direccion.es_principal = True
+            
+            direccion.save()
+            messages.success(request, 'Dirección agregada correctamente.')
+            return redirect('lista_direcciones')
+    else:
+        form = DireccionEnvioForm()
+    
+    return render(request, 'usuarios/cuenta/agregar_direccion.html', {
+        'form': form
+    })
+
+@login_required
+def editar_direccion(request, pk):
+    """Vista para editar dirección existente"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        form = DireccionEnvioForm(request.POST, instance=direccion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Dirección actualizada correctamente.')
+            return redirect('lista_direcciones')
+    else:
+        form = DireccionEnvioForm(instance=direccion)
+    
+    return render(request, 'usuarios/cuenta/editar_direccion.html', {
+        'form': form,
+        'direccion': direccion
+    })
+
+@login_required
+def eliminar_direccion(request, pk):
+    """Vista para eliminar dirección"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        direccion.delete()
+        messages.success(request, 'Dirección eliminada correctamente.')
+    
+    return redirect('lista_direcciones')
+
+@login_required
+def establecer_direccion_principal(request, pk):
+    """Establecer una dirección como principal"""
+    direccion = get_object_or_404(DireccionEnvio, pk=pk, usuario=request.user)
+    
+    # Quitar principal de todas las direcciones
+    DireccionEnvio.objects.filter(usuario=request.user).update(es_principal=False)
+    
+    # Establecer esta como principal
+    direccion.es_principal = True
+    direccion.save()
+    
+    messages.success(request, 'Dirección principal actualizada.')
+    return redirect('lista_direcciones')
+
+@login_required
+def lista_metodos_pago(request):
+    """Vista para listar métodos de pago"""
+    metodos_pago = MetodoPago.objects.filter(usuario=request.user)
+    return render(request, 'usuarios/cuenta/metodos_pago.html', {
+        'metodos_pago': metodos_pago
+    })
+
+@login_required
+def agregar_metodo_pago(request):
+    """Vista para agregar nuevo método de pago"""
+    if request.method == 'POST':
+        form = MetodoPagoForm(request.POST)
+        if form.is_valid():
+            metodo_pago = form.save(commit=False)
+            metodo_pago.usuario = request.user
+            metodo_pago.save()
+            messages.success(request, 'Método de pago agregado correctamente.')
+            return redirect('lista_metodos_pago')
+    else:
+        form = MetodoPagoForm()
+    
+    return render(request, 'usuarios/cuenta/agregar_metodo_pago.html', {
+        'form': form
+    })
+
+@login_required
+def eliminar_metodo_pago(request, pk):
+    """Vista para eliminar método de pago"""
+    metodo_pago = get_object_or_404(MetodoPago, pk=pk, usuario=request.user)
+    
+    if request.method == 'POST':
+        metodo_pago.delete()
+        messages.success(request, 'Método de pago eliminado correctamente.')
+    
+    return redirect('lista_metodos_pago')
+
+@login_required
+def establecer_metodo_pago_principal(request, pk):
+    """Establecer un método de pago como principal"""
+    metodo_pago = get_object_or_404(MetodoPago, pk=pk, usuario=request.user)
+    
+    # Quitar principal de todos los métodos
+    MetodoPago.objects.filter(usuario=request.user).update(es_principal=False)
+    
+    # Establecer este como principal
+    metodo_pago.es_principal = True
+    metodo_pago.save()
+    
+    messages.success(request, 'Método de pago principal actualizado.')
+    return redirect('lista_metodos_pago')
+
+@login_required
+def mis_pedidos(request):
+    """Vista para listar pedidos del usuario"""
+    # Aquí necesitarías adaptar según tu modelo de Pedidos
+    pedidos = Pedidos.objects.filter(cliente=request.user.email).order_by('-fecha')
+    return render(request, 'usuarios/cuenta/mis_pedidos.html', {
+        'pedidos': pedidos
+    })
+
+@login_required
+def detalle_pedido(request, pedido_id):
+    """Vista para ver detalle de un pedido"""
+    pedido = get_object_or_404(Pedidos, idpedido=pedido_id, cliente=request.user.email)
+    return render(request, 'usuarios/cuenta/detalle_pedido.html', {
+        'pedido': pedido
+    })
 
 
 

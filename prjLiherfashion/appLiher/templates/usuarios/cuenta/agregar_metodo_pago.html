@@ -1,0 +1,460 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="payment-form-header">
+    <h1>Agregar Nueva Tarjeta</h1>
+    <p>Agrega tu tarjeta de crédito o débito para pagos más rápidos y seguros</p>
+    <a href="{% url 'lista_metodos_pago' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a Métodos de Pago
+    </a>
+</div>
+
+<div class="payment-form-content">
+    <form method="post" class="payment-form" id="paymentForm">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>Información de la Tarjeta</h2>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="numero_tarjeta">Número de Tarjeta *</label>
+                    <input type="text" 
+                           id="numero_tarjeta" 
+                           name="numero_tarjeta" 
+                           maxlength="19"
+                           placeholder="1234 5678 9012 3456"
+                           required
+                           data-credit-card>
+                    <div class="card-icons">
+                        <i class="bi bi-credit-card visa" data-card-type="visa"></i>
+                        <i class="bi bi-credit-card mastercard" data-card-type="mastercard"></i>
+                        <i class="bi bi-credit-card amex" data-card-type="american_express"></i>
+                    </div>
+                    {% if form.numero_tarjeta.errors %}
+                    <div class="error-text">{{ form.numero_tarjeta.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.nombre_titular.id_for_label }}">Nombre del Titular *</label>
+                    {{ form.nombre_titular }}
+                    {% if form.nombre_titular.errors %}
+                    <div class="error-text">{{ form.nombre_titular.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.tipo_tarjeta.id_for_label }}">Tipo de Tarjeta *</label>
+                    {{ form.tipo_tarjeta }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Fecha de Vencimiento y Seguridad</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.fecha_vencimiento.id_for_label }}">Fecha de Vencimiento *</label>
+                    {{ form.fecha_vencimiento }}
+                    <small>Formato: MM/YYYY</small>
+                    {% if form.fecha_vencimiento.errors %}
+                    <div class="error-text">{{ form.fecha_vencimiento.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="codigo_seguridad">Código de Seguridad (CVV) *</label>
+                    <div class="cvv-input-container">
+                        <input type="text" 
+                               id="codigo_seguridad" 
+                               name="codigo_seguridad" 
+                               maxlength="4"
+                               placeholder="123"
+                               required
+                               class="cvv-input">
+                        <button type="button" class="cvv-help" data-toggle="tooltip" 
+                                title="Los 3 o 4 dígitos en el reverso de tu tarjeta">
+                            <i class="bi bi-question-circle"></i>
+                        </button>
+                    </div>
+                    {% if form.codigo_seguridad.errors %}
+                    <div class="error-text">{{ form.codigo_seguridad.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Seguridad -->
+        <div class="security-info">
+            <div class="security-icon">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            <div class="security-content">
+                <h4>Tu seguridad es nuestra prioridad</h4>
+                <p>Usamos encriptación de grado bancario para proteger tu información. No almacenamos tu código CVV completo.</p>
+            </div>
+        </div>
+
+        <div class="form-check">
+            <input type="checkbox" id="es_principal" name="es_principal" class="form-check-input" checked>
+            <label for="es_principal" class="form-check-label">
+                Establecer como método de pago principal
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="bi bi-check-lg"></i> Agregar Tarjeta
+            </button>
+            <a href="{% url 'lista_metodos_pago' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de ayuda CVV -->
+<div id="cvvHelpModal" class="modal">
+    <div class="modal-content">
+        <h3>¿Dónde encuentro el CVV?</h3>
+        <div class="cvv-examples">
+            <div class="cvv-example">
+                <h4>Visa, MasterCard</h4>
+                <p>3 dígitos en el reverso de la tarjeta, en la banda de firma</p>
+                <div class="cvv-demo back-demo">
+                    <div class="card-back">
+                        <div class="magnetic-stripe"></div>
+                        <div class="cvv-spot">CVV: 123</div>
+                        <div class="signature-panel"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="cvv-example">
+                <h4>American Express</h4>
+                <p>4 dígitos en el frente de la tarjeta, arriba del número</p>
+                <div class="cvv-demo front-demo">
+                    <div class="card-front amex-front">
+                        <div class="card-number">3782 822463 10005</div>
+                        <div class="cvv-spot">CVV: 1234</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" onclick="closeModal('cvvHelp')">Entendido</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentForm = document.getElementById('paymentForm');
+    const cardNumberInput = document.getElementById('numero_tarjeta');
+    const expiryInput = document.querySelector('input[name="fecha_vencimiento"]');
+    const cvvInput = document.getElementById('codigo_seguridad');
+    const cvvHelpBtn = document.querySelector('.cvv-help');
+    const cardIcons = document.querySelectorAll('.card-icons i');
+
+    // Formatear número de tarjeta
+    cardNumberInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        // Detectar tipo de tarjeta
+        const cardType = detectCardType(value);
+        updateCardIcons(cardType);
+        
+        // Formatear con espacios cada 4 dígitos
+        value = value.replace(/(.{4})/g, '$1 ').trim();
+        if (value.length > 19) value = value.substring(0, 19);
+        e.target.value = value;
+    });
+
+    // Formatear fecha de vencimiento
+    if (expiryInput) {
+        expiryInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length > 7) value = value.substring(0, 7);
+            e.target.value = value;
+        });
+    }
+
+    // Validar CVV
+    cvvInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 4) value = value.substring(0, 4);
+        e.target.value = value;
+    });
+
+    // Mostrar ayuda CVV
+    if (cvvHelpBtn) {
+        cvvHelpBtn.addEventListener('click', function() {
+            document.getElementById('cvvHelpModal').style.display = 'block';
+        });
+    }
+
+    // Validación del formulario
+    paymentForm.addEventListener('submit', function(e) {
+        let isValid = true;
+        const errors = [];
+
+        // Validar número de tarjeta
+        const cardNumber = cardNumberInput.value.replace(/\D/g, '');
+        if (cardNumber.length < 13 || cardNumber.length > 19) {
+            isValid = false;
+            errors.push('El número de tarjeta debe tener entre 13 y 19 dígitos');
+            cardNumberInput.classList.add('is-invalid');
+        } else {
+            cardNumberInput.classList.remove('is-invalid');
+        }
+
+        // Validar fecha de vencimiento
+        if (expiryInput) {
+            const expiry = expiryInput.value;
+            if (!/^\d{2}\/\d{4}$/.test(expiry)) {
+                isValid = false;
+                errors.push('La fecha de vencimiento debe tener el formato MM/YYYY');
+                expiryInput.classList.add('is-invalid');
+            } else {
+                const [month, year] = expiry.split('/');
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear();
+                const currentMonth = currentDate.getMonth() + 1;
+
+                if (parseInt(month) < 1 || parseInt(month) > 12) {
+                    isValid = false;
+                    errors.push('El mes debe estar entre 01 y 12');
+                    expiryInput.classList.add('is-invalid');
+                } else if (parseInt(year) < currentYear || 
+                          (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
+                    isValid = false;
+                    errors.push('La tarjeta está vencida');
+                    expiryInput.classList.add('is-invalid');
+                } else {
+                    expiryInput.classList.remove('is-invalid');
+                }
+            }
+        }
+
+        // Validar CVV
+        if (cvvInput.value.length < 3) {
+            isValid = false;
+            errors.push('El código de seguridad debe tener al menos 3 dígitos');
+            cvvInput.classList.add('is-invalid');
+        } else {
+            cvvInput.classList.remove('is-invalid');
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            showAlert(errors.join('<br>'), 'error');
+        }
+    });
+
+    function updateCardIcons(cardType) {
+        cardIcons.forEach(icon => {
+            if (icon.dataset.cardType === cardType) {
+                icon.classList.add('active');
+            } else {
+                icon.classList.remove('active');
+            }
+        });
+    }
+
+    function detectCardType(cardNumber) {
+        const patterns = {
+            'visa': /^4/,
+            'mastercard': /^5[1-5]/,
+            'american_express': /^3[47]/,
+            'dinners_club': /^3(?:0[0-5]|[68])/
+        };
+
+        for (const [type, pattern] of Object.entries(patterns)) {
+            if (pattern.test(cardNumber)) {
+                return type;
+            }
+        }
+        return null;
+    }
+});
+
+function closeModal(type) {
+    const modal = document.getElementById(type + 'Modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+
+<style>
+.card-icons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.card-icons i {
+    font-size: 1.5rem;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+}
+
+.card-icons i.active {
+    opacity: 1;
+}
+
+.card-icons .visa { color: #1a1f71; }
+.card-icons .mastercard { color: #eb001b; }
+.card-icons .amex { color: #2e77bc; }
+
+.cvv-input-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cvv-input {
+    width: 100px;
+}
+
+.cvv-help {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.security-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #e8f5e8;
+    border-radius: var(--border-radius);
+    margin: 1.5rem 0;
+}
+
+.security-icon {
+    font-size: 2rem;
+    color: var(--success-color);
+}
+
+.security-content h4 {
+    margin-bottom: 0.5rem;
+    color: var(--success-color);
+}
+
+.security-content p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.cvv-examples {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.cvv-example h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.cvv-demo {
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.card-back, .card-front {
+    width: 200px;
+    height: 120px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.card-back {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-front.amex-front {
+    background: linear-gradient(135deg, #0070ba 0%, #1546a0 100%);
+    color: white;
+    padding: 1rem;
+}
+
+.magnetic-stripe {
+    height: 40px;
+    background: #333;
+    margin-top: 20px;
+}
+
+.signature-panel {
+    height: 30px;
+    background: #fff;
+    margin: 10px;
+    border-radius: 4px;
+    position: relative;
+}
+
+.cvv-spot {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.card-number {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-check {
+    margin: 1.5rem 0;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+}
+
+.form-check-label {
+    font-weight: 500;
+}
+
+.is-invalid {
+    border-color: var(--danger-color) !important;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+}
+
+@media (max-width: 768px) {
+    .cvv-examples {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-back, .card-front {
+        width: 150px;
+        height: 90px;
+    }
+}
+</style>
+{% endblock %}

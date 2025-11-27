@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
+from .models import DireccionEnvio, MetodoPago, PerfilUsuario, Usuarios, Producto, VarianteProducto, Categoria, Color, Talla
 import re
 
 User = get_user_model()
@@ -339,3 +339,98 @@ class TallaForm(forms.ModelForm):
             raise forms.ValidationError("Esta talla ya existe")
         return data
 
+
+
+class PerfilUsuarioForm(forms.ModelForm):
+    fecha_nacimiento = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    
+    class Meta:
+        model = PerfilUsuario
+        fields = ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 
+                 'telefono', 'genero', 'fecha_nacimiento']
+        widgets = {
+            'telefono': forms.TextInput(attrs={'placeholder': 'Ej: 3126032655'}),
+            'numero_documento': forms.TextInput(attrs={'placeholder': 'Número de documento'}),
+        }
+
+class DireccionEnvioForm(forms.ModelForm):
+    class Meta:
+        model = DireccionEnvio
+        fields = ['nombre_direccion', 'nombre_completo', 'telefono', 'departamento', 
+                 'municipio', 'tipo_direccion', 'direccion', 'barrio', 'piso_apartamento', 
+                 'codigo_postal']
+        widgets = {
+            'direccion': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Calle, número, letra, etc.'}),
+            'telefono': forms.TextInput(attrs={'placeholder': 'Ej: 3126032655'}),
+        }
+
+class MetodoPagoForm(forms.ModelForm):
+    numero_tarjeta = forms.CharField(
+        max_length=19, 
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': '1234 5678 9012 3456',
+            'data-credit-card': 'true'
+        })
+    )
+    codigo_seguridad = forms.CharField(
+        max_length=4, 
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': '123',
+            'class': 'cvv-input'
+        })
+    )
+    
+    class Meta:
+        model = MetodoPago
+        fields = ['tipo_tarjeta', 'nombre_titular', 'fecha_vencimiento']
+        widgets = {
+            'fecha_vencimiento': forms.TextInput(attrs={
+                'placeholder': 'MM/YYYY'
+            }),
+            'nombre_titular': forms.TextInput(attrs={
+                'placeholder': 'Como aparece en la tarjeta'
+            }),
+        }
+    
+    def clean_numero_tarjeta(self):
+        numero_tarjeta = self.cleaned_data['numero_tarjeta'].replace(' ', '')
+        # Validación básica del número de tarjeta
+        if len(numero_tarjeta) < 13 or len(numero_tarjeta) > 19:
+            raise forms.ValidationError('El número de tarjeta debe tener entre 13 y 19 dígitos')
+        
+        # Aquí iría la lógica para validar con algoritmo de Luhn
+        # y tokenizar con tu pasarela de pago
+        
+        # Por ahora, solo guardamos los últimos 4 dígitos
+        return numero_tarjeta[-4:]
+    
+    def clean_fecha_vencimiento(self):
+        fecha_vencimiento = self.cleaned_data['fecha_vencimiento']
+        if not re.match(r'^\d{2}/\d{4}$', fecha_vencimiento):
+            raise forms.ValidationError('El formato debe ser MM/YYYY')
+        
+        mes, año = fecha_vencimiento.split('/')
+        mes = int(mes)
+        año = int(año)
+        
+        if mes < 1 or mes > 12:
+            raise forms.ValidationError('El mes debe estar entre 01 y 12')
+        
+        # Validar que no esté vencida
+        from datetime import date
+        today = date.today()
+        if año < today.year or (año == today.year and mes < today.month):
+            raise forms.ValidationError('La tarjeta está vencida')
+        
+        return fecha_vencimiento
+    
+    def clean_codigo_seguridad(self):
+        codigo_seguridad = self.cleaned_data['codigo_seguridad']
+        if len(codigo_seguridad) < 3:
+            raise forms.ValidationError('El código de seguridad debe tener al menos 3 dígitos')
+        return codigo_seguridad

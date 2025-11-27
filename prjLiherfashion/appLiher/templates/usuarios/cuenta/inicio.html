@@ -1,0 +1,93 @@
+{% extends 'usuarios/cuenta/mi_cuenta.html' %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Mi Cuenta</h1>
+    <p>Gestiona tu información personal, direcciones y métodos de pago</p>
+</div>
+
+<div class="dashboard-cards">
+    <!-- Tarjeta Mi Perfil -->
+    <div class="dashboard-card">
+        <div class="card-icon">
+            <i class="bi bi-person"></i>
+        </div>
+        <h3>Mi Perfil</h3>
+        <p>Gestiona tu información personal y preferencias</p>
+        <a href="{% url 'mi_perfil' %}" class="card-link">Ver perfil</a>
+        {% if not user.perfil.nombre %}
+        <div class="card-alert">
+            <i class="bi bi-exclamation-circle"></i>
+            Completa tu perfil
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tarjeta Direcciones -->
+    <div class="dashboard-card">
+        <div class="card-icon">
+            <i class="bi bi-geo-alt"></i>
+        </div>
+        <h3>Direcciones</h3>
+        <p>Gestiona tus direcciones de envío</p>
+        <a href="{% url 'lista_direcciones' %}" class="card-link">Ver direcciones</a>
+        {% if user.direcciones.count == 0 %}
+        <div class="card-alert">
+            <i class="bi bi-exclamation-circle"></i>
+            Agrega una dirección
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tarjeta Métodos de Pago -->
+    <div class="dashboard-card">
+        <div class="card-icon">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        <h3>Métodos de Pago</h3>
+        <p>Gestiona tus tarjetas y formas de pago</p>
+        <a href="{% url 'lista_metodos_pago' %}" class="card-link">Ver métodos</a>
+        {% if user.metodos_pago.count == 0 %}
+        <div class="card-alert">
+            <i class="bi bi-exclamation-circle"></i>
+            Agrega un método de pago
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tarjeta Pedidos -->
+    <div class="dashboard-card">
+        <div class="card-icon">
+            <i class="bi bi-bag"></i>
+        </div>
+        <h3>Mis Pedidos</h3>
+        <p>Revisa tu historial de compras</p>
+        <a href="{% url 'mis_pedidos' %}" class="card-link">Ver pedidos</a>
+    </div>
+</div>
+
+<div class="recent-activity">
+    <h2>Actividad Reciente</h2>
+    <div class="activity-list">
+        {% if user.direcciones.exists %}
+        <div class="activity-item">
+            <i class="bi bi-geo-alt text-success"></i>
+            <span>Tienes {{ user.direcciones.count }} dirección(es) guardada(s)</span>
+        </div>
+        {% endif %}
+
+        {% if user.metodos_pago.exists %}
+        <div class="activity-item">
+            <i class="bi bi-credit-card text-info"></i>
+            <span>Tienes {{ user.metodos_pago.count }} método(s) de pago guardado(s)</span>
+        </div>
+        {% endif %}
+
+        <div class="activity-item">
+            <i class="bi bi-calendar text-primary"></i>
+            <span>Miembro desde: {{ user.date_joined|date:"d M Y" }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
