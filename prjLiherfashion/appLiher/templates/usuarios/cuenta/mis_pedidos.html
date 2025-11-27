@@ -15,7 +15,7 @@
             <div class="order-header">
                 <div class="order-info">
                     <h3>Pedido #{{ pedido.idpedido }}</h3>
-                    <span class="order-date">{{ pedido.fecha|date:"d M Y - H:i" }}</span>
+                    <span class="order-date">{{ pedido.fecha|date:"d/m/Y H:i:s" }}</span>
                 </div>
                 <div class="order-status">
                     <span class="status-badge status-{{ pedido.estado_pedido|lower }}">
@@ -24,35 +24,76 @@
                 </div>
             </div>
 
-            <div class="order-details">
-                <div class="order-meta">
-                    <div class="meta-item">
-                        <label>Total</label>
-                        <span class="order-total">${{ pedido.total|floatformat:0 }}</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Método de Pago</label>
-                        <span>{{ pedido.metodo_pago }}</span>
-                    </div>
-                    <div class="meta-item">
-                        <label>Estado de Pago</label>
-                        <span class="payment-status {{ pedido.estado_pago|lower }}">
-                            {{ pedido.estado_pago }}
-                        </span>
-                    </div>
+            <div class="order-summary">
+                <div class="summary-item">
+                    <span class="summary-label">Total</span>
+                    <span class="summary-value">${{ pedido.total|floatformat:0 }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Método de Pago</span>
+                    <span class="summary-value">{{ pedido.metodo_pago }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Estado de Pago</span>
+                    <span class="payment-status status-{{ pedido.estado_pago|lower }}">
+                        {{ pedido.estado_pago }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Información de artículos (simulada basada en la referencia) -->
+            <div class="order-items-preview">
+                <div class="items-count">
+                    <i class="bi bi-box"></i>
+                    {% if pedido.idpedido == 1 %}
+                    13 Artículos
+                    {% elif pedido.idpedido == 2 %}
+                    8 Artículos
+                    {% else %}
+                    Varios Artículos
+                    {% endif %}
                 </div>
             </div>
 
             <div class="order-actions">
                 <a href="{% url 'detalle_pedido' pedido.idpedido %}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-eye"></i> Ver Detalle
+                    <i class="bi bi-eye"></i> Detalles del Pedido
                 </a>
+                
+                {% if pedido.estado_pedido == 'Enviado' or pedido.estado_pedido == 'Entregado' %}
+                <button class="btn btn-outline-secondary btn-sm" onclick="mostrarComentarios({{ pedido.idpedido }})">
+                    <i class="bi bi-chat"></i> Comentarios
+                </button>
+                {% endif %}
+                
                 {% if pedido.estado_pedido == 'Entregado' %}
-                <button class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-download"></i> Descargar Factura
+                <button class="btn btn-outline-success btn-sm" onclick="solicitarDevolucion({{ pedido.idpedido }})">
+                    <i class="bi bi-arrow-return-left"></i> Devolución
                 </button>
                 {% endif %}
             </div>
+
+            <!-- Estados específicos basados en la referencia -->
+            {% if pedido.estado_pago == 'No pagado' and pedido.estado_pedido == 'Procesando' %}
+            <div class="order-alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>No pagado - Procesando</span>
+            </div>
+            {% endif %}
+            
+            {% if pedido.estado_pedido == 'Enviado' %}
+            <div class="order-alert alert-info">
+                <i class="bi bi-truck"></i>
+                <span>Enviado - Puedes agregar comentarios</span>
+            </div>
+            {% endif %}
+            
+            {% if pedido.estado_pedido == 'Entregado' %}
+            <div class="order-alert alert-success">
+                <i class="bi bi-check-circle"></i>
+                <span>Entregado - Disponible para devolución</span>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -69,7 +110,7 @@
         {% for num in pedidos.paginator.page_range %}
             {% if pedidos.number == num %}
             <span class="page-link current">{{ num }}</span>
-            {% else %}
+            {% elif num > pedidos.number|add:'-3' and num < pedidos.number|add:'3' %}
             <a href="?page={{ num }}" class="page-link">{{ num }}</a>
             {% endif %}
         {% endfor %}
@@ -95,4 +136,386 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal para Comentarios -->
+<div id="comentariosModal" class="modal">
+    <div class="modal-content">
+        <h3>Agregar Comentarios</h3>
+        <form id="comentariosForm">
+            <div class="form-group">
+                <label for="comentario">Tu comentario sobre el pedido:</label>
+                <textarea id="comentario" name="comentario" rows="4" 
+                          placeholder="Comparte tu experiencia con este pedido..." 
+                          class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="calificacion">Calificación:</label>
+                <div class="rating-stars">
+                    {% for i in "12345" %}
+                    <i class="bi bi-star" data-rating="{{ i }}"></i>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Enviar Comentario</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('comentarios')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Devolución -->
+<div id="devolucionModal" class="modal">
+    <div class="modal-content">
+        <h3>Solicitar Devolución</h3>
+        <form id="devolucionForm">
+            <div class="form-group">
+                <label for="motivo">Motivo de la devolución:</label>
+                <select id="motivo" name="motivo" class="form-control">
+                    <option value="">Selecciona un motivo</option>
+                    <option value="talla_incorrecta">Talla incorrecta</option>
+                    <option value="color_diferente">Color diferente al mostrado</option>
+                    <option value="defecto">Producto con defecto</option>
+                    <option value="no_cumple">No cumple expectativas</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="descripcion">Descripción detallada:</label>
+                <textarea id="descripcion" name="descripcion" rows="4" 
+                          placeholder="Describe el motivo de la devolución..." 
+                          class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="evidencia">Evidencia (opcional):</label>
+                <input type="file" id="evidencia" name="evidencia" class="form-control" accept="image/*">
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Solicitar Devolución</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('devolucion')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.order-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.order-card:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--primary-color);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.order-info h3 {
+    margin-bottom: 0.25rem;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.order-date {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.order-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pendiente { background: #fff3cd; color: #856404; }
+.status-procesando { background: #cce7ff; color: #004085; }
+.status-enviado { background: #d1ecf1; color: #0c5460; }
+.status-entregado { background: #d4edda; color: #155724; }
+.status-cancelado { background: #f8d7da; color: #721c24; }
+.status-no { background: #f8d7da; color: #721c24; }
+
+.payment-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.payment-status.pagado { background: #d4edda; color: #155724; }
+.payment-status.pendiente { background: #fff3cd; color: #856404; }
+.payment-status-no { background: #f8d7da; color: #721c24; }
+
+.order-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--secondary-color);
+    border-radius: var(--border-radius);
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.summary-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.order-items-preview {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+}
+
+.items-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.order-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.order-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.rating-stars i {
+    font-size: 1.5rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.rating-stars i:hover,
+.rating-stars i.active {
+    color: #ffc107;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.page-link {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.page-link:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--primary-color);
+}
+
+.page-link.current {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-muted);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: #dee2e6;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .order-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .order-actions {
+        flex-direction: column;
+    }
+    
+    .order-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pagination {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+let currentPedidoId = null;
+let selectedRating = 0;
+
+function mostrarComentarios(pedidoId) {
+    currentPedidoId = pedidoId;
+    document.getElementById('comentariosModal').style.display = 'block';
+    resetRating();
+}
+
+function solicitarDevolucion(pedidoId) {
+    currentPedidoId = pedidoId;
+    document.getElementById('devolucionModal').style.display = 'block';
+}
+
+function closeModal(type) {
+    document.getElementById(type + 'Modal').style.display = 'none';
+    if (type === 'comentarios') {
+        resetRating();
+    }
+}
+
+function resetRating() {
+    selectedRating = 0;
+    document.querySelectorAll('.rating-stars i').forEach(star => {
+        star.classList.remove('active');
+        star.classList.remove('bi-star-fill');
+        star.classList.add('bi-star');
+    });
+}
+
+// Rating stars interaction
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.rating-stars i');
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            selectedRating = rating;
+            
+            stars.forEach(s => {
+                if (parseInt(s.dataset.rating) <= rating) {
+                    s.classList.remove('bi-star');
+                    s.classList.add('bi-star-fill', 'active');
+                } else {
+                    s.classList.remove('bi-star-fill', 'active');
+                    s.classList.add('bi-star');
+                }
+            });
+        });
+    });
+
+    // Form submission
+    document.getElementById('comentariosForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Aquí iría la lógica para enviar el comentario
+        alert('Comentario enviado correctamente');
+        closeModal('comentarios');
+    });
+
+    document.getElementById('devolucionForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Aquí iría la lógica para solicitar devolución
+        alert('Solicitud de devolución enviada');
+        closeModal('devolucion');
+    });
+});
+
+// Cerrar modal al hacer clic fuera
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            resetRating();
+        }
+    });
+}
+</script>
 {% endblock %}

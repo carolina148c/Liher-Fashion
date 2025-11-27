@@ -1,0 +1,203 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <title>{% block title %}Liher Fashion{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/pagina_principal.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    {% if messages %}
+    <div class="alert-global">
+        {% for message in messages %}
+        {% if 'success' in message.tags %}
+        <p class="alert-text {{ message.tags }}">{{ message }}</p>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <header>
+        <!-- Logo alineado a la izquierda, iconos a la derecha -->
+        <div class="titulo">
+            <div class="logo-section">
+                <a href="{% url 'pagina_principal' %}">
+                    <img src="{% static 'Img/1.png' %}" alt="Liher Fashion Logo">
+                    <span>Liher Fashion</span>
+                </a>
+            </div>
+
+            <div class="header-icons">
+                <!-- Icono de usuario con dropdown -->
+                <div class="user-menu">
+                    <i class="bi bi-person-circle"></i>
+                    {% if user.is_authenticated %}
+                        <ul class="user-dropdown">
+                            <li class="user-welcome">¡Hola, {{ user.first_name|default:user.email }}!</li>
+                            <li><a href="{% url 'mi_cuenta' %}"><i class="bi bi-person"></i> Mi Perfil</a></li>
+                            <li><a href="#"><i class="bi bi-bag"></i> Mis Pedidos</a></li>
+                            <li class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-logout">
+                                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    {% else %}
+                        <ul class="user-dropdown">
+                            <li><a href="{% url 'acceso' %}"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</a></li>
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <!-- Icono de carrito -->
+                <div class="cart-icon">
+                    <a href="{% url 'carrito' %}" title="Ver Carrito">
+                        <i class="bi bi-basket-fill"></i>
+                        <span>(<span id="carrito-count">{{ request.session.carrito_items|default:0 }}</span>)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegación principal alineada a la derecha -->
+        <nav class="banner" id="sticky-nav">
+            <div class="banner-container">
+                <ul>
+                    <li><a href="{% url 'pagina_principal' %}">Inicio</a></li>
+                    <li><a href="{% url 'vista_productos' %}">Productos</a></li>
+                    <li><a href="{% url 'pagina_principal' %}#sobre_nosotros">Sobre Nosotros</a></li>
+                    <li><a href="{% url 'pagina_principal' %}#contactanos">Contáctanos</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Banner de categorías -->
+        <div class="categorias-banner">
+            <div class="categorias-container">
+                <ul class="categorias-lista">
+                    {% for categoria in categorias %}
+                    <li>
+                        <a href="{% url 'vista_productos' %}?categoria={{ categoria.categoria|urlencode }}">
+                            {{ categoria.categoria }}
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li style="color: #999; font-size: 1.3rem;">No hay categorías disponibles</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="contactanos">
+        <div class="footer-container">
+            <!-- Sobre Nosotros -->
+            <div class="footer-section footer-about" id="sobre_nosotros">
+                <h3>Sobre Nosotros</h3>
+                <p>En Liher Fashion celebramos tu estilo único. Creamos prendas para mujeres auténticas, seguras y llenas de actitud. Aquí empieza tu próxima historia de moda 💕</p>
+                <p class="follow-us">¡Síguenos en redes sociales!</p>
+                <div class="social-icons">
+                    <a href="https://www.facebook.com/liherfashion" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_f_logo_%282019%29.svg/30px-Facebook_f_logo_%282019%29.svg.png" alt="Facebook">
+                    </a>
+                    <a href="https://www.instagram.com/liherfashion" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/30px-Instagram_logo_2016.svg.png" alt="Instagram">
+                    </a>
+                    <a href="https://www.tiktok.com/@liherfashion" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/TikTok_logo.svg/30px-TikTok_logo.svg.png" alt="TikTok">
+                    </a>
+                    <a href="https://wa.me/573126445019" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/30px-WhatsApp.svg.png" alt="WhatsApp">
+                    </a>
+                </div>
+            </div>
+
+            <!-- Empresa -->
+            <div class="footer-section footer-links">
+                <h3>Empresa</h3>
+                <ul>
+                    <li><a href="#sobre_nosotros">Tiendas</a></li>
+                    <li><a href="#sobre_nosotros">¿Quieres colaborar?</a></li>
+                    <li><a href="#sobre_nosotros">Tarjetas de regalo</a></li>
+                    <li><a href="#categorias">Nuestras colecciones</a></li>
+                </ul>
+            </div>
+
+            <!-- Soporte -->
+            <div class="footer-section footer-links">
+                <h3>Soporte</h3>
+                <ul>
+                    <li><a href="#soporte">Cambios y garantías</a></li>
+                    <li><a href="#soporte">Políticas de cambio</a></li>
+                    <li><a href="#soporte">Políticas de garantía</a></li>
+                    <li><a href="#soporte">Políticas de envío</a></li>
+                    <li><a href="#soporte">Preguntas frecuentes</a></li>
+                </ul>
+            </div>
+
+            <!-- Contacto -->
+            <div class="footer-section footer-contact">
+                <h3>Contáctanos</h3>
+                <p><i class="bi bi-telephone-fill"></i> (312) 603 2655</p>
+                <p><i class="bi bi-envelope-fill"></i> liferfashion@support.com</p>
+                <p><i class="bi bi-clock-fill"></i> Lunes - Viernes: 8am a 6pm<br>Sábados: 8am a 12pm</p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025, Liher Fashion. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-hide alert messages after 3 seconds
+        setTimeout(function() {
+            const alert = document.querySelector('.alert-global');
+            if (alert) {
+                alert.style.animation = 'slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+                setTimeout(() => alert.remove(), 500);
+            }
+        }, 3000);
+
+        // User dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const userMenu = document.querySelector('.user-menu');
+            if (userMenu) {
+                userMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const dropdown = this.querySelector('.user-dropdown');
+                    if (dropdown) {
+                        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                    }
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                const dropdowns = document.querySelectorAll('.user-dropdown');
+                dropdowns.forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

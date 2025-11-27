@@ -1,36 +1,270 @@
+{% extends 'tienda/base.html' %}
 {% load static %}
 
+{% block title %}Productos - Liher Fashion{% endblock %}
+
+{% block extra_css %}
 <style>
-:root {
-    --primary-color: #f7b2c6;
-    --secondary-color: #ffd4e5;
-    --accent-color: #e89bb3;
-    --dark-color: #2d2d2d;
-    --white: #ffffff;
-    --border-color: #f0e6ea;
-    --shadow: 0 2px 12px rgba(247, 178, 198, 0.15);
-    --shadow-hover: 0 4px 20px rgba(247, 178, 198, 0.25);
+.productos-page {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 4rem 6rem;
+}
+
+.page-header {
+    margin-bottom: 3rem;
+}
+
+.page-header h1 {
+    font-size: 3.2rem;
+    color: var(--dark-color);
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb {
+    display: flex;
+    gap: 1rem;
+    list-style: none;
+    font-size: 1.4rem;
+    color: #999;
+}
+
+.breadcrumb a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* Layout principal */
+.productos-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 4rem;
+}
+
+/* Sidebar de filtros */
+.filtros-sidebar {
+    position: sticky;
+    top: 150px;
+    height: fit-content;
+}
+
+.filtros-sidebar h3 {
+    font-size: 1.8rem;
+    color: var(--dark-color);
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    margin-bottom: 2.5rem;
+    text-transform: uppercase;
+}
+
+.filtro-group {
+    margin-bottom: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filtro-group:last-child {
+    border-bottom: none;
+}
+
+.filtro-group label {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.filtro-group input[type="text"] {
+    width: 100%;
+    padding: 1.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+}
+
+.filtro-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(247, 178, 198, 0.1);
+}
+
+.filtro-group select {
+    width: 100%;
+    padding: 1.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.4rem;
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filtro-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(247, 178, 198, 0.1);
+}
+
+/* Opciones de color */
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.color-option:hover,
+.color-option.selected {
+    border-color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.color-option.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+}
+
+/* Opciones de talla */
+.talla-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.talla-option {
+    padding: 1rem 1.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.3rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--white);
+}
+
+.talla-option:hover,
+.talla-option.selected {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+/* Rango de precio */
+.precio-range {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.precio-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.3rem;
+}
+
+/* Botón limpiar filtros */
+.btn-limpiar {
+    width: 100%;
+    padding: 1.2rem;
+    background: transparent;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-limpiar:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+/* Área de productos */
+.productos-content {
+    min-height: 600px;
+}
+
+.productos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.productos-count {
+    font-size: 1.5rem;
+    color: #666;
+}
+
+.productos-ordenar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.productos-ordenar label {
+    font-size: 1.4rem;
+    color: var(--dark-color);
+    font-weight: 500;
+}
+
+.productos-ordenar select {
+    padding: 1rem 3rem 1rem 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.4rem;
+    background: var(--white);
+    cursor: pointer;
 }
 
 /* Grid de productos */
 .productos-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2.5rem;
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+    gap: 3rem;
+    margin-bottom: 5rem;
 }
 
-/* Card de producto */
 .producto-card {
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    cursor: pointer;
     transition: all 0.4s ease;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .producto-card:hover {
@@ -39,22 +273,77 @@
 }
 
 .producto-card-imagen {
-    width: 100%;
-    height: 350px;
-    overflow: hidden;
-    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
     position: relative;
+    padding-top: 130%;
+    overflow: hidden;
+    background: #f8f8f8;
 }
 
 .producto-card-imagen img {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s ease;
+    transition: transform 0.5s ease;
 }
 
 .producto-card:hover .producto-card-imagen img {
-    transform: scale(1.05);
+    transform: scale(1.08);
+}
+
+.producto-categoria {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(247, 178, 198, 0.95);
+    color: var(--white);
+    padding: 0.6rem 1.4rem;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.producto-quick-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.producto-card:hover .producto-quick-actions {
+    opacity: 1;
+}
+
+.quick-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quick-btn:hover {
+    background: var(--primary-color);
+    color: var(--white);
+    transform: scale(1.1);
+}
+
+.quick-btn i {
+    font-size: 1.8rem;
 }
 
 .producto-card-body {
@@ -63,43 +352,73 @@
 
 .producto-card-titulo {
     font-size: 1.6rem;
-    font-weight: 400;
+    font-weight: 500;
     color: var(--dark-color);
-    margin-bottom: 1rem;
-    letter-spacing: 0.5px;
+    margin-bottom: 0.8rem;
     line-height: 1.4;
 }
 
+.producto-card-referencia {
+    font-size: 1.2rem;
+    color: #999;
+    margin-bottom: 1.2rem;
+}
+
 .producto-card-precio {
-    font-size: 2.2rem;
-    font-weight: 400;
+    font-size: 2rem;
+    font-weight: 600;
     color: var(--primary-color);
     margin-bottom: 1.5rem;
+}
+
+.producto-variantes {
+    margin-bottom: 1.5rem;
+    min-height: 30px;
+}
+
+.variantes-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.variante-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    display: inline-block;
+}
+
+.variante-more {
+    font-size: 1.2rem;
+    color: #999;
 }
 
 .producto-card-botones {
     display: flex;
     gap: 1rem;
-    margin-top: 1.5rem;
 }
 
 .btn-producto {
     flex: 1;
-    padding: 1rem;
+    padding: 1.2rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 1.3rem;
-    font-weight: 400;
-    letter-spacing: 0.5px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
 }
 
 .btn-agregar {
     background: transparent;
     color: var(--primary-color);
-    border: 1px solid var(--primary-color);
+    border: 2px solid var(--primary-color);
 }
 
 .btn-agregar:hover {
@@ -108,747 +427,518 @@
 }
 
 .btn-comprar {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    background: var(--primary-color);
     color: var(--white);
 }
 
 .btn-comprar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(247, 178, 198, 0.4);
+    background: var(--accent-color);
 }
 
-/* Modal de detalle */
-.producto-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(45, 45, 45, 0.95);
-    backdrop-filter: blur(5px);
-    z-index: 3000;
-    overflow-y: auto;
-    padding: 2rem;
+/* No productos */
+.no-productos {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 8rem 2rem;
 }
 
-.producto-modal.activo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-contenido {
-    background: var(--white);
-    border-radius: 8px;
-    max-width: 1200px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    animation: modalSlideIn 0.4s ease;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-cerrar {
-    position: absolute;
-    top: 2rem;
-    right: 2rem;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--white);
-    border: none;
-    cursor: pointer;
-    font-size: 2.4rem;
-    color: var(--dark-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    z-index: 10;
-    box-shadow: var(--shadow);
-}
-
-.modal-cerrar:hover {
-    background: var(--primary-color);
-    color: var(--white);
-    transform: rotate(90deg);
-}
-
-.modal-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-    padding: 4rem;
-}
-
-/* Galería de imágenes */
-.modal-galeria {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.galeria-principal {
-    width: 100%;
-    height: 500px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-}
-
-.galeria-principal img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.galeria-miniaturas {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 1rem;
-}
-
-.miniatura {
-    width: 100%;
-    height: 80px;
-    border-radius: 6px;
-    overflow: hidden;
-    cursor: pointer;
-    border: 2px solid var(--border-color);
-    transition: all 0.3s ease;
-}
-
-.miniatura:hover,
-.miniatura.activa {
-    border-color: var(--primary-color);
-    transform: scale(1.05);
-}
-
-.miniatura img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Información del producto */
-.modal-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.modal-titulo {
-    font-size: 2.8rem;
-    font-weight: 400;
-    color: var(--dark-color);
-    letter-spacing: 0.5px;
-    line-height: 1.3;
-}
-
-.modal-precio {
-    font-size: 3.2rem;
-    font-weight: 400;
-    color: var(--primary-color);
-}
-
-.modal-stock {
-    display: inline-block;
-    padding: 0.8rem 1.5rem;
-    background: rgba(74, 157, 95, 0.1);
-    color: #4a9d5f;
-    border-radius: 6px;
-    font-size: 1.4rem;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-}
-
-.modal-stock.sin-stock {
-    background: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-}
-
-/* Selectores de variantes */
-.variante-grupo {
+.no-productos i {
+    font-size: 6rem;
+    color: #ddd;
     margin-bottom: 2rem;
 }
 
-.variante-label {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 400;
+.no-productos h3 {
+    font-size: 2.4rem;
     color: var(--dark-color);
     margin-bottom: 1rem;
-    letter-spacing: 0.5px;
+    font-weight: 400;
 }
 
-.variante-opciones {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.variante-opcion {
-    padding: 1rem 2rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--white);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 1.4rem;
-    font-weight: 300;
-}
-
-.variante-opcion:hover {
-    border-color: var(--primary-color);
-}
-
-.variante-opcion.activa {
-    background: var(--primary-color);
-    color: var(--white);
-    border-color: var(--primary-color);
-}
-
-.variante-opcion.deshabilitada {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.color-opcion {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.color-opcion:hover,
-.color-opcion.activa {
-    border-color: var(--primary-color);
-    border-width: 3px;
-    transform: scale(1.1);
-}
-
-.color-opcion.activa::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--white);
-    font-size: 1.8rem;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-/* Cantidad */
-.cantidad-grupo {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.cantidad-control {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-.cantidad-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: var(--background-color);
-    color: var(--dark-color);
-    cursor: pointer;
-    font-size: 1.8rem;
-    transition: all 0.3s ease;
-}
-
-.cantidad-btn:hover {
-    background: var(--primary-color);
-    color: var(--white);
-}
-
-.cantidad-input {
-    width: 60px;
-    height: 40px;
-    border: none;
-    text-align: center;
+.no-productos p {
     font-size: 1.5rem;
-    font-weight: 400;
+    color: #999;
+    margin-bottom: 2.5rem;
 }
 
-/* Descripción */
-.modal-descripcion {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.descripcion-titulo {
-    font-size: 1.6rem;
-    font-weight: 400;
-    color: var(--dark-color);
-    margin-bottom: 1rem;
-    letter-spacing: 0.5px;
-}
-
-.descripcion-texto {
-    font-size: 1.4rem;
-    font-weight: 300;
-    color: #666;
-    line-height: 1.8;
-}
-
-.descripcion-lista {
-    list-style: none;
-    padding: 0;
-}
-
-.descripcion-lista li {
-    padding: 0.8rem 0;
-    padding-left: 2rem;
-    position: relative;
-    font-size: 1.4rem;
-    font-weight: 300;
-    color: #666;
-}
-
-.descripcion-lista li::before {
-    content: '✓';
-    position: absolute;
-    left: 0;
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-/* Botones del modal */
-.modal-botones {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 2rem;
-}
-
-.modal-btn {
-    flex: 1;
-    padding: 1.5rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 1.5rem;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-}
-
-.modal-btn-agregar {
-    background: transparent;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-}
-
-.modal-btn-agregar:hover {
+.no-productos .btn {
+    display: inline-block;
+    padding: 1.2rem 3rem;
     background: var(--primary-color);
     color: var(--white);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
 }
 
-.modal-btn-comprar {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    color: var(--white);
-}
-
-.modal-btn-comprar:hover {
+.no-productos .btn:hover {
+    background: var(--accent-color);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(247, 178, 198, 0.4);
+}
+
+/* Paginación */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 5rem;
+}
+
+.pagination {
+    display: flex;
+    gap: 1rem;
+    list-style: none;
+}
+
+.page-item {
+    display: inline-block;
+}
+
+.page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 45px;
+    height: 45px;
+    padding: 0 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--dark-color);
+    text-decoration: none;
+    font-size: 1.4rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.page-link:hover {
+    background: var(--secondary-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.page-item.active .page-link {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
+    .productos-layout {
+        grid-template-columns: 250px 1fr;
+        gap: 3rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .productos-page {
+        padding: 3rem 4rem;
+    }
+    
+    .productos-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .filtros-sidebar {
+        position: static;
+        margin-bottom: 3rem;
+    }
+    
     .productos-grid {
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 2rem;
-        padding: 1.5rem;
     }
+}
 
-    .modal-grid {
-        grid-template-columns: 1fr;
-        gap: 2rem;
+@media (max-width: 768px) {
+    .productos-page {
         padding: 2rem;
     }
-
-    .galeria-principal {
-        height: 350px;
+    
+    .page-header h1 {
+        font-size: 2.4rem;
     }
-
-    .modal-titulo {
-        font-size: 2.2rem;
+    
+    .productos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 2rem;
     }
-
-    .modal-precio {
-        font-size: 2.6rem;
-    }
-
-    .modal-botones {
+    
+    .productos-header {
         flex-direction: column;
+        gap: 1.5rem;
+        align-items: flex-start;
     }
 }
 </style>
+{% endblock %}
 
-<!-- Template Django para las cards -->
-<div class="productos-grid">
-    {% for producto in productos.object_list %}
-    <div class="producto-card" data-producto-id="{{ producto.idproducto }}">
-        <div class="producto-card-imagen">
-            {% if producto.imagen %}
-                <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}">
-            {% else %}
-                <img src="{% static 'img/sin_imagen.jpg' %}" alt="{{ producto.nombre }}">
+{% block content %}
+<div class="productos-page">
+    <div class="page-header">
+        <h1>Nuestros Productos</h1>
+    </div>
+
+    <div class="productos-layout">
+        <!-- Sidebar de filtros -->
+        <aside class="filtros-sidebar">
+            <h3>Filtros</h3>
+            
+            <form method="get" id="filtrosForm">
+                <!-- Búsqueda -->
+                <div class="filtro-group">
+                    <label>Buscar</label>
+                    <input type="text" 
+                           name="q" 
+                           placeholder="Buscar productos..." 
+                           value="{{ busqueda }}">
+                    <input type="hidden" name="categoria" value="{{ selected_categoria }}">
+                    <input type="hidden" name="color" value="{{ selected_color }}">
+                    <input type="hidden" name="talla" value="{{ selected_talla }}">
+                </div>
+
+                <!-- Talla -->
+                <div class="filtro-group">
+                    <label>
+                        Talla
+                        <i class="bi bi-chevron-down"></i>
+                    </label>
+                    <div class="talla-options">
+                        {% for talla in tallas %}
+                        <button type="button" 
+                                class="talla-option {% if selected_talla == talla.talla %}selected{% endif %}"
+                                onclick="aplicarFiltro('talla', '{{ talla.talla }}')">
+                            {{ talla.talla }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% if tallas|length > 8 %}
+                    <button type="button" class="mostrar-mas">Mostrar más</button>
+                    {% endif %}
+                </div>
+
+                <!-- Color -->
+                <div class="filtro-group">
+                    <label>
+                        Color
+                        <i class="bi bi-chevron-down"></i>
+                    </label>
+                    <div class="color-options">
+                        {% for color in colores %}
+                        <div class="color-item">
+                            <button type="button" 
+                                    class="color-option {% if selected_color == color.color %}selected{% endif %}"
+                                    style="background-color: {{ color.codigo_hex|default:'#CCCCCC' }}"
+                                    onclick="aplicarFiltro('color', '{{ color.color }}')"
+                                    title="{{ color.color }}">
+                            </button>
+                            <span class="color-name">{{ color.color }} ({{ color.count|default:0 }})</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Categoría -->
+                <div class="filtro-group">
+                    <label>
+                        Categoría
+                        <i class="bi bi-chevron-down"></i>
+                    </label>
+                    <div class="categoria-options">
+                        {% for categoria in categorias %}
+                        <label class="categoria-item">
+                            <input type="radio" 
+                                   name="categoria" 
+                                   value="{{ categoria.categoria }}"
+                                   {% if selected_categoria == categoria.categoria %}checked{% endif %}
+                                   onchange="aplicarFiltro('categoria', '{{ categoria.categoria }}')">
+                            <span>{{ categoria.categoria }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Precio -->
+                <div class="filtro-group">
+                    <label>
+                        Precio
+                        <i class="bi bi-chevron-down"></i>
+                    </label>
+                    <div class="precio-range">
+                        <div class="precio-inputs">
+                            <input type="number" 
+                                   name="precio_min" 
+                                   placeholder="$ 0"
+                                   value="{{ precio_min }}"
+                                   class="precio-input">
+                            <span>Para</span>
+                            <input type="number" 
+                                   name="precio_max" 
+                                   placeholder="$ 1000000"
+                                   value="{{ precio_max }}"
+                                   class="precio-input">
+                        </div>
+                        <input type="range" 
+                               min="0" 
+                               max="1000000" 
+                               step="10000"
+                               class="precio-slider">
+                        <p class="precio-texto">El precio más alto es $1.000.000</p>
+                    </div>
+                </div>
+
+                <!-- Limpiar filtros -->
+                {% if selected_categoria or selected_color or selected_talla or busqueda or precio_min or precio_max %}
+                <div class="filtro-group">
+                    <a href="{% url 'vista_productos' %}" class="btn-limpiar">
+                        <i class="bi bi-x-circle"></i> Limpiar Filtros
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </aside>
+
+        <!-- Contenido de productos -->
+        <div class="productos-content">
+            <!-- Header con conteo y ordenamiento -->
+            <div class="productos-header">
+                <div class="productos-count">
+                    Mostrando {{ productos|length }} producto{{ productos|length|pluralize }}
+                </div>
+                <div class="productos-ordenar">
+                    <label>Ordenar por:</label>
+                    <select onchange="location.href='?ordenar=' + this.value">
+                        <option value="reciente">Más recientes</option>
+                        <option value="precio_asc">Precio: Menor a Mayor</option>
+                        <option value="precio_desc">Precio: Mayor a Menor</option>
+                        <option value="nombre">Nombre A-Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Grid de productos -->
+            <div class="productos-grid">
+                {% for producto in productos %}
+                <div class="producto-card" data-producto-id="{{ producto.idproducto }}">
+                    <div class="producto-card-imagen">
+                        {% if producto.imagen %}
+                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" loading="lazy">
+                        {% else %}
+                            <img src="{% static 'img/default-product.jpg' %}" alt="{{ producto.nombre }}" loading="lazy">
+                        {% endif %}
+                        
+                        {% if producto.categoria %}
+                        <div class="producto-categoria">
+                            {{ producto.categoria.categoria }}
+                        </div>
+                        {% endif %}
+
+                        <div class="producto-quick-actions">
+                            <button class="quick-btn" onclick="event.stopPropagation(); verDetalleRapido({{ producto.idproducto }})" title="Ver detalles">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="quick-btn" onclick="event.stopPropagation(); agregarFavorito({{ producto.idproducto }})" title="Agregar a favoritos">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="producto-card-body">
+                        <h3 class="producto-card-titulo">{{ producto.nombre }}</h3>
+                        <p class="producto-card-referencia">Ref: {{ producto.referencia }}</p>
+                        <p class="producto-card-precio">${{ producto.precio|floatformat:0 }}</p>
+                        
+                        <div class="producto-variantes">
+                            {% with variantes=producto.variantes.all %}
+                                {% if variantes %}
+                                <div class="variantes-preview">
+                                    {% for variante in variantes|slice:":3" %}
+                                    <span class="variante-badge" 
+                                          style="background-color: {{ variante.color.codigo_hex|default:'#CCCCCC' }}"
+                                          title="{{ variante.talla.talla }} - {{ variante.color.color }}">
+                                    </span>
+                                    {% endfor %}
+                                    {% if variantes|length > 3 %}
+                                    <span class="variante-more">+{{ variantes|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="producto-card-botones">
+                            <button class="btn-producto btn-agregar" 
+                                    onclick="event.stopPropagation(); agregarAlCarritoRapido({{ producto.idproducto }})">
+                                <i class="bi bi-cart-plus"></i> Agregar
+                            </button>
+                            <button class="btn-producto btn-comprar" 
+                                    onclick="event.stopPropagation(); verDetalleRapido({{ producto.idproducto }})">
+                                <i class="bi bi-eye"></i> Ver
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-productos">
+                    <i class="bi bi-search"></i>
+                    <h3>No se encontraron productos</h3>
+                    <p>Intenta con otros filtros o términos de búsqueda.</p>
+                    <a href="{% url 'vista_productos' %}" class="btn">Ver todos los productos</a>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Paginación -->
+            {% if productos.has_other_pages %}
+            <div class="pagination-container">
+                <nav aria-label="Paginación de productos">
+                    <ul class="pagination">
+                        {% if productos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ productos.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in productos.paginator.page_range %}
+                            {% if productos.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > productos.number|add:'-3' and num < productos.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if productos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ productos.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
             {% endif %}
         </div>
-        
-        <div class="producto-card-body">
-            <h3 class="producto-card-titulo">{{ producto.nombre }}</h3>
-            <p class="producto-card-precio">${{ producto.precio|floatformat:0 }}</p>
-            
-            <div class="producto-card-botones">
-                <button class="btn-producto btn-agregar" 
-                        onclick="event.stopPropagation(); agregarAlCarrito({{ producto.idproducto }})">
-                    Agregar
-                </button>
-                <button class="btn-producto btn-comprar" 
-                        onclick="event.stopPropagation(); comprarAhora({{ producto.idproducto }})">
-                    Comprar
-                </button>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- Modal de detalle del producto -->
-<div class="producto-modal" id="productoModal">
-    <div class="modal-contenido">
-        <button class="modal-cerrar" onclick="cerrarModal()">×</button>
-        
-        <div class="modal-grid">
-            <!-- Galería de imágenes -->
-            <div class="modal-galeria">
-                <div class="galeria-principal" id="galeriaPrincipal">
-                    <img src="" alt="" id="imagenPrincipal">
-                </div>
-                <div class="galeria-miniaturas" id="galeriaMiniaturas">
-                    <!-- Miniaturas se cargan dinámicamente -->
-                </div>
-            </div>
-            
-            <!-- Información del producto -->
-            <div class="modal-info">
-                <h2 class="modal-titulo" id="modalTitulo"></h2>
-                <p class="modal-precio" id="modalPrecio"></p>
-                
-                <span class="modal-stock" id="modalStock"></span>
-                
-                <!-- Selector de tallas -->
-                <div class="variante-grupo" id="grupoTallas">
-                    <label class="variante-label">Talla</label>
-                    <div class="variante-opciones" id="opcionesTallas">
-                        <!-- Opciones se cargan dinámicamente -->
-                    </div>
-                </div>
-                
-                <!-- Selector de colores -->
-                <div class="variante-grupo" id="grupoColores">
-                    <label class="variante-label">Color</label>
-                    <div class="variante-opciones" id="opcionesColores">
-                        <!-- Opciones se cargan dinámicamente -->
-                    </div>
-                </div>
-                
-                <!-- Cantidad -->
-                <div class="variante-grupo">
-                    <label class="variante-label">Cantidad</label>
-                    <div class="cantidad-grupo">
-                        <div class="cantidad-control">
-                            <button class="cantidad-btn" onclick="cambiarCantidad(-1)">−</button>
-                            <input type="number" class="cantidad-input" id="cantidadInput" value="1" min="1" readonly>
-                            <button class="cantidad-btn" onclick="cambiarCantidad(1)">+</button>
-                        </div>
-                        <span id="stockDisponible" style="font-size: 1.3rem; color: #999;"></span>
-                    </div>
-                </div>
-                
-                <!-- Descripción -->
-                <div class="modal-descripcion">
-                    <h3 class="descripcion-titulo">Descripción</h3>
-                    <p class="descripcion-texto" id="modalDescripcion"></p>
-                </div>
-                
-                <!-- Botones de acción -->
-                <div class="modal-botones">
-                    <button class="modal-btn modal-btn-agregar" onclick="agregarAlCarritoModal()">
-                        Agregar al carrito
-                    </button>
-                    <button class="modal-btn modal-btn-comprar" onclick="comprarAhoraModal()">
-                        Comprar ahora
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
-<!-- JavaScript -->
+{% endblock %}
+
+{% block extra_js %}
 <script>
-let productoActual = null;
-let tallaSeleccionada = null;
-let colorSeleccionado = null;
-let stockMax = 0;
+// Aplicar filtros sin recargar
+function aplicarFiltro(tipo, valor) {
+    const url = new URL(window.location);
+    const params = new URLSearchParams(url.search);
+    
+    // Si el filtro ya está activo, lo removemos (toggle)
+    if (params.get(tipo) === valor) {
+        params.delete(tipo);
+    } else {
+        params.set(tipo, valor);
+    }
+    
+    // Mantener página 1 al filtrar
+    params.delete('page');
+    
+    window.location.search = params.toString();
+}
 
-// Abrir modal al hacer click en la card
+// Buscar con Enter
+document.querySelector('input[name="q"]').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+        
+        if (this.value) {
+            params.set('q', this.value);
+        } else {
+            params.delete('q');
+        }
+        
+        params.delete('page');
+        window.location.search = params.toString();
+    }
+});
+
+// Aplicar filtro de precio
+document.querySelectorAll('.precio-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+        
+        const precioMin = document.querySelector('input[name="precio_min"]').value;
+        const precioMax = document.querySelector('input[name="precio_max"]').value;
+        
+        if (precioMin) params.set('precio_min', precioMin);
+        else params.delete('precio_min');
+        
+        if (precioMax) params.set('precio_max', precioMax);
+        else params.delete('precio_max');
+        
+        params.delete('page');
+        window.location.search = params.toString();
+    });
+});
+
+function verDetalleRapido(productoId) {
+    window.location.href = `/productos/${productoId}/`;
+}
+
+function agregarAlCarritoRapido(productoId) {
+    fetch(`/carrito/agregar/${productoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new FormData()
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateCartCount(data.carrito_count);
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error al agregar al carrito', 'error');
+    });
+}
+
+function agregarFavorito(productoId) {
+    console.log('Agregar a favoritos:', productoId);
+    showNotification('Producto agregado a favoritos', 'success');
+}
+
+function updateCartCount(count) {
+    const cartCount = document.getElementById('carrito-count');
+    if (cartCount) {
+        cartCount.textContent = count;
+    }
+}
+
+function showNotification(message, type) {
+    alert(message);
+}
+
 document.querySelectorAll('.producto-card').forEach(card => {
     card.addEventListener('click', function() {
         const productoId = this.dataset.productoId;
-        cargarDetalleProducto(productoId);
+        verDetalleRapido(productoId);
     });
-});
-
-// Cargar detalle del producto
-async function cargarDetalleProducto(productoId) {
-    try {
-        const response = await fetch(`/api/producto/${productoId}/detalle/`);
-        const data = await response.json();
-        
-        productoActual = data;
-        mostrarModal(data);
-    } catch (error) {
-        console.error('Error al cargar producto:', error);
-        alert('Error al cargar el producto');
-    }
-}
-
-function mostrarModal(producto) {
-    // Llenar información básica
-    document.getElementById('modalTitulo').textContent = producto.nombre;
-    document.getElementById('modalPrecio').textContent = `$${parseFloat(producto.precio).toLocaleString()}`;
-    document.getElementById('modalDescripcion').textContent = producto.descripcion || 'Sin descripción disponible';
-    
-    // Cargar imagen principal
-    const imagenPrincipal = document.getElementById('imagenPrincipal');
-    imagenPrincipal.src = producto.imagen || '/static/img/no-image.png';
-    imagenPrincipal.alt = producto.nombre;
-    
-    // Cargar variantes
-    cargarVariantes(producto.variantes);
-    
-    // Mostrar modal
-    document.getElementById('productoModal').classList.add('activo');
-    document.body.style.overflow = 'hidden';
-}
-
-function cargarVariantes(variantes) {
-    // Obtener tallas únicas
-    const tallas = [...new Set(variantes.map(v => ({
-        id: v.talla.id,
-        nombre: v.talla.talla
-    }))).values()].filter((t, i, arr) => 
-        arr.findIndex(a => a.id === t.id) === i
-    );
-    
-    // Obtener colores únicos
-    const colores = [...new Set(variantes.map(v => ({
-        id: v.color.id,
-        nombre: v.color.color,
-        codigo: v.color.codigo_hex
-    }))).values()].filter((c, i, arr) => 
-        arr.findIndex(a => a.id === c.id) === i
-    );
-    
-    // Renderizar tallas
-    const opcionesTallas = document.getElementById('opcionesTallas');
-    opcionesTallas.innerHTML = tallas.map(talla => `
-        <div class="variante-opcion" data-talla-id="${talla.id}" 
-             onclick="seleccionarTalla(${talla.id}, '${talla.nombre}')">
-            ${talla.nombre}
-        </div>
-    `).join('');
-    
-    // Renderizar colores
-    const opcionesColores = document.getElementById('opcionesColores');
-    opcionesColores.innerHTML = colores.map(color => `
-        <div class="color-opcion" 
-             style="background-color: ${color.codigo}"
-             data-color-id="${color.id}"
-             title="${color.nombre}"
-             onclick="seleccionarColor(${color.id}, '${color.nombre}')">
-        </div>
-    `).join('');
-}
-
-function seleccionarTalla(tallaId, tallaNombre) {
-    tallaSeleccionada = tallaId;
-    
-    // Actualizar UI
-    document.querySelectorAll('[data-talla-id]').forEach(el => {
-        el.classList.remove('activa');
-    });
-    document.querySelector(`[data-talla-id="${tallaId}"]`).classList.add('activa');
-    
-    actualizarStock();
-}
-
-function seleccionarColor(colorId, colorNombre) {
-    colorSeleccionado = colorId;
-    
-    // Actualizar UI
-    document.querySelectorAll('[data-color-id]').forEach(el => {
-        el.classList.remove('activa');
-    });
-    document.querySelector(`[data-color-id="${colorId}"]`).classList.add('activa');
-    
-    actualizarStock();
-}
-
-function actualizarStock() {
-    if (!tallaSeleccionada || !colorSeleccionado) {
-        document.getElementById('modalStock').textContent = 'Seleccione talla y color';
-        document.getElementById('modalStock').className = 'modal-stock';
-        return;
-    }
-    
-    const variante = productoActual.variantes.find(v => 
-        v.talla.id === tallaSeleccionada && v.color.id === colorSeleccionado
-    );
-    
-    if (variante) {
-        stockMax = variante.stock;
-        const stockEl = document.getElementById('modalStock');
-        
-        if (stockMax > 0) {
-            stockEl.textContent = `Stock disponible: ${stockMax}`;
-            stockEl.className = 'modal-stock';
-        } else {
-            stockEl.textContent = 'Sin stock';
-            stockEl.className = 'modal-stock sin-stock';
-        }
-        
-        document.getElementById('stockDisponible').textContent = `${stockMax} disponibles`;
-        document.getElementById('cantidadInput').max = stockMax;
-    }
-}
-
-function cambiarCantidad(delta) {
-    const input = document.getElementById('cantidadInput');
-    let cantidad = parseInt(input.value) + delta;
-    
-    if (cantidad < 1) cantidad = 1;
-    if (cantidad > stockMax) cantidad = stockMax;
-    
-    input.value = cantidad;
-}
-
-function cerrarModal() {
-    document.getElementById('productoModal').classList.remove('activo');
-    document.body.style.overflow = 'auto';
-    
-    // Resetear selecciones
-    tallaSeleccionada = null;
-    colorSeleccionado = null;
-    stockMax = 0;
-    document.getElementById('cantidadInput').value = 1;
-}
-
-// Funciones de acción
-function agregarAlCarrito(productoId) {
-    // Implementar lógica de agregar al carrito
-    console.log('Agregar al carrito:', productoId);
-    alert('Producto agregado al carrito');
-}
-
-function comprarAhora(productoId) {
-    // Implementar lógica de compra directa
-    console.log('Comprar ahora:', productoId);
-    window.location.href = `/checkout/${productoId}/`;
-}
-
-function agregarAlCarritoModal() {
-    if (!validarSeleccion()) return;
-    
-    const cantidad = parseInt(document.getElementById('cantidadInput').value);
-    
-    // Implementar lógica de agregar al carrito con variantes
-    console.log({
-        producto: productoActual.idproducto,
-        talla: tallaSeleccionada,
-        color: colorSeleccionado,
-        cantidad: cantidad
-    });
-    
-    alert('Producto agregado al carrito');
-    cerrarModal();
-}
-
-function comprarAhoraModal() {
-    if (!validarSeleccion()) return;
-    
-    const cantidad = parseInt(document.getElementById('cantidadInput').value);
-    
-    // Implementar lógica de compra directa con variantes
-    console.log({
-        producto: productoActual.idproducto,
-        talla: tallaSeleccionada,
-        color: colorSeleccionado,
-        cantidad: cantidad
-    });
-    
-    window.location.href = `/checkout/?producto=${productoActual.idproducto}&talla=${tallaSeleccionada}&color=${colorSeleccionado}&cantidad=${cantidad}`;
-}
-
-function validarSeleccion() {
-    if (!tallaSeleccionada) {
-        alert('Por favor seleccione una talla');
-        return false;
-    }
-    
-    if (!colorSeleccionado) {
-        alert('Por favor seleccione un color');
-        return false;
-    }
-    
-    if (stockMax === 0) {
-        alert('Producto sin stock');
-        return false;
-    }
-    
-    return true;
-}
-
-// Cerrar modal al hacer click fuera
-document.getElementById('productoModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        cerrarModal();
-    }
-});
-
-// Cerrar con tecla ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        cerrarModal();
-    }
 });
 </script>
+{% endblock %}

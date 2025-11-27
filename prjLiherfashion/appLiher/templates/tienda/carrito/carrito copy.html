@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito de Compras</title>
+    <link rel="stylesheet" href="{% static 'css/identificacion.css' %}">
+    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+        <link rel="stylesheet" href="{% static 'css/carrito1.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/vistaPago.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <img src="{% static 'Img/1.png' %}" alt="Liher Fashion Logo">
+            <span>Liher Fashion</span>
+        </div>
+         <div class="progreso-compra">
+            <!-- Paso 1: Carrito (activo) -->
+            <div class="paso-compra activo">
+                <div class="icono-paso">
+                  <i class="fas fa-shopping-cart"></i>
+                </div>
+                <span>Carrito</span>
+            </div>
+            
+            <!-- Línea de progreso -->
+            <div class="linea-progreso"></div>
+            
+            <!-- Paso 2: Identificación -->
+            <div class="paso-compra ">
+                <div class="icono-paso">
+                <i class="fas fa-user"></i>
+                </div>
+                <span>Identificación</span>
+            </div>
+</div>
+            
+            <!-- Línea de progreso -->
+            <div class="linea-progreso"></div>
+            
+            <!-- Paso 3: Entrega -->
+            <div class="paso-compra">
+                <div class="icono-paso">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <span>Entrega</span>
+            </div>
+            
+            <!-- Línea de progreso -->
+            <div class="linea-progreso"></div>
+            
+            <!-- Paso 4: Pago -->
+            <div class="paso-compra">
+                <div class="icono-paso">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                
+
+                <span>Pago</span>
+            </div>
+        </div>
+    </header>
+
+    
+    <div class="pink-banner"></div>
+<form style="display:none;">{% csrf_token %}</form>
+    
+    <main class="cart-container">
+        <div class="cart-grid">
+            <div class="product-list">
+                {% if items_carrito %}
+                    {% for item in items_carrito %}
+                        <div class="product-row" id="item-row-{{ item.id }}">
+                            {% if item.producto.imagen %}
+    <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.producto }}" class="product-image">
+{% else %}
+    <img src="{% static 'Img/sin_imagen.jpg' %}" alt="Sin imagen disponible" class="product-image">
+{% endif %}
+                            <div class="product-details">
+                                <h4>{{ item.producto.producto }}</h4>
+                                <p>Talla: {{ item.producto.talla }}</p>
+                                <p>Color: {{ item.producto.color }}</p>
+                            </div>
+                            <div class="quantity-control">
+                                <button class="quantity-btn" onclick="decreaseQuantity()">−</button>
+                                <input type="number" class="quantity-input" value="{{ item.cantidad }}" min="1" max="{{ item.producto.stock|default:999 }}" id="quantity-{{ item.id }}" onchange="updateQuantityDirect()">
+                                <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+                            </div>
+                            <div class="item-price">
+                                ${{ item.precio_unitario|floatformat:0 }}
+                            </div>
+                        <button class="remove-btn" onclick="removeItem({{ item.id }})">
+    <i class="fas fa-trash-alt"></i>
+</button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="cart-empty">
+                        <i class="fas fa-shopping-basket icon"></i>
+                        <h3>Tu carrito está vacío</h3>
+                        <p>Agrega algunos productos para comenzar</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal-amount">${{ subtotal|floatformat:0 }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Descuento</span>
+                    <span id="discount-amount" class="text-green-600">-${{ discount|default:0|floatformat:0 }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Envío</span>
+                    <span id="shipping-amount">{{ shipping_cost|default:"Gratis" }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="total-amount">${{ subtotal|floatformat:0 }}</span>
+                </div>
+
+                <div class="coupon-input-group mt-4">
+                    <input type="text" class="coupon-input" placeholder="Cupón de descuento" id="coupon-code">
+                    <button type="button" class="coupon-btn" onclick="applyCoupon()">Aplicar</button>
+                </div>
+                <div id="coupon-message" class="text-sm mt-2"></div>
+
+
+                <a href="{%url 'identificacion' %}" class="boton-continuar" >CONTINUAR</a>
+
+            <a href="{%url 'carrito' %}" class="back-button">VOLVER AL CARRITO</a>
+            </div>
+        </div>
+    </main>
+    
+    <script src="{% static 'js/carrito.js' %}"></script>
+
+</body>
+</html>

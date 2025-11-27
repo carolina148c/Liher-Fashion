@@ -9,7 +9,7 @@ from django.contrib.auth.models import (
 from django.utils import timezone
 
 # ============================================================
-# MODELOS DJANGO
+# MODELOS DJANGO (SISTEMA)
 # ============================================================
 
 class AuthGroup(models.Model):
@@ -89,9 +89,8 @@ class DjangoSession(models.Model):
         db_table = 'django_session'
 
 
-
 # ============================================================
-# MODELOS DE USUARIO PERSONALIZADO
+# MODELOS DE USUARIO Y PERFILES
 # ============================================================
 
 class UsuariosManager(BaseUserManager):
@@ -133,7 +132,41 @@ class Usuarios(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class PerfilUsuario(models.Model):
+    TIPO_DOCUMENTO_CHOICES = [
+        ('cedula', 'Cédula de Ciudadanía'),
+        ('tarjeta_identidad', 'Tarjeta de Identidad'),
+        ('cedula_extranjeria', 'Cédula de Extranjería'),
+        ('pasaporte', 'Pasaporte'),
+    ]
     
+    GENERO_CHOICES = [
+        ('femenino', 'Femenino'),
+        ('masculino', 'Masculino'),
+        ('otro', 'Otro'),
+        ('prefiero_no_decir', 'Prefiero no decir'),
+    ]
+
+    usuario = models.OneToOneField(Usuarios, on_delete=models.CASCADE, related_name='perfil')
+    nombre = models.CharField(max_length=50, blank=True)
+    apellido = models.CharField(max_length=50, blank=True)
+    tipo_documento = models.CharField(max_length=20, choices=TIPO_DOCUMENTO_CHOICES, blank=True)
+    numero_documento = models.CharField(max_length=20, blank=True)
+    telefono = models.CharField(max_length=20, blank=True)
+    genero = models.CharField(max_length=20, choices=GENERO_CHOICES, blank=True)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'perfil_usuario'
+        verbose_name = 'Perfil de Usuario'
+        verbose_name_plural = 'Perfiles de Usuarios'
+
+    def __str__(self):
+        return f"Perfil de {self.usuario.email}"
+
 
 class Identificacion(models.Model):
     id = models.AutoField(primary_key=True)
@@ -148,20 +181,6 @@ class Identificacion(models.Model):
         managed = False
         db_table = 'identificacion'
 
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = True
-        db_table = 'pedidos'
-        
 
 class Permiso(models.Model):
     usuario = models.OneToOneField(
@@ -182,12 +201,20 @@ class Permiso(models.Model):
 
 
 # ============================================================
-# TIENDA
+# CATÁLOGO DE PRODUCTOS
 # ============================================================
 
 class Categoria(models.Model):
     id = models.AutoField(primary_key=True)
     categoria = models.CharField(max_length=50, unique=True)
+    imagen = models.ImageField(
+        upload_to='categorias/', 
+        null=True, 
+        blank=True,
+        max_length=255
+    )
+    descripcion = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'categoria'
@@ -197,10 +224,10 @@ class Categoria(models.Model):
     def __str__(self):
         return self.categoria
 
-
 class Color(models.Model):
     id = models.AutoField(primary_key=True)
     color = models.CharField(max_length=100, unique=True)
+    codigo_hex = models.CharField(max_length=7, default='#CCCCCC') 
 
     class Meta:
         db_table = 'color'
@@ -210,19 +237,19 @@ class Color(models.Model):
     def __str__(self):
         return self.color
 
-
 class Talla(models.Model):
     id = models.AutoField(primary_key=True)
     talla = models.CharField(max_length=50, unique=True)
+    orden = models.IntegerField(default=0)  
 
     class Meta:
         db_table = 'talla'
         verbose_name = 'Talla'
         verbose_name_plural = 'Tallas'
+        ordering = ['orden', 'talla']
 
     def __str__(self):
         return self.talla
-
 
 
 class Producto(models.Model):
@@ -256,8 +283,7 @@ class Producto(models.Model):
 
     def __str__(self):
         return self.nombre
-    
-    
+
 
 class VarianteProducto(models.Model):
     idvariante = models.AutoField(primary_key=True)
@@ -285,26 +311,8 @@ class VarianteProducto(models.Model):
         return f"{self.producto.nombre} - {self.talla} - {self.color}"
 
 
-
-class Envios(models.Model):
-    idenvios = models.AutoField(primary_key=True)
-    departamentos = models.CharField(max_length=50)
-    municipio = models.CharField(max_length=50)
-    tipo_direccion = models.CharField(max_length=50)
-    calle = models.CharField(max_length=50)
-    letra = models.CharField(max_length=50)
-    numero = models.BigIntegerField()
-    barrio = models.CharField(max_length=50)
-    piso = models.CharField(max_length=50)
-    nombre_receptor = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'envios'
-
-
 # ============================================================
-# CARRITO 
+# CARRITO DE COMPRAS
 # ============================================================
 
 class Carrito(models.Model):
@@ -360,38 +368,86 @@ class ItemCarrito(models.Model):
         return self.cantidad * self.precio_unitario
 
 
-class PerfilUsuario(models.Model):
-    TIPO_DOCUMENTO_CHOICES = [
-        ('cedula', 'Cédula de Ciudadanía'),
-        ('tarjeta_identidad', 'Tarjeta de Identidad'),
-        ('cedula_extranjeria', 'Cédula de Extranjería'),
-        ('pasaporte', 'Pasaporte'),
-    ]
-    
-    GENERO_CHOICES = [
-        ('femenino', 'Femenino'),
-        ('masculino', 'Masculino'),
-        ('otro', 'Otro'),
-        ('prefiero_no_decir', 'Prefiero no decir'),
-    ]
+# ============================================================
+# PEDIDOS Y ENVÍOS
+# ============================================================
 
-    usuario = models.OneToOneField(Usuarios, on_delete=models.CASCADE, related_name='perfil')
-    nombre = models.CharField(max_length=50, blank=True)
-    apellido = models.CharField(max_length=50, blank=True)
-    tipo_documento = models.CharField(max_length=20, choices=TIPO_DOCUMENTO_CHOICES, blank=True)
-    numero_documento = models.CharField(max_length=20, blank=True)
-    telefono = models.CharField(max_length=20, blank=True)
-    genero = models.CharField(max_length=20, choices=GENERO_CHOICES, blank=True)
-    fecha_nacimiento = models.DateField(null=True, blank=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
+class Pedidos(models.Model):
+    idpedido = models.AutoField(primary_key=True)
+    cliente = models.CharField(max_length=100)
+    fecha = models.DateTimeField()
+    estado_pedido = models.CharField(max_length=50)
+    metodo_pago = models.CharField(max_length=50)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    estado_pago = models.CharField(max_length=50)
 
     class Meta:
-        db_table = 'perfil_usuario'
-        verbose_name = 'Perfil de Usuario'
-        verbose_name_plural = 'Perfiles de Usuarios'
+        managed = True
+        db_table = 'pedidos'
+
+
+class PedidoItem(models.Model):
+    iditem = models.AutoField(primary_key=True)
+    pedido = models.ForeignKey(
+        'Pedidos', 
+        on_delete=models.CASCADE, 
+        related_name='items'
+    )
+    producto = models.ForeignKey(
+        'Producto', 
+        on_delete=models.CASCADE,
+        db_column='idproducto'
+    )
+    variante = models.ForeignKey(
+        'VarianteProducto', 
+        on_delete=models.CASCADE,
+        db_column='idvariante'
+    )
+    cantidad = models.PositiveIntegerField(default=1)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'pedido_items'
+        verbose_name = 'Ítem de Pedido'
+        verbose_name_plural = 'Ítems de Pedido'
+
+    def save(self, *args, **kwargs):
+        self.subtotal = self.cantidad * self.precio_unitario
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Perfil de {self.usuario.email}"
+        return f"{self.producto.nombre} - {self.cantidad} x ${self.precio_unitario}"
+
+
+class PedidoSeguimiento(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente de Pago'),
+        ('confirmado', 'Confirmado'),
+        ('procesando', 'Procesando'),
+        ('enviado', 'Enviado'),
+        ('entregado', 'Entregado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    pedido = models.ForeignKey(
+        'Pedidos', 
+        on_delete=models.CASCADE, 
+        related_name='seguimientos'
+    )
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES)
+    fecha = models.DateTimeField(auto_now_add=True)
+    comentario = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'pedido_seguimiento'
+        verbose_name = 'Seguimiento de Pedido'
+        verbose_name_plural = 'Seguimientos de Pedidos'
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.pedido.idpedido} - {self.estado} - {self.fecha}"
+
 
 class DireccionEnvio(models.Model):
     TIPO_DIRECCION_CHOICES = [
@@ -424,6 +480,28 @@ class DireccionEnvio(models.Model):
     def __str__(self):
         return f"{self.nombre_completo} - {self.direccion}"
 
+
+class Envios(models.Model):
+    idenvios = models.AutoField(primary_key=True)
+    departamentos = models.CharField(max_length=50)
+    municipio = models.CharField(max_length=50)
+    tipo_direccion = models.CharField(max_length=50)
+    calle = models.CharField(max_length=50)
+    letra = models.CharField(max_length=50)
+    numero = models.BigIntegerField()
+    barrio = models.CharField(max_length=50)
+    piso = models.CharField(max_length=50)
+    nombre_receptor = models.CharField(max_length=50)
+
+    class Meta:
+        managed = False
+        db_table = 'envios'
+
+
+# ============================================================
+# MÉTODOS DE PAGO
+# ============================================================
+
 class MetodoPago(models.Model):
     TIPO_TARJETA_CHOICES = [
         ('visa', 'Visa'),
@@ -450,47 +528,8 @@ class MetodoPago(models.Model):
     def __str__(self):
         return f"{self.tipo_tarjeta} ****{self.ultimos_digitos}"
 
+
 # ============================================================
-# PETICIONES
-# ============================================================
-
-class PeticionProducto(models.Model):
-    usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
-    producto = models.ForeignKey(VarianteProducto, on_delete=models.CASCADE)
-    cantidad_solicitada = models.PositiveIntegerField(default=1)
-    fecha_peticion = models.DateTimeField(auto_now_add=True)
-    atendida = models.BooleanField(default=False)
-
-    class Meta:
-        managed = True
-        db_table = 'peticiones_producto'
-        verbose_name = 'Petición de Producto'
-        verbose_name_plural = 'Peticiones de Productos'
-
-    def __str__(self):
-        return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
-
-##==========================================================
-#PEDIDOS
-#===========================================================
-
-class Pedidos(models.Model):
-    idpedido = models.AutoField(primary_key=True)
-    cliente = models.CharField(max_length=100)
-    fecha = models.DateTimeField()
-    estado_pedido = models.CharField(max_length=50)
-    metodo_pago = models.CharField(max_length=50)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado_pago = models.CharField(max_length=50)
-
-    class Meta:
-        managed = False
-        db_table = 'pedidos'
-
-
-
-
-## ============================================================
 # DEVOLUCIONES
 # ============================================================
 
@@ -537,6 +576,7 @@ class Devolucion(models.Model):
     def total_items(self):
         return self.items.count()
 
+
 class DevolucionItem(models.Model):
     iditem = models.AutoField(primary_key=True)
 
@@ -564,3 +604,23 @@ class DevolucionItem(models.Model):
     def __str__(self):
         return f"{self.producto.nombre} x {self.cantidad}"
 
+
+# ============================================================
+# PETICIONES
+# ============================================================
+
+class PeticionProducto(models.Model):
+    usuario = models.ForeignKey(Usuarios, on_delete=models.CASCADE)
+    producto = models.ForeignKey(VarianteProducto, on_delete=models.CASCADE)
+    cantidad_solicitada = models.PositiveIntegerField(default=1)
+    fecha_peticion = models.DateTimeField(auto_now_add=True)
+    atendida = models.BooleanField(default=False)
+
+    class Meta:
+        managed = True
+        db_table = 'peticiones_producto'
+        verbose_name = 'Petición de Producto'
+        verbose_name_plural = 'Peticiones de Productos'
+
+    def __str__(self):
+        return f"{self.usuario.email} - {self.producto.producto.nombre} - Cant: {self.cantidad_solicitada}"
