@@ -4,15 +4,13 @@ WORKDIR /app
 
 RUN apk update && \
     apk add --no-cache \
-        default-libmysqlclient-dev \
         mariadb-dev \
         pkgconfig \
         gcc \
         python3-dev \
         musl-dev \
         libffi-dev \
-        openssl-dev \
-        libssl-dev 
+        openssl-dev
 
 COPY requirements.txt .
 
