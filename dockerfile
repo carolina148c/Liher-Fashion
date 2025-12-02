@@ -10,7 +10,8 @@ RUN apk update && \
         python3-dev \
         musl-dev \
         libffi-dev \
-        openssl-dev
+        openssl-dev \
+        ca-certificates
 
 COPY requirements.txt .
 
