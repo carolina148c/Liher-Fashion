@@ -1529,4 +1529,3 @@ function setSuccess(input, messageElement, message) {
   }
 }
 
-
