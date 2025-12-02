@@ -8,7 +8,7 @@ echo "Esperando a que la base de datos esté lista..."
 sleep 5
 
 # Cambiar al directorio donde está manage.py
-cd /app/src/
+cd /app/prjLiherfashion/
 
 # 1. Aplicar migraciones
 echo "Aplicando migraciones..."
