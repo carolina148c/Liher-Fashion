@@ -7,6 +7,11 @@ set -e
 echo "Esperando a que la base de datos esté lista..."
 sleep 5
 
+echo "Esperando variables de entorno..."
+echo "HOST: $POSTGRES_HOST"
+echo "USER: $POSTGRES_USER"
+sleep 3
+
 # Cambiar al directorio donde está manage.py
 cd /app/prjLiherfashion/
 
