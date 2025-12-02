@@ -4,14 +4,12 @@ WORKDIR /app
 
 RUN apk update && \
     apk add --no-cache \
-        mariadb-dev \
-        pkgconfig \
+        postgresql-dev \
         gcc \
         python3-dev \
         musl-dev \
         libffi-dev \
-        openssl-dev \
-        ca-certificates
+        openssl-dev
 
 COPY requirements.txt .
 
@@ -28,4 +26,5 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
 EXPOSE 8000
