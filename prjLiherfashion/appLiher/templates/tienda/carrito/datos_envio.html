@@ -5,147 +5,634 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Liher Fashion - Envío</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/vistaDatosEnvio.css' %}">
-<link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ... [Mantener todos los estilos existentes] ... */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #fff;
+}
+
+/* Header */
+.header {
+    background: white;
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo img {
+    width: 50px;
+    height: 50px;
+}
+
+.logo-text {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* Progress Steps */
+.progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.step.active .step-circle {
+    background: #ff69b4;
+    color: white;
+}
+
+.step.completed .step-circle {
+    background: #ffb6d9;
+}
+
+.step-line {
+    width: 60px;
+    height: 2px;
+    background: #f0f0f0;
+}
+
+.step-label {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Pink Banner */
+.pink-banner {
+    background: linear-gradient(90deg, #ffb6d9 0%, #ffd4e5 100%);
+    height: 40px;
+}
+
+/* Main Container */
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
+}
+
+/* Left Column */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Card Styles */
+.card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 25px;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.card-header svg {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-edit {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-edit:hover {
+    background: #f5f5f5;
+}
+
+.info-row {
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.info-row strong {
+    font-weight: 600;
+}
+
+/* Form Styles */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #ff69b4;
+}
+
+/* Radio Options */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.radio-option:hover {
+    border-color: #ff69b4;
+    background: #fff5f8;
+}
+
+.radio-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"]:checked {
+    accent-color: #ff69b4;
+}
+
+.radio-option label {
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Note */
+.note {
+    background: #fff8dc;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-top: 20px;
+}
+
+/* Right Column - Summary */
+.summary-card {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 25px;
+    position: sticky;
+    top: 20px;
+}
+
+.summary-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.coupon-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.coupon-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-apply {
+    padding: 10px 20px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-apply:hover {
+    background: #f5f5f5;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.summary-total {
+    font-size: 18px;
+    font-weight: 700;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+    margin-top: 15px;
+}
+
+/* Buttons */
+.btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: #ff69b4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.btn-primary:hover {
+    background: #ff1493;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+}
+
+.btn-secondary:hover {
+    background: #f5f5f5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .progress-bar {
+        display: none;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 </head>
 <body>
-    <header class="encabezado">
-        <div class="logo">
-            <img src="{% static 'Img/1.png' %}" alt="Logo de Liher Fashion">
-            <span>Liher Fashion</span>
-        </div>
-
-        <div class="progreso-compra">
-            <!-- Paso 1: Carrito -->
-            <div class="paso-compra">
-                <div class="icono-paso"><i class="fas fa-shopping-cart"></i></div>
-                <span>Carrito</span>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <img src="{% static 'Img/1.png' %}" alt="Liher Fashion">
+                <span class="logo-text">Liher Fashion</span>
             </div>
-            <div class="linea-progreso"></div>
-
-            <!-- Paso 2: Identificación -->
-            <div class="paso-compra">
-                <div class="icono-paso"><i class="fas fa-user"></i></div>
-                <span>Identificación</span>
-            </div>
-            <div class="linea-progreso"></div>
-
-            <!-- Paso 3: Entrega (activo) -->
-            <div class="paso-compra activo">
-                <div class="icono-paso"><i class="fas fa-truck"></i></div>
-                <span>Entrega</span>
-            </div>
-            <div class="linea-progreso"></div>
-
-            <!-- Paso 4: Pago -->
-            <div class="paso-compra">
-                <div class="icono-paso"><i class="fas fa-credit-card"></i></div>
-                <span>Pago</span>
+            
+            <div class="progress-bar">
+                <div class="step completed">
+                    <div class="step-circle">🛒</div>
+                    <span class="step-label">Carrito</span>
+                </div>
+                <div class="step-line"></div>
+                
+                <div class="step completed">
+                    <div class="step-circle">👤</div>
+                    <span class="step-label">Identificación</span>
+                </div>
+                <div class="step-line"></div>
+                
+                <div class="step active">
+                    <div class="step-circle">🚚</div>
+                    <span class="step-label">Envío</span>
+                </div>
+                <div class="step-line"></div>
+                
+                <div class="step">
+                    <div class="step-circle">💳</div>
+                    <span class="step-label">Pago</span>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="contenido">
-        <!-- Información de usuario -->
-        <section class="identificacion">
-            <div class="tarjeta-identificacion">
-                <h3><i class="fas fa-id-card"></i> Identificación</h3>
-                <p><strong>Correo:</strong> {{ user.email }}</p>
-                <p><strong>Nombre:</strong> {{ user.get_full_name }}</p>
-                <p><strong>Contacto:</strong> {{ user.telefono }}</p>
-                <a href="{% url 'editar_perfil' %}" class="boton-editar">Editar Perfil</a>
+    <!-- Pink Banner -->
+    <div class="pink-banner"></div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Column -->
+        <div class="left-column">
+            <!-- Mensajes -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="padding: 15px; border-radius: 4px; margin-bottom: 20px; background: {% if message.tags == 'error' %}#fee{% elif message.tags == 'success' %}#efe{% else %}#ffc{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Identificación Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span>👤 Identificación</span>
+                    <a href="{% url 'identificacion' %}" class="btn-edit">Editar Perfil</a>
+                </div>
+                
+                <div class="info-row">
+                    <strong>Correo:</strong> {% if checkout_data %}{{ checkout_data.email }}{% else %}{{ user.email }}{% endif %}
+                </div>
+                <div class="info-row">
+                    <strong>Nombre:</strong> {% if checkout_data %}{{ checkout_data.nombre }} {{ checkout_data.apellido }}{% else %}{{ user.get_full_name }}{% endif %}
+                </div>
+                <div class="info-row">
+                    <strong>Contacto:</strong> {% if checkout_data %}{{ checkout_data.telefono }}{% else %}{{ user.phone }}{% endif %}
+                </div>
             </div>
-        </section>
 
-        <!-- Formulario de envío -->
-        <section class="formulario-envio">
-            <h3>Envío</h3>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Departamento</label>
-                        <select name="departamento">
-                            <option>Seleccione una opción</option>
-                        </select>
-                    </div>
-                    <div class="campo">
-                        <label>*Municipio o ciudad capital</label>
-                        <select name="ciudad">
-                            <option>Seleccione una opción</option>
-                        </select>
-                    </div>
+            <!-- Envío Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📦 Envío</span>
                 </div>
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Tipo de dirección</label>
-                        <select name="tipo_direccion">
-                            <option>Seleccione una opción</option>
-                        </select>
+                
+                <!-- CORRECCIÓN: Formulario que envía POST correctamente -->
+                <form method="POST" id="formEnvio">
+                    {% csrf_token %}
+                    
+                    <!-- Departamento y Municipio -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>*Departamento</label>
+                            <select name="departamento" required>
+                                <option value="">Seleccione una opción</option>
+                                <option value="Antioquia">Antioquia</option>
+                                <option value="Atlántico">Atlántico</option>
+                                <option value="Bogotá D.C.">Bogotá D.C.</option>
+                                <option value="Bolívar">Bolívar</option>
+                                <option value="Cundinamarca">Cundinamarca</option>
+                                <option value="Valle del Cauca">Valle del Cauca</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>*Municipio o ciudad capital</label>
+                            <select name="ciudad" required>
+                                <option value="">Seleccione una opción</option>
+                                <option value="Medellín">Medellín</option>
+                                <option value="Bogotá">Bogotá</option>
+                                <option value="Cali">Cali</option>
+                                <option value="Barranquilla">Barranquilla</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="campo">
-                        <label>*Calle</label>
-                        <input type="text" name="calle" placeholder="Ej: 65">
+                    
+                    <!-- Dirección -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>*Tipo de dirección</label>
+                            <select name="tipo_direccion" required>
+                                <option value="">Seleccione una opción</option>
+                                <option value="casa">Casa</option>
+                                <option value="apartamento">Apartamento</option>
+                                <option value="oficina">Oficina</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>*Calle</label>
+                            <input type="text" name="calle" placeholder="Ej: 65" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Letra</label>
+                            <input type="text" name="letra" placeholder="Ej: C">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>*Número</label>
+                            <input type="text" name="numero" placeholder="113" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Adicional</label>
+                            <input type="text" name="adicional" placeholder="50">
+                        </div>
                     </div>
-                    <div class="campo">
-                        <label>*Letra</label>
-                        <input type="text" name="letra" placeholder="Ej: C">
+                    
+                    <!-- Barrio y Apartamento -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>*Barrio</label>
+                            <input type="text" name="barrio" placeholder="Ej: Laureles" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Piso/Apartamento/Torre/Edificio</label>
+                            <input type="text" name="apartamento" placeholder="Ej: Edificio 3 Apto 103">
+                        </div>
                     </div>
-                    <div class="campo">
-                        <label>*Número</label>
-                        <input type="text" name="numero" placeholder="113">
+                    
+                    <!-- Nombre y Teléfono que recibe -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>*Nombre de la persona que recibe</label>
+                            <input type="text" name="nombre_recibe" placeholder="Ej: Juliana" 
+                                   value="{% if checkout_data %}{{ checkout_data.nombre }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>*Teléfono de contacto</label>
+                            <input type="tel" name="telefono" placeholder="Ej: 3001234567" 
+                                   value="{% if checkout_data %}{{ checkout_data.telefono }}{% endif %}" required>
+                        </div>
                     </div>
-                    <div class="campo">
-                        <label>-</label>
-                        <input type="text" name="adicional" placeholder="50">
+                    
+                    <!-- Empresa de Envío -->
+                    <div style="margin-top: 30px;">
+                        <label style="font-weight: 600; margin-bottom: 10px; display: block;">
+                            *Seleccione empresa de envío
+                        </label>
+                        
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" name="empresa" value="coordinadora" id="coord" 
+                                       checked onchange="actualizarEnvio(12000)">
+                                <label for="coord">Coordinadora: $12,000</label>
+                            </div>
+                            
+                            <div class="radio-option">
+                                <input type="radio" name="empresa" value="interrapidisimo" id="inter"
+                                       onchange="actualizarEnvio(15000)">
+                                <label for="inter">Interrapidísimo: $15,000</label>
+                            </div>
+                            
+                            <div class="radio-option">
+                                <input type="radio" name="empresa" value="envia" id="envia"
+                                       onchange="actualizarEnvio(15000)">
+                                <label for="envia">Transportadora Envia: $15,000</label>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="fila">
-                    <div class="campo">
-                        <label>*Barrio</label>
-                        <input type="text" name="barrio" placeholder="Ej: Laureles">
+                    
+                    <div class="note">
+                        Una vez realizado el pago no será posible modificar la dirección o punto de envío.
                     </div>
-                    <div class="campo">
-                        <label>Piso/Apartamento/Torre/Edificio</label>
-                        <input type="text" name="apartamento" placeholder="Ej: Edificio 3 Apto 103">
-                    </div>
-                    <div class="campo">
-                        <label>*Nombre de la persona que recibe</label>
-                        <input type="text" name="nombre_recibe" placeholder="Ej: Juliana">
-                    </div>
-                </div>
-
-                <div class="empresa-envio">
-                    <label>Seleccione empresa de envío</label>
-                    <div class="opciones-envio">
-                        <label><input type="radio" name="empresa" value="coordinadora" checked> Coordinadora: $12,000</label>
-                        <label><input type="radio" name="empresa" value="interrapidisimo"> Interrapidísimo: $15,000</label>
-                        <label><input type="radio" name="empresa" value="envia"> Transportadora Envia: $15,000</label>
-                    </div>
-                </div>
-
-                <p class="nota">Una vez realizado el pago no será posible modificar la dirección o punto de envío.</p>
-            </form>
-        </section>
-
-        <!-- Resumen de pago -->
-        <aside class="resumen-pago">
-            <div class="cupon">
-                <label>Ingresar cupón de descuento</label>
-                <input type="text" placeholder="Cupón de descuento">
-                <button>Aplicar</button>
+                    
+                    <!-- CORRECCIÓN: Botón submit en lugar de enlace -->
+                    <button type="submit" class="btn-primary">IR A PAGAR</button>
+                </form>
             </div>
-            <div class="detalles">
-                <p>Subtotal: <span>$175.000</span></p>
-                <p>Descuento en productos: <span>0</span></p>
-                <p>Costo de envío: <span>$12.000</span></p>
-                <p class="total">Total: <span>$187.000</span></p>
+        </div>
+
+        <!-- Right Column - Summary -->
+        <div>
+            <div class="summary-card">
+                <div class="summary-title">Ingresar cupón de descuento</div>
+                
+                <div class="coupon-input">
+                    <input type="text" placeholder="Cupón de descuento" id="cuponInput">
+                    <button class="btn-apply" onclick="aplicarCupon()">Aplicar</button>
+                </div>
+                
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">${{ subtotal|floatformat:0 }}</span>
+                </div>
+                
+                <div class="summary-row">
+                    <span>Descuento en productos:</span>
+                    <span id="descuento">$0</span>
+                </div>
+                
+                <div class="summary-row">
+                    <span>Costo de envío:</span>
+                    <span id="costoEnvio">${{ costo_envio|floatformat:0 }}</span>
+                </div>
+                
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <span id="total">${{ total|floatformat:0 }}</span>
+                </div>
+                
+                <a href="{% url 'carrito' %}" class="btn-secondary">VOLVER AL CARRITO</a>
             </div>
-            <a href="{% url 'pago' %}" class="boton-continuar">IR A PAGAR</a>
-            <a href="{% url 'carrito' %}" class="boton-continuar">VOLVER AL CARRITO</a>
-        </aside>
-    </main>
+        </div>
+    </div>
+
+    <script>
+        let subtotal = {{ subtotal|default:0 }};
+        let costoEnvio = {{ costo_envio|default:12000 }};
+        
+        function actualizarEnvio(nuevoCosto) {
+            costoEnvio = nuevoCosto;
+            document.getElementById('costoEnvio').textContent = '$' + nuevoCosto.toLocaleString('es-CO');
+            
+            const total = subtotal + costoEnvio;
+            document.getElementById('total').textContent = '$' + total.toLocaleString('es-CO');
+        }
+        
+        function aplicarCupon() {
+            const cupon = document.getElementById('cuponInput').value;
+            if (cupon) {
+                alert('Funcionalidad de cupón en desarrollo');
+            }
+        }
+
+        // Validación del formulario antes de enviar
+        document.getElementById('formEnvio').addEventListener('submit', function(e) {
+            const camposRequeridos = this.querySelectorAll('[required]');
+            let valido = true;
+            
+            camposRequeridos.forEach(campo => {
+                if (!campo.value.trim()) {
+                    valido = false;
+                    campo.style.borderColor = 'red';
+                } else {
+                    campo.style.borderColor = '#ddd';
+                }
+            });
+            
+            if (!valido) {
+                e.preventDefault();
+                alert('Por favor completa todos los campos obligatorios (*)');
+            }
+        });
+    </script>
 </body>
 </html>

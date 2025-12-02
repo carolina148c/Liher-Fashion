@@ -5,6 +5,7 @@ import base64
 import json
 import uuid
 from decimal import Decimal, InvalidOperation
+import mercadopago
 
 
 # ==========================================================
@@ -55,6 +56,7 @@ from .models import (
     DireccionEnvio,
     MetodoPago,
     Pedidos,
+    PedidoItem,
     PerfilUsuario,
     Producto,
     VarianteProducto,
@@ -1175,17 +1177,386 @@ def detalle_pedido(request, pedido_id):
 #                   CHECKOUT Y PAGOS
 # ==========================================================
 
+@login_required
 def envio(request):
-    return render(request, 'tienda/carrito/datos_envio.html')
+    """Vista para el paso de envío"""
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__producto', 'producto__talla', 'producto__color'
+    )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío')
+        return redirect('carrito')
+    
+    # Verificar que pasó por identificación
+    checkout_data = request.session.get('checkout_data')
+    if not checkout_data:
+        messages.warning(request, 'Primero completa tu información personal')
+        return redirect('identificacion')
+    
+    # Obtener direcciones del usuario
+    direcciones = DireccionEnvio.objects.filter(usuario=request.user)
+    direccion_principal = direcciones.filter(es_principal=True).first()
+    
+    # Calcular totales
+    subtotal = sum(item.total_precio for item in items_carrito)
+    descuento = Decimal('0.00')
+    costo_envio = Decimal('12000.00')  # Valor por defecto
+    
+    if request.method == 'POST':
+        # VALIDACIONES DE CAMPOS REQUERIDOS
+        campos_requeridos = {
+            'departamento': 'Departamento',
+            'ciudad': 'Ciudad',
+            'tipo_direccion': 'Tipo de dirección',
+            'calle': 'Calle',
+            'numero': 'Número',
+            'barrio': 'Barrio',
+            'nombre_recibe': 'Nombre de quien recibe',
+            'telefono': 'Teléfono',
+            'empresa': 'Empresa de envío'
+        }
+        
+        errores = []
+        for campo, nombre in campos_requeridos.items():
+            if not request.POST.get(campo, '').strip():
+                errores.append(f'{nombre} es obligatorio')
+        
+        if errores:
+            for error in errores:
+                messages.error(request, error)
+            
+            total = subtotal - descuento + costo_envio
+            context = {
+                'direcciones': direcciones,
+                'direccion_principal': direccion_principal,
+                'subtotal': subtotal,
+                'descuento': descuento,
+                'costo_envio': costo_envio,
+                'total': total,
+                'items_carrito': items_carrito,
+                'checkout_data': checkout_data,
+            }
+            return render(request, 'tienda/carrito/datos_envio.html', context)
+        
+        # Procesar selección de dirección o crear nueva
+        direccion_id = request.POST.get('direccion_id')
+        
+        if direccion_id:
+            # Usar dirección existente
+            direccion = get_object_or_404(DireccionEnvio, id=direccion_id, usuario=request.user)
+        else:
+            # Crear nueva dirección
+            # Construir dirección completa
+            calle = request.POST.get('calle', '').strip()
+            letra = request.POST.get('letra', '').strip()
+            numero = request.POST.get('numero', '').strip()
+            adicional = request.POST.get('adicional', '').strip()
+            
+            direccion_completa = f"{calle}"
+            if letra:
+                direccion_completa += f" {letra}"
+            direccion_completa += f" {numero}"
+            if adicional:
+                direccion_completa += f" - {adicional}"
+            
+            direccion = DireccionEnvio.objects.create(
+                usuario=request.user,
+                nombre_completo=request.POST.get('nombre_recibe', '').strip(),
+                telefono=request.POST.get('telefono', '').strip(),
+                departamento=request.POST.get('departamento', '').strip(),
+                municipio=request.POST.get('ciudad', '').strip(),
+                tipo_direccion=request.POST.get('tipo_direccion', '').strip(),
+                direccion=direccion_completa,
+                barrio=request.POST.get('barrio', '').strip(),
+                piso_apartamento=request.POST.get('apartamento', '').strip(),
+            )
+        
+        # Obtener empresa de envío seleccionada
+        empresa_envio = request.POST.get('empresa', 'coordinadora')
+        
+        # Ajustar costo según empresa
+        costos_envio = {
+            'coordinadora': Decimal('12000.00'),
+            'interrapidisimo': Decimal('15000.00'),
+            'envia': Decimal('15000.00'),
+        }
+        costo_envio = costos_envio.get(empresa_envio, Decimal('12000.00'))
+        
+        # Actualizar información de envío en sesión
+        if 'checkout_data' not in request.session:
+            request.session['checkout_data'] = {}
+            
+        request.session['checkout_data'].update({
+            'direccion_id': direccion.id,
+            'direccion_completa': direccion.direccion,
+            'departamento': direccion.departamento,
+            'municipio': direccion.municipio,
+            'barrio': direccion.barrio,
+            'nombre_recibe': direccion.nombre_completo,
+            'telefono_recibe': direccion.telefono,
+            'empresa_envio': empresa_envio,
+            'costo_envio': str(costo_envio),
+        })
+        
+        # Forzar guardado de sesión
+        request.session.modified = True
+        
+        messages.success(request, 'Información de envío guardada correctamente')
+        # CORRECCIÓN: Redirigir explícitamente a pago
+        return redirect('pago')
+    
+    # GET request
+    total = subtotal - descuento + costo_envio
+    
+    context = {
+        'direcciones': direcciones,
+        'direccion_principal': direccion_principal,
+        'subtotal': subtotal,
+        'descuento': descuento,
+        'costo_envio': costo_envio,
+        'total': total,
+        'items_carrito': items_carrito,
+        'checkout_data': checkout_data,
+    }
+    
+    return render(request, 'tienda/carrito/datos_envio.html', context)
 
-
+@login_required
 def pago(request):
-    return render(request, 'tienda/carrito/pago.html')
+    """Vista para el paso de pago final - SOLO MERCADOPAGO"""
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__producto', 'producto__talla', 'producto__color'
+    )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío')
+        return redirect('carrito')
+    
+    # Verificar que pasó por los pasos anteriores
+    checkout_data = request.session.get('checkout_data')
+    if not checkout_data:
+        messages.warning(request, 'Primero completa los pasos anteriores')
+        return redirect('identificacion')
+    
+    if 'direccion_id' not in checkout_data:
+        messages.warning(request, 'Primero completa la información de envío')
+        return redirect('envio')
+    
+    # Obtener dirección de envío
+    try:
+        direccion = DireccionEnvio.objects.get(
+            id=checkout_data['direccion_id'], 
+            usuario=request.user
+        )
+    except DireccionEnvio.DoesNotExist:
+        messages.error(request, 'La dirección de envío no es válida')
+        return redirect('envio')
+    
+    # Calcular totales
+    subtotal = sum(item.total_precio for item in items_carrito)
+    descuento = Decimal('0.00')
+    costo_envio = Decimal(checkout_data.get('costo_envio', '12000.00'))
+    total = subtotal - descuento + costo_envio
+    
+    # Inicializar variables
+    preference_id = None
+    mercadopago_public_key = getattr(settings, 'MERCADOPAGO_PUBLIC_KEY', '')
+    init_point = None
+    error_message = None
+    
+    # Intentar crear preferencia de MercadoPago
+    if mercadopago_public_key and mercadopago_public_key != '':
+        try:
+            print("🔄 Intentando crear preferencia de MercadoPago...")
+            preferencia_mp = crear_preferencia_mercadopago(items_carrito, checkout_data, total)
+            
+            if preferencia_mp:
+                preference_id = preferencia_mp.get('id')
+                init_point = preferencia_mp.get('init_point')  # URL de pago
+                print(f"✅ Preferencia creada exitosamente: {preference_id}")
+                print(f"✅ URL de pago: {init_point}")
+            else:
+                error_message = "No se pudo crear la preferencia de pago"
+                print("⚠️ No se pudo crear la preferencia")
+        except Exception as e:
+            error_message = f"Error al inicializar MercadoPago: {str(e)}"
+            print(f"❌ Error al crear preferencia: {str(e)}")
+    else:
+        error_message = "MercadoPago no está configurado"
+        print("⚠️ No hay credenciales de MercadoPago configuradas")
+    
+    context = {
+        'items_carrito': items_carrito,
+        'direccion': direccion,
+        'subtotal': subtotal,
+        'descuento': descuento,
+        'costo_envio': costo_envio,
+        'total': total,
+        'checkout_data': checkout_data,
+        'mercadopago_public_key': mercadopago_public_key,
+        'preference_id': preference_id,
+        'init_point': init_point,
+        'error_message': error_message,
+    }
+    
+    return render(request, 'tienda/carrito/pago.html', context)
+
+def construir_metodos_pago(mercadopago_disponible, preference_id):
+    """Construye la lista de métodos de pago PRIORIZANDO MERCADOPAGO"""
+    payment_methods = []
+    
+    # 1. MERCADOPAGO PRIMERO (si está disponible)
+    if mercadopago_disponible and preference_id:
+        payment_methods.append({
+            'id': 'mercadopago',
+            'name': 'Pago con Tarjeta (Recomendado)',
+            'icon': 'fas fa-credit-card',
+            'color': 'text-primary',
+            'description': 'Pago seguro - Visa, Mastercard, American Express',
+            'enabled': True,
+            'recommended': True,  # Marcar como recomendado
+            'badge': 'Más seguro',  # Badge especial
+        })
+    
+    # 2. Efectivo como opción alternativa
+    payment_methods.append({
+        'id': 'efectivo',
+        'name': 'Efectivo contra entrega',
+        'icon': 'fas fa-money-bill-wave',
+        'color': 'text-warning',
+        'description': 'Paga cuando recibas tu pedido',
+        'enabled': True,
+        'recommended': False,
+    })
+    
+    return payment_methods
 
 
+@login_required
 def identificacion(request):
-    return render(request, 'tienda/carrito/identificacion.html')
+    """Vista para el paso de identificación"""
+    carrito = obtener_o_crear_carrito(request)
+    items_carrito = ItemCarrito.objects.filter(carrito=carrito).select_related(
+        'producto__producto', 'producto__talla', 'producto__color'
+    )
+    
+    if not items_carrito.exists():
+        messages.warning(request, 'Tu carrito está vacío')
+        return redirect('carrito')
+    
+    # Calcular totales
+    subtotal = sum(item.total_precio for item in items_carrito)
+    descuento = Decimal('0.00')
+    total = subtotal - descuento
+    
+    # Obtener datos del usuario
+    perfil, _ = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    
+    if request.method == 'POST':
+        # Validar campos requeridos
+        nombre = request.POST.get('nombre', '').strip()
+        apellido = request.POST.get('apellido', '').strip()
+        tipo_documento = request.POST.get('tipo_documento', '')
+        numero_documento = request.POST.get('numero_documento', '').strip()
+        celular = request.POST.get('celular', '').strip()
+        
+        # Validaciones
+        if not all([nombre, apellido, tipo_documento, numero_documento, celular]):
+            messages.error(request, 'Todos los campos son obligatorios')
+            return render(request, 'tienda/carrito/identificacion.html', {
+                'perfil': perfil,
+                'subtotal': subtotal,
+                'descuento': descuento,
+                'total': total,
+                'items_carrito': items_carrito,
+            })
+        
+        # Guardar/actualizar información del perfil
+        perfil.nombre = nombre
+        perfil.apellido = apellido
+        perfil.tipo_documento = tipo_documento
+        perfil.numero_documento = numero_documento
+        perfil.telefono = celular
+        perfil.save()
+        
+        # Guardar en sesión para usar en siguientes pasos
+        request.session['checkout_data'] = {
+            'nombre': perfil.nombre,
+            'apellido': perfil.apellido,
+            'email': request.user.email,
+            'telefono': perfil.telefono,
+            'tipo_documento': perfil.tipo_documento,
+            'numero_documento': perfil.numero_documento,
+        }
+        
+        messages.success(request, 'Información guardada correctamente')
+        # CORRECCIÓN: Redirigir explícitamente a envío
+        return redirect('envio')
+    
+    context = {
+        'perfil': perfil,
+        'subtotal': subtotal,
+        'descuento': descuento,
+        'total': total,
+        'items_carrito': items_carrito,
+    }
+    
+    return render(request, 'tienda/carrito/identificacion.html', context)
 
+def procesar_pago_efectivo(request, carrito, items_carrito, total, direccion):
+    """Procesa el pago en efectivo"""
+    try:
+        with transaction.atomic():
+            # Crear el pedido
+            pedido = Pedidos.objects.create(
+                cliente=request.user.email,
+                fecha=timezone.now(),
+                estado_pedido='Pendiente',
+                metodo_pago='Efectivo contra entrega',
+                total=total,
+                estado_pago='Pendiente'
+            )
+            
+            # Crear items del pedido
+            for item in items_carrito:
+                if item.producto.stock < item.cantidad:
+                    raise ValueError(f"Stock insuficiente para {item.producto.producto.nombre}")
+                
+                PedidoItem.objects.create(
+                    pedido=pedido,
+                    producto=item.producto.producto,
+                    variante=item.producto,
+                    cantidad=item.cantidad,
+                    precio_unitario=item.precio_unitario,
+                    subtotal=item.total_precio
+                )
+                
+                # Reducir stock
+                item.producto.stock -= item.cantidad
+                item.producto.save()
+            
+            # Marcar carrito como completado
+            carrito.completado = True
+            carrito.save()
+            
+            # Limpiar sesión
+            if 'checkout_data' in request.session:
+                del request.session['checkout_data']
+            if 'carrito_items' in request.session:
+                del request.session['carrito_items']
+            
+            messages.success(request, f'¡Pedido #{pedido.idpedido} creado exitosamente!')
+            return redirect('confirmacion_pedido', pedido_id=pedido.idpedido)
+            
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect('carrito')
+    except Exception as e:
+        messages.error(request, f'Error al procesar el pedido: {str(e)}')
+        return redirect('pago')
 
 # ==========================================================
 #                   PANEL DE ADMINISTRACIÓN
@@ -1271,6 +1642,26 @@ def panel_admin(request):
     }
 
     return render(request, "admin/panel_admin.html", context)
+
+@login_required
+def confirmacion_pedido(request, pedido_id):
+    """Vista de confirmación del pedido"""
+    pedido = get_object_or_404(Pedidos, idpedido=pedido_id, cliente=request.user.email)
+    
+    # Intentar obtener items del pedido
+    try:
+        items_pedido = PedidoItem.objects.filter(pedido=pedido).select_related(
+            'producto', 'variante__talla', 'variante__color'
+        )
+    except:
+        items_pedido = []
+    
+    context = {
+        'pedido': pedido,
+        'items_pedido': items_pedido,
+    }
+    
+    return render(request, 'tienda/carrito/confirmacion.html', context)
 
 
 # ==========================================================
@@ -2143,3 +2534,318 @@ def detalle_peticion(request, id):
         return JsonResponse({'success': True, 'data': data})
     except PeticionProducto.DoesNotExist:
         return JsonResponse({'success': False}, status=404)
+
+
+# ==========================================================
+#                   MERCADOPAGO HELPER
+# ==========================================================
+
+def crear_preferencia_mercadopago(items_carrito, checkout_data, total):
+    """
+    Crea una preferencia de pago en MercadoPago
+    """
+    try:
+        sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+        
+        # Construir items para MercadoPago
+        items = []
+        for item in items_carrito:
+            items.append({
+                "title": f"{item.producto.producto.nombre}",
+                "description": f"Talla: {item.producto.talla.talla} - Color: {item.producto.color.color}",
+                "quantity": int(item.cantidad),
+                "unit_price": float(item.precio_unitario),
+                "currency_id": "COP",
+            })
+        
+        # Obtener la URL base del sitio
+        site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
+        
+        # Configurar preferencia
+        preference_data = {
+            "items": items,
+            "payer": {
+                "name": checkout_data.get('nombre', ''),
+                "surname": checkout_data.get('apellido', ''),
+                "email": checkout_data.get('email', ''),
+            },
+            "back_urls": {
+                "success": f"{site_url}/pago/exito/",
+                "failure": f"{site_url}/pago/fallo/",
+                "pending": f"{site_url}/pago/pendiente/"
+            },
+            "statement_descriptor": "LIHER FASHION",
+            "external_reference": f"ORDEN-{int(timezone.now().timestamp())}",
+        }
+        
+        # IMPORTANTE: Solo agregar notification_url si NO es localhost
+        # En producción, descomenta estas líneas:
+        # if not site_url.startswith('http://127.0.0.1') and not site_url.startswith('http://localhost'):
+        #     preference_data["notification_url"] = f"{site_url}/webhook/mercadopago/"
+        
+        # Solo agregar teléfono si existe
+        telefono = checkout_data.get('telefono', '').strip()
+        if telefono:
+            preference_data["payer"]["phone"] = {
+                "area_code": "57",
+                "number": str(telefono)
+            }
+        
+        # Solo agregar identificación si existe
+        numero_doc = checkout_data.get('numero_documento', '').strip()
+        if numero_doc:
+            preference_data["payer"]["identification"] = {
+                "type": str(checkout_data.get('tipo_documento', 'CC')),
+                "number": str(numero_doc)
+            }
+        
+        print("=== CREANDO PREFERENCIA ===")
+        print(f"Items: {len(items)}")
+        print(f"Email: {checkout_data.get('email')}")
+        print(f"Total: {total}")
+        print(f"URL success: {preference_data['back_urls']['success']}")
+        
+        preference_response = sdk.preference().create(preference_data)
+        
+        print(f"Response status: {preference_response.get('status')}")
+        
+        if preference_response.get("status") == 201:
+            preference = preference_response["response"]
+            print(f"✅ Preferencia creada: {preference.get('id')}")
+            return preference
+        else:
+            error_msg = preference_response.get('response', {}).get('message', 'Error desconocido')
+            print(f"❌ Error en respuesta: {error_msg}")
+            print(f"Respuesta completa: {preference_response}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ ERROR al crear preferencia: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+@login_required
+def pago_exito(request):
+    """Vista de éxito del pago"""
+    payment_id = request.GET.get('payment_id')
+    preference_id = request.GET.get('preference_id')
+    
+    # Si viene de un redirect de MercadoPago, redirigir a mis pedidos
+    if payment_id:
+        messages.success(request, f'¡Pago exitoso! Tu pedido ha sido confirmado. ID de pago: {payment_id}')
+        return redirect('mis_pedidos')
+    
+    messages.success(request, '¡Pago exitoso! Tu pedido ha sido confirmado.')
+    return redirect('mis_pedidos')
+
+
+@login_required
+def pago_fallo(request):
+    """Vista de fallo del pago"""
+    messages.error(request, 'El pago fue rechazado. Por favor intenta con otro método de pago.')
+    return redirect('pago')
+
+
+@login_required
+def pago_pendiente(request):
+    """Vista de pago pendiente"""
+    messages.info(request, 'Tu pago está pendiente de confirmación. Te notificaremos cuando se complete.')
+    return redirect('mis_pedidos')
+# ==========================================================
+#                   WEBHOOKS MERCADOPAGO
+# ==========================================================
+
+@csrf_exempt
+@require_POST
+def webhook_mercadopago(request):
+    """
+    Webhook para recibir notificaciones de MercadoPago
+    """
+    try:
+        # Log para debugging
+        print("=" * 50)
+        print("WEBHOOK MERCADOPAGO RECIBIDO")
+        print("=" * 50)
+        
+        # Obtener datos
+        data = json.loads(request.body)
+        print(f"Datos recibidos: {data}")
+        
+        # Verificar tipo de notificación
+        notification_type = data.get('type')
+        
+        if notification_type == 'payment':
+            payment_id = data.get('data', {}).get('id')
+            
+            if not payment_id:
+                print("No se recibió payment_id")
+                return JsonResponse({'status': 'error', 'message': 'No payment_id'}, status=400)
+            
+            # Obtener información del pago
+            sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+            payment_info = sdk.payment().get(payment_id)
+            
+            if payment_info['status'] == 200:
+                payment = payment_info['response']
+                external_reference = payment.get('external_reference')
+                status = payment.get('status')
+                status_detail = payment.get('status_detail')
+                
+                print(f"Payment ID: {payment_id}")
+                print(f"Status: {status}")
+                print(f"Status Detail: {status_detail}")
+                print(f"External Reference: {external_reference}")
+                
+                # Aquí puedes actualizar el estado del pedido
+                # basándote en el external_reference si lo guardaste
+                
+                if status == 'approved':
+                    print("✅ Pago aprobado")
+                    
+                elif status == 'rejected':
+                    print("❌ Pago rechazado")
+                    
+                elif status == 'pending':
+                    print("⏳ Pago pendiente")
+                    
+                elif status == 'in_process':
+                    print("🔄 Pago en proceso")
+                
+                return JsonResponse({'status': 'ok'})
+            else:
+                print(f"Error al obtener info del pago: {payment_info}")
+                return JsonResponse({'status': 'error'}, status=400)
+        
+        print(f"Tipo de notificación no manejada: {notification_type}")
+        return JsonResponse({'status': 'ok'})
+        
+    except Exception as e:
+        print(f"Error en webhook: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+@login_required
+@require_POST
+def procesar_pago_mp(request):
+    """
+    Procesa el pago de MercadoPago usando el SDK
+    """
+    try:
+        data = json.loads(request.body)
+        payment_data = data.get('payment_data')
+        
+        if not payment_data:
+            return JsonResponse({
+                'success': False,
+                'message': 'Datos de pago no válidos'
+            }, status=400)
+        
+        # Inicializar SDK
+        sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+        
+        # Obtener datos de sesión
+        checkout_data = request.session.get('checkout_data', {})
+        carrito = obtener_o_crear_carrito(request)
+        items_carrito = ItemCarrito.objects.filter(carrito=carrito)
+        
+        # Calcular total
+        subtotal = sum(item.total_precio for item in items_carrito)
+        descuento = Decimal('0.00')
+        costo_envio = Decimal(checkout_data.get('costo_envio', '12000.00'))
+        total = subtotal - descuento + costo_envio
+        
+        # Preparar datos del pago
+        payment_request = {
+            "transaction_amount": float(total),
+            "token": payment_data.get('token'),
+            "description": f"Pedido Liher Fashion",
+            "installments": int(payment_data.get('installments', 1)),
+            "payment_method_id": payment_data.get('payment_method_id'),
+            "issuer_id": payment_data.get('issuer_id'),
+            "payer": {
+                "email": checkout_data.get('email'),
+                "identification": {
+                    "type": checkout_data.get('tipo_documento', 'CC'),
+                    "number": checkout_data.get('numero_documento', '')
+                }
+            },
+            "external_reference": f"ORDEN-{int(timezone.now().timestamp())}",
+            "statement_descriptor": "LIHER FASHION",
+            "notification_url": f"{settings.SITE_URL}/webhook/mercadopago/"
+        }
+        
+        # Crear pago
+        payment_response = sdk.payment().create(payment_request)
+        payment = payment_response["response"]
+        
+        print(f"Respuesta de pago: {payment}")
+        
+        if payment.get("status") == "approved":
+            # Pago aprobado - crear pedido
+            with transaction.atomic():
+                pedido = Pedidos.objects.create(
+                    cliente=request.user.email,
+                    fecha=timezone.now(),
+                    estado_pedido='Confirmado',
+                    metodo_pago='MercadoPago',
+                    total=total,
+                    estado_pago='Aprobado'
+                )
+                
+                # Crear items y reducir stock
+                for item in items_carrito:
+                    if item.producto.stock < item.cantidad:
+                        raise ValueError(f"Stock insuficiente para {item.producto.producto.nombre}")
+                    
+                    PedidoItem.objects.create(
+                        pedido=pedido,
+                        producto=item.producto.producto,
+                        variante=item.producto,
+                        cantidad=item.cantidad,
+                        precio_unitario=item.precio_unitario,
+                        subtotal=item.total_precio
+                    )
+                    
+                    item.producto.stock -= item.cantidad
+                    item.producto.save()
+                
+                # Marcar carrito como completado
+                carrito.completado = True
+                carrito.save()
+                
+                # Limpiar sesión
+                if 'checkout_data' in request.session:
+                    del request.session['checkout_data']
+                if 'carrito_items' in request.session:
+                    del request.session['carrito_items']
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Pago aprobado',
+                'redirect_url': reverse('confirmacion_pedido', args=[pedido.idpedido])
+            })
+            
+        elif payment.get("status") == "in_process":
+            # Pago pendiente
+            return JsonResponse({
+                'success': True,
+                'message': 'Pago en proceso',
+                'redirect_url': reverse('pago_pendiente')
+            })
+        else:
+            # Pago rechazado
+            return JsonResponse({
+                'success': False,
+                'message': payment.get('status_detail', 'Pago rechazado')
+            }, status=400)
+            
+    except Exception as e:
+        print(f"Error al procesar pago: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': f'Error al procesar el pago: {str(e)}'
+        }, status=500)

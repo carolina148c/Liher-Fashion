@@ -120,4 +120,12 @@ urlpatterns = [
     #GESTIÓN DE PETICIONES (ADMIN)
     path('peticiones/', views.peticiones, name='peticiones'),
     path('peticiones/', views.listar_peticiones, name='listar_peticiones'),
+    
+    # MERCADOPAGO 
+    path('pago/procesar-mp/', views.procesar_pago_mp, name='procesar_pago_mp'),
+    path('pago/exito/', views.pago_exito, name='pago_exito'),
+    path('pago/fallo/', views.pago_fallo, name='pago_fallo'),
+    path('pago/pendiente/', views.pago_pendiente, name='pago_pendiente'),
+    path('webhook/mercadopago/', views.webhook_mercadopago, name='webhook_mercadopago'),
+    path('pedido/confirmacion/<int:pedido_id>/', views.confirmacion_pedido, name='confirmacion_pedido'),
 ]

@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/pago.css' %}">
-    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
+    <!-- MercadoPago SDK -->
     <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 
@@ -62,6 +62,15 @@
     <div class="pink-banner"></div>
 
     <div class="container my-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <div class="row">
             <!-- Columna izquierda -->
             <div class="col-lg-8 col-md-7">
@@ -69,13 +78,13 @@
                 <div class="info-section bg-white rounded p-4 mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0"><i class="fas fa-user me-2"></i>Identificación</h5>
-                        <a href="{% url 'identificacion' %}" class="btn btn-outline-secondary btn-sm">Editar Perfil</a>
+                        <a href="{% url 'identificacion' %}" class="btn btn-outline-secondary btn-sm">Editar</a>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
-                            <p class="mb-1"><strong>Correo:</strong> {{ request.user.email }}</p>
-                            <p class="mb-1"><strong>Nombre:</strong> {{ request.user.first_name }} {{ request.user.last_name }}</p>
-                            <p class="mb-0"><strong>Contacto:</strong> {{ request.user.profile.phone }}</p>
+                        <div class="col-md-12">
+                            <p class="mb-1"><strong>Correo:</strong> {{ checkout_data.email }}</p>
+                            <p class="mb-1"><strong>Nombre:</strong> {{ checkout_data.nombre }} {{ checkout_data.apellido }}</p>
+                            <p class="mb-0"><strong>Contacto:</strong> {{ checkout_data.telefono }}</p>
                         </div>
                     </div>
                 </div>
@@ -83,41 +92,90 @@
                 <!-- Resumen de envío -->
                 <div class="info-section bg-white rounded p-4 mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Resumen de envíos</h5>
-                        <button class="btn btn-outline-secondary btn-sm">Editar envío</button>
+                        <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Resumen de envío</h5>
+                        <a href="{% url 'envio' %}" class="btn btn-outline-secondary btn-sm">Editar envío</a>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>Dirección:</strong> {{ request.user.profile.address }}</p>
-                            <p class="mb-0"><strong>Costo de envío:</strong> {{ shipping_cost|default:"$12.000" }}</p>
+                        <div class="col-md-8">
+                            <p class="mb-1"><strong>Dirección:</strong> {{ direccion.direccion }}</p>
+                            <p class="mb-1">{{ direccion.barrio }}, {{ direccion.municipio }}</p>
+                            <p class="mb-1">{{ direccion.departamento }}</p>
+                            <p class="mb-1"><strong>Recibe:</strong> {{ direccion.nombre_completo }}</p>
+                            <p class="mb-1"><strong>Teléfono:</strong> {{ direccion.telefono }}</p>
+                            <p class="mb-0"><strong>Empresa de envío:</strong> 
+                                {% if checkout_data.empresa_envio == 'coordinadora' %}Coordinadora
+                                {% elif checkout_data.empresa_envio == 'interrapidisimo' %}Interrapidísimo
+                                {% else %}Transportadora Envia{% endif %}
+                            </p>
+                            <p class="mb-0"><strong>Costo de envío:</strong> ${{ costo_envio|floatformat:0 }}</p>
                         </div>
-                        <div class="col-md-6 text-end">
-                            <button class="btn btn-link text-decoration-none">Ver Productos <i class="fas fa-chevron-down"></i></button>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-link text-decoration-none" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#productosCollapse">
+                                Ver Productos <i class="fas fa-chevron-down"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Sección pago -->
-                <div class="payment-section bg-white rounded p-4">
-                    <h5 class="mb-4">Pago</h5>
-                    <div class="payment-method-title mb-3">
-                        <h6>Elige un método de pago</h6>
-                    </div>
-
-                    <div class="payment-methods">
-                        {% for method in payment_methods %}
-                        <div class="payment-option mb-3">
-                            <div class="form-check d-flex align-items-center p-3 border rounded">
-                                <input class="form-check-input me-3" type="radio" name="payment_method" id="{{ method.id }}" value="{{ method.id }}">
-                                <label class="form-check-label d-flex align-items-center w-100" for="{{ method.id }}">
-                                    <i class="{{ method.icon }} me-2 {{ method.color }}"></i> {{ method.name }}
-                                </label>
+                    
+                    <div class="collapse mt-3" id="productosCollapse">
+                        <hr>
+                        <h6>Productos del pedido:</h6>
+                        {% for item in items_carrito %}
+                        <div class="d-flex align-items-center mb-2">
+                            {% if item.producto.imagen %}
+                                <img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.producto.nombre }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover;" class="me-2">
+                            {% endif %}
+                            <div>
+                                <strong>{{ item.producto.producto.nombre }}</strong><br>
+                                <small>Talla: {{ item.producto.talla.talla }} | Color: {{ item.producto.color.color }}</small><br>
+                                <small>Cantidad: {{ item.cantidad }} x ${{ item.precio_unitario|floatformat:0 }}</small>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
+                </div>
 
-                    <div id="cardPaymentBrick_container" class="mt-4"></div>
+                <!-- Sección pago con MercadoPago -->
+                <div class="payment-section bg-white rounded p-4">
+                    <h5 class="mb-4"><i class="fas fa-credit-card me-2"></i>Método de Pago</h5>
+                    
+                    {% if error_message %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>{{ error_message }}
+                            <hr>
+                            <p class="mb-0">Por favor contacta al administrador para configurar el sistema de pagos.</p>
+                        </div>
+                    {% else %}
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="fab fa-cc-mastercard fa-2x text-primary me-2"></i>
+                                <i class="fab fa-cc-visa fa-2x text-info me-2"></i>
+                                <i class="fab fa-cc-amex fa-2x text-success me-3"></i>
+                                <div>
+                                    <strong>Pago seguro con MercadoPago</strong><br>
+                                    <small class="text-muted">Aceptamos todas las tarjetas de crédito y débito</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor para el Wallet Brick de MercadoPago -->
+                        <div id="walletBrick_container"></div>
+
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terminosCheckbox" required>
+                                <label class="form-check-label" for="terminosCheckbox">
+                                    Acepto los <a href="#" target="_blank">términos y condiciones</a>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-muted small">
+                            <i class="fas fa-lock me-1"></i>
+                            <strong>Pago 100% seguro</strong> - Tu información está protegida
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -127,33 +185,36 @@
                     <div class="cart-summary-box bg-white rounded p-4 mb-3">
                         <h6 class="mb-3">Ingresar cupón de descuento</h6>
                         <div class="input-group mb-3">
-                            <input type="text" class="form-control" placeholder="Cupón de descuento">
-                            <button class="btn btn-outline-secondary" type="button">Aplicar</button>
+                            <input type="text" class="form-control" placeholder="Cupón de descuento" id="cuponInput">
+                            <button class="btn btn-outline-secondary" type="button" onclick="aplicarCupon()">
+                                Aplicar
+                            </button>
                         </div>
 
                         <div class="summary-details">
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Subtotal:</span>
-                                <span>{{ subtotal|default:"$175.000" }}</span>
+                                <span>${{ subtotal|floatformat:0 }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Descuento en productos:</span>
-                                <span>{{ discount|default:"0" }}</span>
+                                <span id="descuentoMonto">${{ descuento|floatformat:0 }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Costo de envío:</span>
-                                <span>{{ shipping_cost|default:"$12.000" }}</span>
+                                <span>${{ costo_envio|floatformat:0 }}</span>
                             </div>
                             <hr>
                             <div class="d-flex justify-content-between fw-bold fs-5">
                                 <span>Total</span>
-                                <span>{{ total|default:"$187.000" }}</span>
+                                <span id="totalFinal">${{ total|floatformat:0 }}</span>
                             </div>
                         </div>
                     </div>
                     
-                    <button class="btn btn-pink w-100 mb-2 py-3 fw-bold">FINALIZAR COMPRA</button>
-                    <a href="{% url 'carrito' %}" class="btn btn-outline-secondary w-100 py-3 fw-bold text-decoration-none">VOLVER AL CARRITO</a>
+                    <a href="{% url 'carrito' %}" class="btn btn-outline-secondary w-100 py-3 fw-bold text-decoration-none">
+                        <i class="fas fa-arrow-left me-2"></i>VOLVER AL CARRITO
+                    </a>
                 </div>
             </div>
         </div>
@@ -166,7 +227,96 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/pago.js' %}"></script>
-    <script src="{% static 'js/mercado_pago.js' %}"></script>
+    <script>
+        // Variables globales
+        const mercadopagoPublicKey = "{{ mercadopago_public_key }}";
+        const preferenceId = "{{ preference_id }}";
+
+        console.log('=== MERCADOPAGO INIT ===');
+        console.log('Public Key:', mercadopagoPublicKey);
+        console.log('Preference ID:', preferenceId);
+
+        // Función para aplicar cupón
+        function aplicarCupon() {
+            const cupon = document.getElementById('cuponInput').value;
+            if (cupon) {
+                alert('Funcionalidad de cupón en desarrollo');
+            } else {
+                alert('Por favor ingresa un cupón válido');
+            }
+        }
+
+        // Inicializar el Wallet Brick de MercadoPago
+        async function initMercadoPagoWallet() {
+            if (!mercadopagoPublicKey || !preferenceId) {
+                console.error('❌ Faltan credenciales de MercadoPago');
+                return;
+            }
+
+            try {
+                const mp = new MercadoPago(mercadopagoPublicKey, {
+                    locale: 'es-CO'
+                });
+
+                const bricksBuilder = mp.bricks();
+
+                // Crear Wallet Brick (botón de pago)
+                await bricksBuilder.create('wallet', 'walletBrick_container', {
+                    initialization: {
+                        preferenceId: preferenceId,
+                        redirectMode: 'self' // Redirige en la misma pestaña
+                    },
+                    customization: {
+                        texts: {
+                            valueProp: 'smart_option',
+                        },
+                    },
+                    callbacks: {
+                        onReady: () => {
+                            console.log('✅ Botón de MercadoPago listo');
+                        },
+                        onSubmit: () => {
+                            console.log('📤 Redirigiendo a MercadoPago...');
+                        },
+                        onError: (error) => {
+                            console.error('❌ Error en MercadoPago:', error);
+                            alert('Error al procesar el pago. Por favor intenta nuevamente.');
+                        }
+                    }
+                });
+
+                console.log('✅ Wallet Brick creado exitosamente');
+            } catch (error) {
+                console.error('❌ Error al crear Wallet Brick:', error);
+                document.getElementById('walletBrick_container').innerHTML = 
+                    '<div class="alert alert-danger">Error al cargar el botón de pago. Por favor recarga la página.</div>';
+            }
+        }
+
+        // Verificar términos antes de permitir pago
+        document.addEventListener('DOMContentLoaded', function() {
+            const terminosCheckbox = document.getElementById('terminosCheckbox');
+            const walletContainer = document.getElementById('walletBrick_container');
+            
+            if (terminosCheckbox && walletContainer) {
+                // Inicialmente deshabilitar el contenedor de pago
+                walletContainer.style.pointerEvents = 'none';
+                walletContainer.style.opacity = '0.5';
+                
+                terminosCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        walletContainer.style.pointerEvents = 'auto';
+                        walletContainer.style.opacity = '1';
+                    } else {
+                        walletContainer.style.pointerEvents = 'none';
+                        walletContainer.style.opacity = '0.5';
+                    }
+                });
+            }
+            
+            // Inicializar MercadoPago
+            initMercadoPagoWallet();
+        });
+    </script>
 </body>
 </html>

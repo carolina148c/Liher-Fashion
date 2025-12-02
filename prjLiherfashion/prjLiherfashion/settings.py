@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'prjLiherfashion.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'liherfashion',
+        'NAME': 'liherfashion5',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
@@ -197,3 +197,21 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# ==========================================================
+#                   MERCADOPAGO CONFIGURATION
+# ==========================================================
+MERCADOPAGO_PUBLIC_KEY = 'TEST-db1cdee5-76f4-4a1b-aa66-f0f727952b5e'
+MERCADOPAGO_ACCESS_TOKEN = 'TEST-5441259103443873-120203-363b337ad341fa0630686bfc75a569a2-1756744067'
+
+# Para pruebas usa las credenciales de TEST
+MERCADOPAGO_MODE = config('MERCADOPAGO_MODE', default='test') 
+
+# Si estás usando ngrok, configura esta variable
+NGROK_URL = os.getenv('NGROK_URL', 'https://untakable-georgiana-cooperatively.ngrok-free.dev')  # Ej: https://abc123.ngrok.io
+
+# Determinar SITE_URL
+if NGROK_URL:
+    SITE_URL = NGROK_URL
+else:
+    SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')

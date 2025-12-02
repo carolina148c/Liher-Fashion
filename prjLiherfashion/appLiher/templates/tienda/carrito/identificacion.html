@@ -7,8 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liher Fashion - Identificación</title>
     <link rel="stylesheet" href="{% static 'css/identificacion.css' %}">
-    <link rel="stylesheet" href="{% static 'css/carrito.css' %}">
-    <link rel="stylesheet" href="{% static 'css/vistaPago.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -28,7 +26,7 @@
             </div>
             <div class="linea-progreso"></div>
 
-            <!-- Paso 2: Identificación -->
+            <!-- Paso 2: Identificación (ACTIVO) -->
             <div class="paso-compra activo">
                 <div class="icono-paso"><i class="fas fa-user"></i></div>
                 <span>Identificación</span>
@@ -57,24 +55,33 @@
         <div class="identification-container">
             <h2 class="form-title">Identificación</h2>
 
-            <form method="POST">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" id="identificacionForm">
                 {% csrf_token %}
 
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label required">Correo electrónico</label>
-                        <input type="email" name="email" class="form-control" placeholder="Correo electrónico" required>
+                        <input type="email" name="email" class="form-control" 
+                               value="{{ user.email }}" readonly required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label required">Nombre</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+                        <input type="text" name="nombre" class="form-control" 
+                               placeholder="Nombre" value="{{ perfil.nombre }}" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Apellido</label>
-                        <input type="text" name="apellido" class="form-control" placeholder="Apellido" required>
+                        <input type="text" name="apellido" class="form-control" 
+                               placeholder="Apellido" value="{{ perfil.apellido }}" required>
                     </div>
                 </div>
 
@@ -82,26 +89,38 @@
                     <div class="form-group">
                         <label class="form-label required">Tipo de documento</label>
                         <select name="tipo_documento" class="form-control form-select" required>
-                            <option selected disabled>Seleccionar</option>
-                            <option>DNI</option>
-                            <option>Pasaporte</option>
-                            <option>Tarjeta de identidad</option>
+                            <option value="">Seleccionar</option>
+                            <option value="cedula" {% if perfil.tipo_documento == 'cedula' %}selected{% endif %}>
+                                Cédula de Ciudadanía
+                            </option>
+                            <option value="tarjeta_identidad" {% if perfil.tipo_documento == 'tarjeta_identidad' %}selected{% endif %}>
+                                Tarjeta de identidad
+                            </option>
+                            <option value="cedula_extranjeria" {% if perfil.tipo_documento == 'cedula_extranjeria' %}selected{% endif %}>
+                                Cédula de Extranjería
+                            </option>
+                            <option value="pasaporte" {% if perfil.tipo_documento == 'pasaporte' %}selected{% endif %}>
+                                Pasaporte
+                            </option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Número de documento</label>
-                        <input type="text" name="numero_documento" class="form-control" placeholder="Número documento" required>
+                        <input type="text" name="numero_documento" class="form-control" 
+                               placeholder="Número documento" value="{{ perfil.numero_documento }}" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label required">Celular</label>
-                        <input type="tel" name="celular" class="form-control" placeholder="Celular" required>
+                        <input type="tel" name="celular" class="form-control" 
+                               placeholder="Celular" value="{{ perfil.telefono }}" required>
                     </div>
                 </div>
 
                 <div class="checkbox-container">
                     <input type="checkbox" id="terms" class="checkbox-input" required>
                     <label for="terms" class="checkbox-label">
-                        Acepto <a href="#" class="terms-link">términos y condiciones</a> y <a href="#" class="terms-link">términos y condiciones marketplace</a>.
+                        Acepto <a href="#" class="terms-link">términos y condiciones</a> y 
+                        <a href="#" class="terms-link">términos y condiciones marketplace</a>.
                     </label>
                 </div>
 
@@ -118,6 +137,10 @@
                         Autorizo tratamiento de mis datos para el envío de publicidad
                     </label>
                 </div>
+
+                <button type="submit" class="btn-continuar">
+                    CONTINUAR CON LOS DETALLES DE ENVÍO
+                </button>
             </form>
         </div>
 
@@ -126,24 +149,23 @@
             <div class="cart-summary-box">
                 <h3 class="summary-title">Ingresar cupón de descuento</h3>
                 <div class="coupon-input">
-                    <input type="text" placeholder="Cupón de descuento">
-                    <button>Aplicar</button>
+                    <input type="text" placeholder="Cupón de descuento" id="cuponInput">
+                    <button onclick="aplicarCupon()">Aplicar</button>
                 </div>
 
                 <div class="summary-row">
                     <span>Subtotal:</span>
-                    <span>$175.000</span>
+                    <span>${{ subtotal|floatformat:0 }}</span>
                 </div>
                 <div class="summary-row">
                     <span>Descuento en productos:</span>
-                    <span>0</span>
+                    <span>${{ descuento|floatformat:0 }}</span>
                 </div>
                 <div class="summary-row summary-total">
                     <span>Total</span>
-                    <span>$170.000</span>
+                    <span>${{ total|floatformat:0 }}</span>
                 </div>
             </div>
-            <a href="{% url 'envio' %}" class="boton-continuar">CONTINUAR CON LOS DETALLES DE ENVÍO</a>
             <a href="{% url 'carrito' %}" class="back-button">VOLVER AL CARRITO</a>
         </div>
     </div>
@@ -151,5 +173,14 @@
     <div class="footer-banner">
         <a href="#" class="footer-link">Ver términos y condiciones</a>
     </div>
+
+    <script>
+        function aplicarCupon() {
+            const cupon = document.getElementById('cuponInput').value;
+            if (cupon) {
+                alert('Funcionalidad de cupón en desarrollo');
+            }
+        }
+    </script>
 </body>
 </html>
