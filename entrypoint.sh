@@ -20,4 +20,4 @@ python manage.py collectstatic --noinput
 
 # 3. Arrancar el servidor Gunicorn (Reemplaza el proceso del script)
 echo "Iniciando Gunicorn..."
-exec gunicorn decora_con_arte.wsgi:application --bind 0.0.0.0:8000
+exec gunicorn prjLiherfashion.wsgi:application --bind 0.0.0.0:8000
