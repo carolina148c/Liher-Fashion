@@ -532,20 +532,20 @@ body {
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" name="empresa" value="coordinadora" id="coord" 
-                                       checked onchange="actualizarEnvio(12000)">
-                                <label for="coord">Coordinadora: $12,000</label>
+                                       checked onchange="actualizarEnvio(12)">
+                                <label for="coord">Coordinadora: $12</label>
                             </div>
                             
                             <div class="radio-option">
                                 <input type="radio" name="empresa" value="interrapidisimo" id="inter"
-                                       onchange="actualizarEnvio(15000)">
-                                <label for="inter">Interrapidísimo: $15,000</label>
+                                       onchange="actualizarEnvio(15)">
+                                <label for="inter">Interrapidísimo: $15</label>
                             </div>
                             
                             <div class="radio-option">
                                 <input type="radio" name="empresa" value="envia" id="envia"
-                                       onchange="actualizarEnvio(15000)">
-                                <label for="envia">Transportadora Envia: $15,000</label>
+                                       onchange="actualizarEnvio(15)">
+                                <label for="envia">Transportadora Envia: $15</label>
                             </div>
                         </div>
                     </div>
@@ -597,7 +597,7 @@ body {
 
     <script>
         let subtotal = {{ subtotal|default:0 }};
-        let costoEnvio = {{ costo_envio|default:12000 }};
+        let costoEnvio = {{ costo_envio|default:12 }};
         
         function actualizarEnvio(nuevoCosto) {
             costoEnvio = nuevoCosto;

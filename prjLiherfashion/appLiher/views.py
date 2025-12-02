@@ -1202,7 +1202,7 @@ def envio(request):
     # Calcular totales
     subtotal = sum(item.total_precio for item in items_carrito)
     descuento = Decimal('0.00')
-    costo_envio = Decimal('12000.00')  # Valor por defecto
+    costo_envio = Decimal('12.00')  # Valor por defecto
     
     if request.method == 'POST':
         # VALIDACIONES DE CAMPOS REQUERIDOS
@@ -1278,11 +1278,11 @@ def envio(request):
         
         # Ajustar costo según empresa
         costos_envio = {
-            'coordinadora': Decimal('12000.00'),
-            'interrapidisimo': Decimal('15000.00'),
-            'envia': Decimal('15000.00'),
+            'coordinadora': Decimal('12.00'),
+            'interrapidisimo': Decimal('15.00'),
+            'envia': Decimal('15.00'),
         }
-        costo_envio = costos_envio.get(empresa_envio, Decimal('12000.00'))
+        costo_envio = costos_envio.get(empresa_envio, Decimal('12.00'))
         
         # Actualizar información de envío en sesión
         if 'checkout_data' not in request.session:
@@ -1358,7 +1358,7 @@ def pago(request):
     # Calcular totales
     subtotal = sum(item.total_precio for item in items_carrito)
     descuento = Decimal('0.00')
-    costo_envio = Decimal(checkout_data.get('costo_envio', '12000.00'))
+    costo_envio = Decimal(checkout_data.get('costo_envio', '12.00'))
     total = subtotal - descuento + costo_envio
     
     # Inicializar variables
@@ -2753,7 +2753,7 @@ def procesar_pago_mp(request):
         # Calcular total
         subtotal = sum(item.total_precio for item in items_carrito)
         descuento = Decimal('0.00')
-        costo_envio = Decimal(checkout_data.get('costo_envio', '12000.00'))
+        costo_envio = Decimal(checkout_data.get('costo_envio', '12.00'))
         total = subtotal - descuento + costo_envio
         
         # Preparar datos del pago
