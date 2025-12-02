@@ -98,19 +98,12 @@ DATABASES = {
         default=config('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True,
+        # Railway soporta SSL automáticamente, no necesitas forzar certificados manuales
     )
 }
 
-# Forzamos el uso de mysqlclient
+# Si quieres estar 100% seguro del engine (aunque dj_database_url lo detecta solo):
 DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
-
-# Configuración SSL explícita para Aiven en Alpine
-DATABASES['default']['OPTIONS'] = {
-    'ssl': {
-        # Como instalamos ca-certificates en el Dockerfile, usamos el certificado del sistema
-        'ca': '/etc/ssl/certs/ca-certificates.crt'
-    }
-}
 
 # -------------------------------------------------------------------
 # Password validators
