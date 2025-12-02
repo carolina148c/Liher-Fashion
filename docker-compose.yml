@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    command: gunicorn --chdir liherfashion prjLiherFashion.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - /app/src/static
+      - /app/src/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    restart: unless-stopped
