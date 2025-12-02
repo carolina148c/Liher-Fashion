@@ -93,25 +93,22 @@ WSGI_APPLICATION = 'prjLiherfashion.wsgi.application'
 #    Esta variable (DATABASE_URL) será la que configurarás en Render.
 DATABASE_URL = config('DATABASE_URL')
 
-# 2. Usamos dj_database_url para parsear la URL y generar el diccionario
-#    de conexión de Django.
 DATABASES = {
-    'default': dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,  # Opcional: mantiene conexiones persistentes
-        # Esta opción es CRUCIAL para Aiven, ya que requiere SSL/TLS.
-        # Le dice al driver mysqlclient que use SSL.
-        ssl_require=True
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
     )
 }
 
-# 3. Aseguramos el motor correcto de MySQL.
-#    dj-database-url a veces usa el motor por defecto. Aquí lo forzamos
+# Forzamos el uso de mysqlclient
 DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
+# Configuración SSL explícita para Aiven en Alpine
 DATABASES['default']['OPTIONS'] = {
     'ssl': {
-        'ca': str(BASE_DIR / 'ca.pem')
+        # Como instalamos ca-certificates en el Dockerfile, usamos el certificado del sistema
+        'ca': '/etc/ssl/certs/ca-certificates.crt'
     }
 }
 
