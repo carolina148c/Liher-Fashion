@@ -4,12 +4,15 @@ WORKDIR /app
 
 RUN apk update && \
     apk add --no-cache \
-        postgresql-dev \
+        default-libmysqlclient-dev \
+        mariadb-dev \
+        pkgconfig \
         gcc \
         python3-dev \
         musl-dev \
         libffi-dev \
-        openssl-dev
+        openssl-dev \
+        libssl-dev 
 
 COPY requirements.txt .
 
