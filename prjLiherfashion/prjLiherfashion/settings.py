@@ -5,7 +5,9 @@ Django settings for prjLiherfashion project.
 from pathlib import Path
 import os
 from decouple import config
-import dj_database_url
+
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -91,20 +93,18 @@ WSGI_APPLICATION = 'prjLiherfashion.wsgi.application'
 
 # 1. Recuperamos la URL de conexión de la variable de entorno.
 #    Esta variable (DATABASE_URL) será la que configurarás en Render.
-DATABASE_URL = config('DATABASE_URL')
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
-        # Railway soporta SSL automáticamente, no necesitas forzar certificados manuales
-    )
-}
 
 # Si quieres estar 100% seguro del engine (aunque dj_database_url lo detecta solo):
-DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
-
+DATABASES={
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGES_DB'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': 'localhost',
+        'PORT': os.environ.get('POSTGRES_PORT'),
+    }
+}
 # -------------------------------------------------------------------
 # Password validators
 # -------------------------------------------------------------------
