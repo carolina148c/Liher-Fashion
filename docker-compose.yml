@@ -1,16 +1,36 @@
+version: "3.9"
+
 services:
   web:
     build: .
-    command: gunicorn --chdir liherfashion prjLiherFashion.wsgi:application --bind 0.0.0.0:8000
+    container_name: liher_web
+    depends_on:
+      - db
     volumes:
       - .:/app
-      - /app/src/static
-      - /app/src/media
+      - ./media:/app/media
+      - ./static:/app/static
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - .env
-    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: prjLiherfashion.settings
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: liherfashion
+
+  db:
+    image: mysql:8.0
+    container_name: liher_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: liherfashion
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
