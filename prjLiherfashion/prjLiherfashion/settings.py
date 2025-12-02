@@ -109,6 +109,12 @@ DATABASES = {
 #    dj-database-url a veces usa el motor por defecto. Aquí lo forzamos
 DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
+DATABASES['default']['OPTIONS'] = {
+    'ssl': {
+        'ca': '/etc/ssl/certs/ca-certificates.crt'
+    }
+}
+
 # -------------------------------------------------------------------
 # Password validators
 # -------------------------------------------------------------------
