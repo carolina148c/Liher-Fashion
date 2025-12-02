@@ -111,7 +111,7 @@ DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
 
 DATABASES['default']['OPTIONS'] = {
     'ssl': {
-        'ca': '/etc/ssl/certs/ca-certificates.crt'
+        'ca': str(BASE_DIR / 'ca.pem')
     }
 }
 
